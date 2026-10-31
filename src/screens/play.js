@@ -3,9 +3,9 @@
 function playScreen(root) {
   ensureArcadePeriods();
   const rarityChip = (s) => {
-    const key = typeEggRarity(s.element);
+    const key = spriteRarityKey(s);
     const rarity = TYPE_EGG_RARITIES[key];
-    const bonus = rarityCoinBonus(s.element);
+    const bonus = spriteRarityBonus(s);
     const gift = ['common', 'uncommon'].includes(key) ? ' · gifts +25%' : '';
     return `<span class="chip">${rarity.name}${bonus ? ` · +${bonus.toLocaleString()} / game` : ''}${gift}</span>`;
   };
@@ -30,7 +30,7 @@ function playScreen(root) {
       <span style="flex:1;min-width:0">
         <h3>${g.title}${kindTag ? ` <span class="arcade-tag">${kindTag}</span>` : ''}</h3>
         <p>${locked ? lockText : g.desc}</p>
-        <span class="g-meta"><span class="chip">${g.tag}</span><span class="chip">🪙 coins</span><span class="chip">⭐ XP</span>${sport ? '<span class="chip">🍲 food</span><span class="chip">🎁 sport gift</span>' : trail ? '<span class="chip">💗 extra bond</span><span class="chip">🎁 trail gift</span>' : ''}${arcade ? '<span class="chip">🎁 bonus track</span>' : ''}${locked ? `<span class="chip">🔒 ${need} ${trail ? 'walks' : 'check-ins'}</span>` : ''}</span>
+        <span class="g-meta"><span class="chip">${g.tag}</span><span class="chip">🪙 coins</span><span class="chip">⭐ XP</span>${sport ? '<span class="chip">🍲 food</span><span class="chip">🎁 sport gift</span>' : trail ? '<span class="chip">💗 extra bond</span><span class="chip">🎁 trail gift</span><span class="chip">🎲 tier · evolve · coins</span>' : ''}${arcade ? '<span class="chip">🎁 bonus track</span>' : ''}${locked ? `<span class="chip">🔒 ${need} ${trail ? 'walks' : 'check-ins'}</span>` : ''}</span>
       </span>
       <span class="go">${icon(locked ? 'lock' : 'chevron')}</span>
     </button>`;

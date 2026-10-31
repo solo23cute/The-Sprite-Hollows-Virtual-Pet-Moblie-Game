@@ -30,6 +30,7 @@ function walkRouteCards() {
           <span class="chip">🪙 +${route.baseCoins}</span>
           <span class="chip">⭐ +${route.baseXp} XP</span>
           <span class="chip">💗 +${route.baseBond} bond</span>
+          <span class="chip">🎲 trail upgrade</span>
           ${locked ? `<span class="chip">🔒 ${route.walkUnlock} walks</span>` : ''}
         </span>
       </span>
@@ -56,7 +57,7 @@ function openWalkSheet() {
     sub: `${displayName(s)} is ready for the trail. ${walks} walk${walks === 1 ? '' : 's'} · ${distance.toLocaleString()} m traveled.`,
     body: `<div class="card" style="padding:12px;margin-bottom:8px">
         <div class="between"><b>Fresh air, full hearts</b><span class="chip">🎁 Trail gift in ${giftIn} walk${giftIn === 1 ? '' : 's'}</span></div>
-        <p class="tiny muted" style="margin:6px 0 0;line-height:1.55">Walking restores joy and builds extra bond, pays coins and XP, and works toward a Trail Gift every ${WALK_GIFT_EVERY} walks. Every third walk pays bonus coins and a snack. Longer trails unlock as you walk.</p>
+        <p class="tiny muted" style="margin:6px 0 0;line-height:1.55">Walking restores joy and builds extra bond, pays coins and XP, and works toward a Trail Gift every ${WALK_GIFT_EVERY} walks. Every finished trail also rolls a <b style="color:var(--text)">Trail Upgrade</b>: raise this sprite's type tier, evolve it to its next stage, or take a big coin bonus. Longer trails unlock as you walk and roll upgrades more often.</p>
       </div>
       <div class="tiny muted" style="margin:10px 0 0;font-weight:800;letter-spacing:.08em">CHOOSE A TRAIL</div>
       ${walkRouteCards()}
@@ -252,9 +253,10 @@ function showWalkResult(shell, data) {
         <span class="chip">⭐ +${data.xp} XP</span>
         <span class="chip">💗 +${Math.round(data.bond)} bond</span>
         ${route.foodChance ? '<span class="chip">🍲 food chance</span>' : ''}
+        <span class="chip">🎲 tier · evolve · coins</span>
         ${data.giftTokens ? `<span class="chip">🎁 ${data.giftTokens} trail token${data.giftTokens === 1 ? '' : 's'}</span>` : ''}
       </div>
-      <p class="tiny muted" style="margin:8px 0 0;line-height:1.5;text-align:center">Every ${WALK_GIFT_EVERY} walks opens a Trail Gift. Every third walk also pays bonus coins and a snack.</p>
+      <p class="tiny muted" style="margin:8px 0 0;line-height:1.5;text-align:center">Every ${WALK_GIFT_EVERY} walks opens a Trail Gift. Every third walk also pays bonus coins and a snack. Trail Upgrades can raise a type tier, evolve a stage, or add a coin bonus.</p>
       <button class="btn btn-gold btn-block" data-collect style="margin-top:14px">Collect rewards</button>
     </div>`;
   shell.board.appendChild(result);
@@ -272,6 +274,9 @@ function showWalkResult(shell, data) {
     if (res.foodKey) message += ` · ${FOODS[res.foodKey].emoji} ${FOODS[res.foodKey].name}`;
     if (res.gift) message += ` · 🎁 Trail Gift: +${res.gift.coins} coins & ${SNACKS[res.gift.snackKey].name}`;
     if (res.unlocked?.length) message += ` · Unlocked ${res.unlocked.map((key) => WALK_ROUTES[key].title).join(' & ')}!`;
+    if (res.trail?.kind === 'tier') message += ` · ✨ Tier up: ${res.trail.from} → ${res.trail.to}!`;
+    else if (res.trail?.kind === 'evolve') message += ` · 🌟 Evolved: ${res.trail.from} → ${res.trail.to}!`;
+    else if (res.trail?.kind === 'coins' && res.trail.coins) message += ` · 🎲 Trail bonus +${res.trail.coins} coins`;
     if (res.careGift) message += ` · 🌈 Care Package: +${res.careGift.coins} coins, +${res.careGift.xp} XP, ${SNACKS[res.careGift.snackKey].name}${res.careGift.foodKey ? ` & ${FOODS[res.careGift.foodKey].name}` : ''}`;
     toast(message, '🥾');
     burstOn(event.currentTarget, ['🥾', '🪙', '✨', '💗'], 10);

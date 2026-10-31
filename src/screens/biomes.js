@@ -139,7 +139,7 @@ function openSecretVault() {
       <button class="btn btn-soft btn-block" data-vault-all-children style="margin:8px 0 10px">Browse all parent combinations & possible children</button>
       <div class="secret-code-card ${masterFound ? 'found' : ''}">
         <div class="between"><b>${masterFound ? '🕹️ Master Cheat unlocked' : '🕹️ Unlisted entry'}</b><span class="chip">${masterFound ? 'LV 30' : 'CHEAT'}</span></div>
-        <p>${masterFound ? 'The Master Cheat is in your collection, already at level 30. Try not to break the Hollow.' : 'One secret ignores every normal rule. Finish the tour, then speak the Master’s name into the console.'}</p>
+        <p>${masterFound ? 'The Master Cheat is in your collection, already at level 1,000. Try not to break the Hollow.' : 'One secret ignores every normal rule. Finish the tour, then speak the Master’s name into the console.'}</p>
         <form class="secret-code-row" data-secret-form>
           <input name="code" maxlength="18" autocomplete="off" placeholder="Enter cheat code" aria-label="Cheat code">
           <button class="btn btn-primary btn-sm" type="submit">Unlock</button>

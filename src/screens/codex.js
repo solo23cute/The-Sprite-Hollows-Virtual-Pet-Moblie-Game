@@ -42,12 +42,22 @@ function codexScreen(root) {
         <span class="tf-copy"><b>Secret Vault</b><span>${(state.secretUnlocks || []).length} / ${SECRET_SPECIES.length} found · not sold in the Nest</span></span>
         <span class="tf-arrow">›</span>
       </button>
+      <button class="type-feature bond-feature" data-open-bonds>
+        <span class="tf-icon">💞</span>
+        <span class="tf-copy"><b>Bond Codex</b><span>6 bond ranks, passive bonuses, and the full evolution path</span></span>
+        <span class="tf-arrow">›</span>
+      </button>
+      <button class="type-feature bond-feature" data-open-evolution>
+        <span class="tf-icon">🧬</span>
+        <span class="tf-copy"><b>World Evolution Atlas</b><span>${ELEMENT_KEYS.length.toLocaleString()} types × 4 forms · ${BIOME_KEYS.length} biomes · Vault free</span></span>
+        <span class="tf-arrow">›</span>
+      </button>
     </div>
     <div class="type-tools" style="margin-top:2px">
       <input class="type-search" type="search" data-codex-search placeholder="Search types…" aria-label="Search sprite types" autocomplete="off">
       <div class="type-rarities">
         <button class="chip type-rarity on" data-codex-rarity="all">All</button>
-        ${Object.entries(TYPE_EGG_RARITIES).map(([key, r]) => `<button class="chip type-rarity" data-codex-rarity="${key}"><span class="te-dot" style="background:${r.color}"></span>${r.name}</button>`).join('')}
+        ${RARITY_TIER_ORDER.filter((key) => !RARITY_APEX_KEYS.includes(key)).map((key) => `<button class="chip type-rarity" data-codex-rarity="${key}"><span class="te-dot" style="background:${TYPE_EGG_RARITIES[key].color}"></span>${TYPE_EGG_RARITIES[key].name}</button>`).join('')}
       </div>
       <div class="type-rarities" style="margin-top:6px">
         <button class="chip on" data-codex-category="all">All species</button>
@@ -63,8 +73,11 @@ function codexScreen(root) {
     <div class="section-title" style="margin-top:16px"><h2>Finishes</h2><span>any type can hatch shiny</span></div>
     <div class="finish-strip" data-finish-strip></div>
     <p class="tiny muted" style="text-align:center;margin:6px 4px 0">About 15% of eggs carry a finish. The rest hatch in their natural colors.</p>
+    <div class="section-title" style="margin-top:16px"><h2>Apex trail ranks</h2><span>above Master · earned on trails</span></div>
+    <div class="finish-strip" data-apex-strip></div>
+    <p class="tiny muted" style="text-align:center;margin:6px 4px 0">Celestial, Divine, and Eternal are not egg tiers. A finished trail can push a Master sprite into them.</p>
     <div class="card" style="padding:12px;margin-top:14px;font-size:11px;line-height:1.6;color:var(--muted)">
-      Every type can be bought as its own egg in the Nest. Base tiers follow egg price; Secret, Exotic, and Master outrank them. The gene power is always active while that sprite is in your Hollow.
+      Every type can be bought as its own egg in the Nest. Base tiers follow egg price; Secret, Exotic, and Master outrank them, and the three apex trail ranks sit above Master. The gene power is always active while that sprite is in your Hollow.
     </div>`;
 
   const grid = root.querySelector('[data-codex-grid]');
@@ -75,6 +88,8 @@ function codexScreen(root) {
   root.querySelector('[data-open-wiki]').addEventListener('click', () => App.go('wiki'));
   root.querySelector('[data-open-biomes]').addEventListener('click', openBiomeAtlas);
   root.querySelector('[data-open-secrets]').addEventListener('click', openSecretVault);
+  root.querySelector('[data-open-bonds]').addEventListener('click', () => openBondCodex());
+  root.querySelector('[data-open-evolution]').addEventListener('click', () => openWorldEvolutionAtlas());
 
   function matches(key) {
     const q = query.trim().toLowerCase();
@@ -87,7 +102,7 @@ function codexScreen(root) {
       || (category === 'master' && key === MASTER_CHEAT_SPECIES);
     const prismaticOk = category !== 'prismatic' || !!el.alwaysShiny;
     return categoryOk && prismaticOk
-      && (!q || `${el.name} ${key} ${family} ${catalog} ${el.catalogType || ''} ${el.alwaysShiny ? 'prismatic always shiny multiverse' : ''}`.toLowerCase().includes(q))
+      && (!q || `${el.name} ${key} ${family} ${catalog} ${el.catalogType || ''} ${el.alwaysShiny ? 'prismatic always shiny multiverse' : ''} celestial divine eternal apex bond codex evolution`.toLowerCase().includes(q))
       && (rarity === 'all' || typeEggRarity(key) === rarity);
   }
 
@@ -171,6 +186,16 @@ function codexScreen(root) {
   strip.querySelectorAll('[data-finish]').forEach((btn) => {
     btn.addEventListener('click', () => openFinishDetail(btn.dataset.finish));
   });
+  const apexStrip = root.querySelector('[data-apex-strip]');
+  apexStrip.innerHTML = RARITY_APEX_KEYS.map((key) => {
+    const tier = TYPE_EGG_RARITIES[key];
+    return `<div class="finish-card apex-card" style="--apex:${tier.color}">
+      <span class="apex-symbol">✦</span>
+      <b>${tier.name}</b>
+      <span>+${RARITY_COIN_BONUS[key].toLocaleString()} / game</span>
+      <span class="tiny muted">Trail rank ${RARITY_TIER_ORDER.indexOf(key) + 1} of ${RARITY_TIER_ORDER.length}</span>
+    </div>`;
+  }).join('');
 
   paint();
 }

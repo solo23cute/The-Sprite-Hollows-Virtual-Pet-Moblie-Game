@@ -2244,8 +2244,29 @@ const TYPE_EGG_RARITIES = {
   secret: { name: 'Secret', color: '#ff7597' },
   exotic: { name: 'Exotic', color: '#7af0d0' },
   master: { name: 'Master', color: '#ffe9a3' },
+  celestial: { name: 'Celestial', color: '#ff9f6e' },
+  divine: { name: 'Divine', color: '#ff7a7a' },
+  eternal: { name: 'Eternal', color: '#f4f1ff' },
 };
-const RARITY_TIER_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'secret', 'exotic', 'master'];
+const RARITY_TIER_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'secret', 'exotic', 'master', 'celestial', 'divine', 'eternal'];
+const RARITY_APEX_KEYS = ['celestial', 'divine', 'eternal'];
+const RARITY_BOOST_MAX = RARITY_TIER_ORDER.length - 1;
+
+/* Bond ranks are earned by care, play, trails, and time together. */
+/* Their effects are passive while the sprite is in the Hollow. */
+const BOND_RANKS = [
+  { key: 'new', name: 'New Friend', min: 0, icon: '🌱', blurb: 'A fresh hello. Every pet, snack, and shared trail starts here.', effect: {} },
+  { key: 'warming', name: 'Warming Up', min: 20, icon: '🌤️', blurb: 'They know your voice and come running when you tap.', effect: { xp: 1.04 } },
+  { key: 'friendly', name: 'Friendly', min: 45, icon: '💛', blurb: 'Meals, games, and quiet company feel easy now.', effect: { xp: 1.08, giftSpeed: 1.03 } },
+  { key: 'close', name: 'Close', min: 70, icon: '💞', blurb: 'They save you the warm spot and check on your mood.', effect: { xp: 1.12, giftSpeed: 1.06, gameCoins: 1 } },
+  { key: 'inseparable', name: 'Inseparable', min: 90, icon: '💖', blurb: 'Two shadows, one path. Gifts and games come easier.', effect: { xp: 1.18, giftSpeed: 1.1, gameCoins: 2, decay: 0.97 } },
+  { key: 'heartbound', name: 'Heartbound', min: 100, icon: '💗', blurb: 'A bond with no ceiling. The Hollow feels brighter together.', effect: { xp: 1.25, giftSpeed: 1.15, gameCoins: 3, decay: 0.95 } },
+];
+function bondRankFor(value) {
+  const bond = Math.max(0, Math.min(100, Number(value) || 0));
+  for (let i = BOND_RANKS.length - 1; i >= 0; i--) if (bond >= BOND_RANKS[i].min) return BOND_RANKS[i];
+  return BOND_RANKS[0];
+}
 function baseTypeEggRarity(key) {
   const price = TYPE_EGG_BASE_PRICE[key] || 90;
   if (price >= 210) return 'mythic';
@@ -2271,9 +2292,18 @@ const RARITY_COIN_BONUS = {
   secret: 13500,
   exotic: 18000,
   master: 25000,
+  celestial: 35000,
+  divine: 50000,
+  eternal: 75000,
 };
-function rarityCoinBonus(key) {
-  return RARITY_COIN_BONUS[typeEggRarity(key)] || 0;
+function rarityTierWithBoost(key, boost = 0) {
+  const base = typeEggRarity(key);
+  const start = RARITY_TIER_ORDER.indexOf(base);
+  const step = Math.max(0, Math.min(RARITY_BOOST_MAX, Math.floor(Number(boost) || 0)));
+  return RARITY_TIER_ORDER[Math.min(RARITY_BOOST_MAX, Math.max(0, start) + step)];
+}
+function rarityCoinBonus(key, boost = 0) {
+  return RARITY_COIN_BONUS[rarityTierWithBoost(key, boost)] || 0;
 }
 
 /* The Mythic Egg pools only the top two rarity bands, with Dragon and Mother Earth featured. */

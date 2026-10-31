@@ -360,7 +360,7 @@ const SECRET_SPECIES_META = {
   },
   summitspirit: {
     name: 'Summit Spirit', title: 'The peak is a beginning',
-    clue: 'Raise any sprite to level 30.',
+    clue: 'Raise any sprite to level 1,000.',
     palette: ['#ffd166', '#fff7d6', '#8a5a00', '#b69cff'],
     trait: 'Ascended — has already climbed the mountain and is waiting with cocoa.',
     blurb: 'A secret spirit that appears on the day a sprite reaches the top of its growth.',
