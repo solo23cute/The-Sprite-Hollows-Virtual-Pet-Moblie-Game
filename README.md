@@ -1,3 +1,32 @@
+## 3.4.4 Care dock placement fix
+
+- Moved the care dock out of the floating overlay and into the Hollow’s normal screen flow, directly above the tab bar. It no longer covers the scene or floats high over the page.
+- Kept the two labeled 5-button rows, reduced the buttons to 48px and the dock to about 138px, and removed the extra 252px bottom reservation. The Hollow now reserves only the 76px tab bar.
+- The Hollow stays scrollable with a 170px stage minimum, so short screens scroll instead of squashing the page from top to bottom.
+- Android version **3.4.4 / versionCode 55**.
+- Verified with the DOM suite: the dock is `position: relative`, follows the stage inside the screen, renders ten buttons in 5 + 5 labeled groups, the Hollow reserves only the tab bar, and there are zero console/runtime errors. A live Chromium screenshot remains unavailable because the cloud VM lacks the NSS libraries and has no root access; the app is available in the preview panel.
+
+## 3.4.3 Tier ladder and Hollow layout repair
+
+- Rarity is now a **nine-tier ladder**: **Common → Uncommon → Rare → Epic → Legendary → Mythic → Secret → Exotic → Master**. Secret, Exotic, and Master override the old egg-price band; Master is the single Master secret above Exotic.
+- The Codex and Wiki list all nine tiers, Nest filters only show sellable type-egg tiers, owned sprite details show a tier chip, and game payouts extend through **Secret 13,500**, **Exotic 18,000**, and **Master 25,000**.
+- Rebuilt the care dock as **two labeled rows**: **Care** (Feed, Rub Belly, Bath, Nap, Bed) and **Play & social** (Play, Walk, Throw Ball, Play Catch, Talk). It is pinned above the tab bar with compact 54px buttons, 5px gaps, and no wrapped or crushed labels.
+- Fixed the Hollow squash: the main screen scrolls instead of compressing, the scene keeps a 190px minimum, and the pinned dock and tab bar are reserved with bottom padding.
+- Android version **3.4.3 / versionCode 54**.
+- Verified with the DOM suite: nine tiers resolve correctly, Codex shows All + nine tiers, Nest shows All + seven sellable tiers, the dock renders ten buttons in 5 + 5 labeled groups, the dock is absolutely pinned at 84px, article and sprite-detail tiers render, and there are zero console/runtime errors. A live Chromium screenshot remains unavailable because the cloud VM lacks the NSS libraries and has no root access; the app is available in the preview panel.
+
+## 3.4.2 Netflix animation wing
+
+- Added a **60-character Netflix animation wing under TV Legends**: **30 Netflix Anime** and **30 Netflix Toons** across **20 shows**, with **three characters per show**.
+- **Netflix Anime:** Castlevania, Castlevania: Nocturne, Cyberpunk: Edgerunners, Blue Eye Samurai, Delicious in Dungeon, Pluto, Scott Pilgrim Takes Off, Devil May Cry, Sakamoto Days, and Beastars.
+- **Netflix Toons:** Arcane, Hilda, Kipo and the Age of Wonderbeasts, She-Ra and the Princesses of Power, The Dragon Prince, Carmen Sandiego, Voltron: Legendary Defender, Trollhunters: Tales of Arcadia, The Cuphead Show!, and Sonic Prime.
+- A duplicate audit against all **2,828 existing species** replaced eight collisions while keeping the wing at 60: Alucard → Carmilla; Scott Pilgrim and Ramona Flowers → Wallace Wells and Lucas Lee; Hilda → Alfur; Wolf → Dave; Carmen Sandiego → Zack; Sonic and Shadow → Nine and Rusty Rose. Dread completes the Sonic Prime trio.
+- Every character has **original procedural art** (a unique hair, prop, and crest combination), a show gene, trait, rarity band, Titan, type egg, habitats, named hybrid, and a short original Wiki article. No show frames or traced character art are used.
+- Added **Netflix Anime** and **Netflix Toons** roster tabs, a filter for every one of the 20 shows, owned counts and progress for the wing and each show, and search across names, shows, groups, genes, traits, blurbs, and articles. Cards open the correct Wiki article, and Back returns to the roster.
+- Added **closed captions (CC)** for sound effects and spoken lines, plus **language settings** (English, Español, Français) and a language picker inside the induction tour with translated tour steps.
+- All prior rosters, saves, art, genes, Titans, eggs, habitats, hybrids, guides, and collections are preserved. The Hollow now holds **2,888 species** and **2,882 named hybrids**. Android uses `versionName=3.4.2` and `versionCode=53`.
+- Verified with a DOM test suite: six roster tabs, both Netflix tabs, all show filters, owned progress, search, article links, back navigation, language switching, CC captions, and zero console/runtime errors. A real Chromium run was blocked in the cloud VM by missing NSS system libraries (no root); the same source and events were exercised in jsdom instead.
+
 ## 3.4.1 Collection discovery: the roster browser
 
 - Added a **Roster browser** for the four large widening collections: **92 ponies, 32 Care Bears, 100 TV Legends, and 90 Kingdom Hearts characters**.
@@ -150,7 +179,7 @@ Any static file server works. The game saves to `localStorage` after every actio
 
 **Download:** [`SpriteHollow.apk`](SpriteHollow.apk) — 519 KB, debug-signed, fully offline. SHA-256 `e1de2c9e6a2c14b4dca1ef2dd36501ab99224fa385430d29906e96dccac85e08`.
 
-**Release build (3.4.1):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 514 KB, signed with the project release key. SHA-256 `a9131465d701dcf0aa4acb95d6261005fc719c25259705f04ca27f921c2e3aeb`.
+**Release build (3.4.4):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 559 KB, signed with the project release key. SHA-256 `c194733582e18811ce363b20a63ae6004663d92d08d91f2672119f0a97aefaed`.
 
 - Minimum Android 8.0 (API 26); targets Android 14 (API 34).
 - Install: open the APK on the phone and allow installation from this source, or use `adb install -r SpriteHollow.apk`.
@@ -222,6 +251,10 @@ src/data-fortnite-legacy.js  59 past-season headliners, every season from Chapte
 src/data-wwe.js               20 WWE legends, superstars, and women’s champions
 src/data-franchise-waves.js 32 ponies, 40 TV legends, 32 realm sprites, 40 Kingdom Hearts characters
 src/franchise-art.js          pony, TV, realm, and Keyblade signature art
+src/data-netflix.js           60-character Netflix anime/toon wing, show genes, and Wiki notes
+src/netflix-art.js            unique procedural hair, prop, and crest art for all 60
+src/i18n.js                   English, Spanish, and French settings + tour translations
+src/captions.js               closed captions for sounds and spoken lines
 src/fortnite-art.js            signature art for the current Fortnite wave
 src/fortnite-legacy-art.js    original season and chapter accents for the Legacy roster
 src/wwe-art.js                 original ring gear, masks, and title belts for WWE
