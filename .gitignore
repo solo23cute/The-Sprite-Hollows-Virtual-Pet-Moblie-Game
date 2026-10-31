@@ -1,0 +1,9 @@
+android/build/
+android/assets/
+android/debug.keystore
+android/release.keystore
+android/release-key.properties
+*.idsig
+apk-*.png
+apk-check*.png
+__pycache__/
