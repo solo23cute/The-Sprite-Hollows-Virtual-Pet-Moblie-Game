@@ -273,12 +273,14 @@ function hollowScreen(root) {
         }
         if (fresh.asleep) {
           Actions.wake(fresh.id);
+          Sfx.spriteBabble(fresh);
           setWhisper(`${displayName(fresh)} stretches and blinks awake.`);
           paint();
           return;
         }
         if (activeSprite()?.id !== fresh.id) Actions.setActive(fresh.id);
         const result = Actions.pet(fresh.id);
+        Sfx.spriteCry(fresh);
         const rect = actor.getBoundingClientRect();
         burstAt(rect.left + rect.width / 2, rect.top + rect.height / 2, ['💛', '💗', '✨'], 5);
         if (result.coins) coinFly(actor, 1);

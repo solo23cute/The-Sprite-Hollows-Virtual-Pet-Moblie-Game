@@ -3,9 +3,9 @@
 WIKI_GUIDES.push({
   id: 'rebirth', icon: '🌱', title: 'Retirement & reincarnation',
   summary: 'MAX retirement, Rebirth Meals, permanent bonuses, daily codes, and milestone Vault keepers.',
-  body: () => `<p class="wiki-lede">A sprite that reaches <b>level 30 / MAX</b> retires to the cozy home section of the Sprites screen. Retirement pauses needs and XP, but it is not the end: feed a <b>🌱 Rebirth Meal</b> from the pantry to begin a new life.</p>
+  body: () => `<p class="wiki-lede">A sprite that reaches <b>level 1,000 / MAX</b> retires to the cozy home section of the Sprites screen. Retirement pauses needs and XP, but it is not the end: feed a <b>🌱 Rebirth Meal</b> from the pantry to begin a new life.</p>
     <h3>Rebirth Meal</h3>
-    <p>The Rebirth Meal costs <b>600 coins</b> in the market. Feed it to a MAX sprite to return them to an egg, reset to level 1, and keep their identity, finish, palette, breed, and collection slot. The new egg must be warmed and hatched again.</p>
+    <p>The Rebirth Meal costs <b>600 coins</b> in the market. Feed it to a level 1,000 MAX sprite to return them to an egg, reset to level 1, and keep their identity, finish, palette, breed, and collection slot. The new egg must be warmed and hatched again.</p>
     <h3>Permanent rebirth bonuses</h3>
     <p>Each rebirth adds <b>+8% XP</b>, <b>+1 game coin</b>, and <b>+3% gift speed</b> permanently to that sprite. The first rebirth also pays <b>500 coins</b>, two pantry foods, two snacks, and unlocks the <b>Rebirth Keeper</b>. Every later cycle pays more coins and stacks the bonuses.</p>
     <h3>Reusable daily codes</h3>

@@ -25,6 +25,9 @@ const WALK_ROUTES = {
     baseBond: 6,
     bondStep: 0.4,
     foodChance: 0.25,
+    trailTierChance: 0.14,
+    trailEvolveChance: 0.05,
+    trailCoinMult: 2,
   },
   jog: {
     title: 'Sunrise Jog',
@@ -47,6 +50,9 @@ const WALK_ROUTES = {
     baseBond: 8,
     bondStep: 0.45,
     foodChance: 0.55,
+    trailTierChance: 0.18,
+    trailEvolveChance: 0.07,
+    trailCoinMult: 2.25,
   },
   walkmoon: {
     title: 'Moonlit Stroll',
@@ -69,6 +75,9 @@ const WALK_ROUTES = {
     baseBond: 8,
     bondStep: 0.5,
     foodChance: 0.4,
+    trailTierChance: 0.2,
+    trailEvolveChance: 0.08,
+    trailCoinMult: 2.5,
   },
   run: {
     title: 'Wind Sprint',
@@ -91,6 +100,9 @@ const WALK_ROUTES = {
     baseBond: 10,
     bondStep: 0.5,
     foodChance: 0.8,
+    trailTierChance: 0.24,
+    trailEvolveChance: 0.1,
+    trailCoinMult: 2.75,
   },
   walksummit: {
     title: 'Summit Scramble',
@@ -113,6 +125,9 @@ const WALK_ROUTES = {
     baseBond: 10,
     bondStep: 0.6,
     foodChance: 0.9,
+    trailTierChance: 0.28,
+    trailEvolveChance: 0.12,
+    trailCoinMult: 3,
   },
 };
 

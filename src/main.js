@@ -156,7 +156,47 @@ function startFromIntro(element, breed) {
   });
 }
 
+/* Native touch momentum is device-controlled, so add a small passive boost to
+   vertical swipes and a faster wheel step for trackpads/desktops. */
+function bindFastScroll() {
+  let touch = null;
+  document.addEventListener('touchstart', (event) => {
+    const scroller = event.target.closest?.('.screen');
+    if (!scroller || event.touches.length !== 1 || event.target.closest('.stage, .game-board, input, textarea, select')) {
+      touch = null;
+      return;
+    }
+    const point = event.touches[0];
+    touch = { scroller, x: point.clientX, y: point.clientY };
+  }, { passive: true });
+  document.addEventListener('touchmove', (event) => {
+    if (!touch || event.touches.length !== 1) return;
+    const point = event.touches[0];
+    const dx = point.clientX - touch.x;
+    const dy = touch.y - point.clientY;
+    touch.x = point.clientX;
+    touch.y = point.clientY;
+    if (Math.abs(dx) > Math.abs(dy) || Math.abs(dy) < 1) return;
+    const max = touch.scroller.scrollHeight - touch.scroller.clientHeight;
+    if (max <= 0) return;
+    touch.scroller.scrollTop = Math.max(0, Math.min(max, touch.scroller.scrollTop + dy * 0.55));
+  }, { passive: true });
+  const endTouch = () => { touch = null; };
+  document.addEventListener('touchend', endTouch, { passive: true });
+  document.addEventListener('touchcancel', endTouch, { passive: true });
+  document.addEventListener('wheel', (event) => {
+    if (event.ctrlKey) return;
+    const scroller = event.target.closest?.('.screen, .sheet, .modal');
+    if (!scroller) return;
+    const max = scroller.scrollHeight - scroller.clientHeight;
+    if (max <= 0) return;
+    event.preventDefault();
+    scroller.scrollTop = Math.max(0, Math.min(max, scroller.scrollTop + event.deltaY * 1.45));
+  }, { passive: false });
+}
+
 function bindGlobal() {
+  bindFastScroll();
   document.addEventListener('pointerdown', () => { Sfx.init(); Voice.init(); }, { once: true });
 
   document.addEventListener('keydown', (e) => {

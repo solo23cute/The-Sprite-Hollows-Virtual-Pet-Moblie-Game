@@ -356,37 +356,50 @@ const WIKI_GUIDES = [
     id: 'habitats',
     icon: '🗺️',
     title: 'Habitats & XP',
-    summary: 'Every environment, its species family, and how the level boost works.',
-    body: () => `<p class="wiki-lede">Habitats are the Hollow scenes. Each one is tuned to a family of species and gives those sprites a <b>+40–50% XP</b> boost while it is selected.</p>
+    summary: 'Core habitats, all 18 type biomes, custom environments, and the XP boost.',
+    body: () => `<p class="wiki-lede">Habitats are the Hollow scenes. Core habitats give <b>+40–50% XP</b>, all <b>${BIOME_KEYS.length} type biomes</b> give <b>+50% XP</b> to matching types, and custom biomes accept every sprite.</p>
+      <p>Studio now separates the picker into <b>Core habitats</b>, <b>Type biomes</b>, and <b>Custom biomes</b>, so no scene disappears into one long row. Every type biome is always available. Open the <b>Biome Atlas</b> from Studio or Types for the full map and guardian cards.</p>
       <p>Every action that grants XP uses the habitat bonus. That includes petting, feeding, games, baths, chatting, sleeping, and opening gifts. Species that do not call the habitat home still get a <b>+10% visitor bonus</b>, so no one is left out.</p>
       <div class="wiki-habitat-table">${wikiHabitatTable()}</div>
       <h3>How to read it</h3>
       <p>The Hollow chip shows the active sprite's current bonus. A green “thriving here” message in the Studio means the selected sprite is earning the full habitat rate. Switch habitats freely — there is no cooldown or cost.</p>
       <h3>Finding a home</h3>
-      <p>Every Nest species has at least one habitat, and the 18 type biomes give every Pokémon a home by its standard type. Secret sprites keep their own hidden homes. A few species appear in more than one scene because they fit multiple themes — for example, Keke can thrive in both Sugar Kitchen and the Dream Conservatory.</p>`,
+      <p>Every Nest species has at least one habitat, and the 18 type biomes give every Pokémon a home by its standard type. Secret sprites keep their own hidden homes. A few species appear in more than one scene because they fit multiple themes — for example, Keke can thrive in both Sugar Kitchen and the Dream Conservatory.</p>
+      <h3>All 18 type biomes</h3>
+      <div class="wiki-hybrid-list">${BIOME_KEYS.map((type) => `<button class="wiki-link" data-biome-travel="${TYPE_BIOMES[type].key}"><b>${TYPE_BIOMES[type].emoji} ${esc(TYPE_BIOMES[type].name)}</b><span>${esc(TYPE_BIOMES[type].habitat)} · ${TYPE_BIOMES[type].speciesCount.toLocaleString()} species · guardian ${esc(ELEMENTS[TYPE_BIOMES[type].guardian].name)}</span></button>`).join('')}</div>`,
   },
   {
     id: 'types',
     icon: '📚',
     title: 'Types & rarity',
-    summary: 'How the nine rarity tiers, gene powers, and type eggs work.',
+    summary: 'How the twelve rarity tiers, gene powers, and type eggs work.',
     body: () => `<p class="wiki-lede">Every sprite belongs to one of <b>${ELEMENT_KEYS.length} species</b>. A species is more than a colour: it carries a gene power, a Titan name, an egg price, a habitat family, and its own hybrid list.</p>
       <h3>Rarity bands</h3>
       <div class="wiki-rarity-list">
-        <div><span class="te-dot" style="background:${TYPE_EGG_RARITIES.common.color}"></span><b>Common</b><span>under 75 coins</span></div>
-        <div><span class="te-dot" style="background:${TYPE_EGG_RARITIES.uncommon.color}"></span><b>Uncommon</b><span>75–97 coins</span></div>
-        <div><span class="te-dot" style="background:${TYPE_EGG_RARITIES.rare.color}"></span><b>Rare</b><span>98–116 coins</span></div>
-        <div><span class="te-dot" style="background:${TYPE_EGG_RARITIES.epic.color}"></span><b>Epic</b><span>117–164 coins</span></div>
-        <div><span class="te-dot" style="background:${TYPE_EGG_RARITIES.legendary.color}"></span><b>Legendary</b><span>165–209 coins</span></div>
-        <div><span class="te-dot" style="background:${TYPE_EGG_RARITIES.mythic.color}"></span><b>Mythic</b><span>210+ coins</span></div>
-        <div><span class="te-dot" style="background:${TYPE_EGG_RARITIES.secret.color}"></span><b>Secret</b><span>Secret Vault keepers · above Mythic</span></div>
-        <div><span class="te-dot" style="background:${TYPE_EGG_RARITIES.exotic.color}"></span><b>Exotic</b><span>Hollow exotics · above Secret</span></div>
-        <div><span class="te-dot" style="background:${TYPE_EGG_RARITIES.master.color}"></span><b>Master</b><span>The Master secret · above Exotic</span></div>
+        ${RARITY_TIER_ORDER.map((key) => {
+          const band = key === 'common' ? 'under 75 coins' : key === 'uncommon' ? '75–97 coins' : key === 'rare' ? '98–116 coins' : key === 'epic' ? '117–164 coins' : key === 'legendary' ? '165–209 coins' : key === 'mythic' ? '210+ coins' : key === 'secret' ? 'Secret Vault keepers · above Mythic' : key === 'exotic' ? 'Hollow exotics · above Secret' : key === 'master' ? 'The Master secret · above Exotic' : 'Trail-only apex rank · above Master';
+          return `<div><span class="te-dot" style="background:${TYPE_EGG_RARITIES[key].color}"></span><b>${TYPE_EGG_RARITIES[key].name}</b><span>${band}</span></div>`;
+        }).join('')}
       </div>
+      <p class="tiny muted">The ladder has <b>${RARITY_TIER_ORDER.length} tiers</b>. The final three — <b>Celestial</b>, <b>Divine</b>, and <b>Eternal</b> — cannot hatch from eggs. Only Trail Upgrades can push a Master sprite into them.</p>
       <h3>Gene powers</h3>
       <p>Every species has one gene power. It is always active while that sprite lives in the Hollow, stacking with its breed habit, finish, combo, and evolution. A Fire sprite might add game coins; a Mother Earth adds slower need decay and a bigger XP gain.</p>
       <h3>Type eggs</h3>
-      <p>Every species can be bought directly as a type egg in the Nest. A Water Egg always hatches Water, a Demon Egg always hatches Demon. Prices are listed on each species card and in the field guide.</p>`,
+      <p>Every non-Vault species can be bought directly as a type egg in the Nest. A Water Egg always hatches Water, a Demon Egg always hatches Demon. Prices are listed on each species card and in the field guide.</p>`,
+  },
+  {
+    id: 'bonds',
+    icon: '💞',
+    title: 'Bonds & evolution',
+    summary: 'All six bond ranks, their passive bonuses, the four life stages, and every diet form.',
+    body: bondWikiBody,
+  },
+  {
+    id: 'worldevolution',
+    icon: '🧬',
+    title: 'World evolution atlas',
+    summary: 'Every type × four forms, all 18 biomes and Hollow scenes, parents, genes, personalities, and Vault paths — free.',
+    body: worldEvolutionWikiBody,
   },
   {
     id: 'animals',
@@ -811,7 +824,7 @@ const WIKI_GUIDES = [
       <p><b>Rune Slide, Zombie Siege, and Hollow Duel</b> are the three Arcade challenges. Rune Slide is a sliding puzzle with a visible order strip and green placement hints; you have two minutes to finish three boards. Zombie Siege is a three-lane horde defense, and Hollow Duel is a timed strike-and-guard fight. They are always open, and every game pays coins and XP to the active sprite, plus joy and bond, scaled by score.</p>
       <h3>Arcade bonus &amp; month gifts</h3>
       <p>Every <b>5,000 coins</b> earned in the three Arcade challenges fills a bonus gift. Gifts contain coins, a pantry food, and a snack; every third one also includes a <b>Starpath Feast</b>. The monthly track has three tiers at <b>5,000 / 12,000 / 25,000 arcade coins</b>, resetting on the first of the month. Higher tiers include one or two Starpath Feasts.</p>
-      <p>A <b>Starpath Feast</b> is a gift-only food that advances the active sprite to its next growth milestone: level 5, 10, 20, or 30. It cannot be bought in the market and is never consumed by a max-level sprite.</p>
+      <p>A <b>Starpath Feast</b> is a gift-only food that advances the active sprite to its next growth milestone: level 5, 10, 20, 100, 250, 500, or 1,000. It cannot be bought in the market and is never consumed by a max-level sprite.</p>
       <h3>Rarity play payouts</h3>
       <p>Every completed game pays the normal score coins, then adds the active sprite's <b>rarity bonus</b>: <b>Common 1,500</b>, <b>Uncommon 1,500</b>, <b>Rare 2,700</b>, <b>Epic 4,000</b>, <b>Legendary 6,750</b>, <b>Mythic 10,000</b>, <b>Secret 13,500</b>, <b>Exotic 18,000</b>, and <b>Master 25,000</b>.</p>
       <p><b>Common and Uncommon</b> sprites also get a <b>25% gift-speed bonus</b>, so their gifts arrive sooner. <b>Special</b> combos, mutations, and shinies keep their normal payout and add the bonus for their species' rarity. Gene, habit, finish, phase, and holiday bonuses still apply.</p>
@@ -842,6 +855,24 @@ function openWikiGuide(id) {
           const next = btn.dataset.wikiType;
           close();
           setTimeout(() => openWikiArticle(next), 30);
+        });
+      });
+      sheet.querySelectorAll('[data-wiki-action="bonds"]').forEach((btn) => {
+        btn.addEventListener('click', () => { close(); setTimeout(() => openBondCodex(), 160); });
+      });
+      sheet.querySelectorAll('[data-world-evo-open]').forEach((btn) => {
+        btn.addEventListener('click', () => { close(); setTimeout(() => openWorldEvolutionAtlas(), 160); });
+      });
+      sheet.querySelectorAll('[data-world-evo-env]').forEach((btn) => {
+        btn.addEventListener('click', () => { close(); setTimeout(() => openWorldEvolutionAtlas({ environment: btn.dataset.worldEvoEnv }), 160); });
+      });
+      sheet.querySelectorAll('[data-biome-travel]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.biomeTravel;
+          Actions.setTheme({ scene: key });
+          close();
+          App.refresh();
+          toast(`${SCENES[key].emoji} ${SCENES[key].name} · type biome active.`, '🧭');
         });
       });
       sheet.querySelectorAll('[data-world-food]').forEach((btn) => {
@@ -922,7 +953,8 @@ function openWikiArticle(key) {
         <span><b>${esc(power.name)}</b><br><span>${esc(power.desc)}</span></span>
       </div>
       <h3>Growth</h3>
-      <p>Hatches from a <b>${esc(el.name)} Egg</b> and grows through <b>Egg → Baby → Juvenile → Sprite → Elder</b> at levels 1 / 5 / 10 / 20. Its elder Titan name is <b>${esc(TITAN_NAMES[key])}</b>.</p>
+      <p>Hatches from a <b>${esc(el.name)} Egg</b> and grows through <b>Egg → Baby → Juvenile → Sprite → Elder</b> at levels 1 / 5 / 10 / 20. The level cap is <b>${MAX_LEVEL.toLocaleString()}</b>, and the next stage is previewed on every owned sprite. Its elder Titan name is <b>${esc(TITAN_NAMES[key])}</b>.</p>
+      <button class="btn btn-soft btn-block" data-wiki-action="bonds" style="margin-top:9px">💞 Bond Codex &amp; evolution path</button>
       <h3>Genetics & hybrids</h3>
       ${hybrids.length
         ? `<div class="wiki-hybrid-list">${hybrids.map((h) => `<button class="wiki-link" data-wiki-breed="${pairKey(key, h.element)}"><b>${esc(h.name)}</b><span>× ${esc(ELEMENTS[h.element].name)}</span></button>`).join('')}</div>`
@@ -967,6 +999,24 @@ function openWikiArticle(key) {
           const next = btn.dataset.wikiType;
           close();
           setTimeout(() => openWikiArticle(next), 30);
+        });
+      });
+      sheet.querySelectorAll('[data-wiki-action="bonds"]').forEach((btn) => {
+        btn.addEventListener('click', () => { close(); setTimeout(() => openBondCodex(), 160); });
+      });
+      sheet.querySelectorAll('[data-world-evo-open]').forEach((btn) => {
+        btn.addEventListener('click', () => { close(); setTimeout(() => openWorldEvolutionAtlas(), 160); });
+      });
+      sheet.querySelectorAll('[data-world-evo-env]').forEach((btn) => {
+        btn.addEventListener('click', () => { close(); setTimeout(() => openWorldEvolutionAtlas({ environment: btn.dataset.worldEvoEnv }), 160); });
+      });
+      sheet.querySelectorAll('[data-biome-travel]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.biomeTravel;
+          Actions.setTheme({ scene: key });
+          close();
+          App.refresh();
+          toast(`${SCENES[key].emoji} ${SCENES[key].name} · type biome active.`, '🧭');
         });
       });
       sheet.querySelectorAll('[data-wiki-breed]').forEach((btn) => {
@@ -1029,6 +1079,8 @@ function wikiScreen(root) {
       <button class="chip" data-wiki-guide="gamegenres">🕹️ Game genres</button>
       <button class="chip" data-wiki-guide="worldtypes">🌍 World types</button>
       <button class="chip" data-wiki-guide="worldwave">🌏 Movies &amp; anime</button>
+      <button class="chip" data-wiki-guide="bonds">💞 Bonds</button>
+      <button class="chip" data-wiki-guide="worldevolution">🧬 World evolution</button>
       <button class="chip" data-wiki-guide="vault">🔐 Vault</button>
       <button class="chip" data-wiki-guide="rebirth">🌱 Rebirth</button>
       <button class="chip" data-wiki-guide="multiversewave">🌀 Multiverse</button>
@@ -1074,8 +1126,11 @@ function wikiScreen(root) {
   root.querySelectorAll('[data-wiki-action]').forEach((btn) => btn.addEventListener('click', () => {
     if (btn.dataset.wikiAction === 'breeder') openBreedingCodex();
     else if (btn.dataset.wikiAction === 'vault') openSecretVault();
+    else if (btn.dataset.wikiAction === 'bonds') openBondCodex();
+    else if (btn.dataset.wikiAction === 'worldevolution') openWorldEvolutionAtlas();
   }));
   bind(root.querySelector('[data-wiki-feature]'));
+  bind(root.querySelector('.wiki-shortcuts'));
   bind(guideGrid);
 
   function searchText(key) {
@@ -1098,7 +1153,8 @@ function wikiScreen(root) {
     const genre = el.gameGenre ? `${el.gameGenre} video game genre` : '';
     const prismatic = el.alwaysShiny ? 'prismatic always shiny multiverse' : '';
     const exotic = isExoticSpecies(key) ? 'exotic signature' : '';
-    return `${el.name} ${key} ${el.trait} ${el.blurb} ${publisher} ${role} ${disney} ${careBears} ${fortniteLegacy} ${wwe} ${pony} ${tv} ${netflix} ${realm} ${kingdomHearts} ${legend} ${catalog} ${parentTypes} ${world} ${genre} ${prismatic} ${exotic} ${GENE_POWERS[key]?.name || ''} ${wikiHabitats(key).map((k) => SCENES[k].name).join(' ')}`.toLowerCase();
+    const apex = RARITY_APEX_KEYS.join(' ');
+    return `${el.name} ${key} ${el.trait} ${el.blurb} ${publisher} ${role} ${disney} ${careBears} ${fortniteLegacy} ${wwe} ${pony} ${tv} ${netflix} ${realm} ${kingdomHearts} ${legend} ${catalog} ${parentTypes} ${world} ${genre} ${prismatic} ${exotic} ${apex} bond codex evolution ${GENE_POWERS[key]?.name || ''} ${wikiHabitats(key).map((k) => SCENES[k].name).join(' ')}`.toLowerCase();
   }
 
   function paint() {

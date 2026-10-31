@@ -15,6 +15,7 @@ function todayScreen(root) {
     <div data-new-friend></div>
     <div data-checkin></div>
     <div data-week-track></div>
+    <div data-weekly-event></div>
     <div data-monthly-crate></div>
     <div data-holiday-card></div>
     <div class="section-title"><h2>Streaks</h2><span>daily · weekly · monthly · yearly</span></div>
@@ -31,6 +32,8 @@ function todayScreen(root) {
     <div class="card" style="padding:13px;margin-top:12px;font-size:11.5px;line-height:1.65;color:var(--muted)">
       <b style="color:var(--text)">How check-ins work</b><br>
       There are four check-in windows each day: morning, afternoon, evening, and night. Each one pays coins, and the first check-in of the day keeps your daily streak alive. Check in often enough in a week to earn snacks, a wild sprite, and a rare elder. Longer streaks unlock monthly and yearly rewards.
+      <br><br><b style="color:var(--text)">Weekly events</b><br>
+      Every day brings a different free event: Monday XP, Tuesday meals, Wednesday desserts, Thursday drinks, Friday missing Vault sprites, Saturday unclaimed crates, and Sunday a grand feast. Claim each event once per week.
       <br><br><b style="color:var(--text)">Growing up</b><br>
       XP comes from petting, feeding, baths, chats, tasks and games. Level 5 makes a Juvenile, 10 makes a Sprite, and 20 makes an Elder. At level 10, diet affinity can evolve a sprite into a Dragon, Fairy, Ghoul, or Titan.
     </div>`;
@@ -72,6 +75,7 @@ function todayScreen(root) {
     ensureDaily();
     ensureQuests();
     ensureCheckinPeriods();
+    ensureWeeklyEvents();
     const c = state.checkin;
     const streak = c.streak || 0;
     const slots = c.slots || [];
@@ -121,6 +125,35 @@ function todayScreen(root) {
         <div class="between"><b style="font-size:12.5px">This week · ${weekSlots} check-ins</b><span class="tiny muted">resets Monday</span></div>
         <div class="bar" style="height:8px;margin:8px 0 10px"><i style="width:${Math.min(100, (weekSlots / 16) * 100)}%;background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
         <div class="milestone-list">${milestoneRows(WEEK_MILESTONES, weekSlots, c.weekClaims || [])}</div>
+      </div>`;
+
+    const weekly = activeWeeklyEvent();
+    const weeklyDone = weeklyEventClaimed(weekly);
+    const weeklyFoodCount = weeklyEventFoodKeys(weekly).length;
+    const weeklyVaultCount = weeklyEventMissingVaultKeys().length;
+    const weeklyCrates = weeklyEventMissingCrates(weekly);
+    const weeklyBits = [];
+    if (weekly?.effects?.xp) weeklyBits.push(`⚡ +${Math.round((weekly.effects.xp - 1) * 100)}% XP`);
+    if (weekly?.effects?.coins) weeklyBits.push(`🪙 +${Math.round((weekly.effects.coins - 1) * 100)}% coins`);
+    if (weekly?.effects?.giftSpeed) weeklyBits.push(`🎁 gifts ${Math.round((weekly.effects.giftSpeed - 1) * 100)}% sooner`);
+    if (weekly?.effects?.bond) weeklyBits.push(`💞 +${Math.round((weekly.effects.bond - 1) * 100)}% bond`);
+    let weeklyReward = 'A small event crate.';
+    if (weekly?.reward?.kind === 'vault') weeklyReward = weeklyVaultCount ? `${weeklyVaultCount} missing Vault sprite${weeklyVaultCount === 1 ? '' : 's'} come home.` : 'Vault already complete — take the coin crown instead.';
+    else if (weekly?.reward?.kind === 'crates') weeklyReward = `${weeklyCrates} unclaimed crate${weeklyCrates === 1 ? '' : 's'} this week, including the monthly crate when sealed.`;
+    else if (weekly?.reward?.foodCats?.length) weeklyReward = `${weeklyFoodCount} free ${weekly.reward.foodCats.includes('meal') && weekly.reward.foodCats.length === 1 ? 'meal' : weekly.reward.foodCats.includes('dessert') && weekly.reward.foodCats.length === 1 ? 'dessert' : weekly.reward.foodCats.includes('drink') && weekly.reward.foodCats.length === 1 ? 'drink' : 'meal, dessert, and drink'} item${weeklyFoodCount === 1 ? '' : 's'} for the pantry.`;
+    const weeklyButton = weeklyDone ? '✓ Claimed this week' : weekly?.reward?.kind === 'vault' ? (weeklyVaultCount ? `Rescue ${weeklyVaultCount} Vault sprites` : 'Claim Vault crown') : weekly?.reward?.kind === 'crates' ? `Open ${weeklyCrates} catch-up crate${weeklyCrates === 1 ? '' : 's'}` : weekly?.reward?.foodCats?.length ? `Claim ${weeklyFoodCount} free food${weeklyFoodCount === 1 ? '' : 's'}` : 'Claim event crate';
+    root.querySelector('[data-weekly-event]').innerHTML = `
+      <div class="card weekly-event-card" style="border-color:${weekly?.color || '#ffd166'}55">
+        <div class="between" style="align-items:flex-start">
+          <div><div class="eyebrow">Weekly event · ${esc(weekly?.dayLabel || 'Today')}</div><b style="font-size:13px">${weekly?.icon || '🎉'} ${esc(weekly?.name || 'Hollow event')}</b></div>
+          <span class="chip" style="color:${weekly?.color || '#ffd166'}">${weeklyDone ? '✓ claimed' : 'one claim'}</span>
+        </div>
+        <p class="tiny muted" style="margin:6px 0 8px;line-height:1.55">${esc(weekly?.blurb || 'A special Hollow day.')}</p>
+        <div class="weekly-day-strip">${WEEKLY_EVENTS.map((event) => `<div class="weekly-day ${event.key === weekly?.key ? 'on' : ''} ${weeklyEventClaimed(event) ? 'done' : ''}"><span>${event.dayLabel.slice(0, 3)}</span><b>${event.icon}</b><i>${weeklyEventClaimed(event) ? '✓' : event.key === weekly?.key ? 'now' : ''}</i></div>`).join('')}</div>
+        ${weeklyBits.length ? `<div class="row" style="gap:4px;flex-wrap:wrap;margin-top:8px">${weeklyBits.map((bit) => `<span class="chip">${bit}</span>`).join('')}</div>` : ''}
+        <div class="weekly-event-reward"><b>${esc(weeklyReward)}</b>${weekly?.reward?.coins ? `<span>+${weekly.reward.coins} coins</span>` : ''}</div>
+        <button class="btn ${weeklyDone ? 'btn-ghost' : 'btn-gold'} btn-block" data-weekly-claim ${weeklyDone ? 'disabled' : ''} style="margin-top:9px">${weeklyButton}</button>
+        <p class="tiny muted" style="text-align:center;margin-top:6px">Events rotate every day. One claim per event, per week.</p>
       </div>`;
 
     const monthNow = monthKey();
@@ -210,6 +243,23 @@ function todayScreen(root) {
         setTimeout(() => toast(`${m.title}: ${m.text}`, m.icon), 450 + i * 600);
         if (m.spriteId) newFriendId = m.spriteId;
       });
+      paint();
+      return;
+    }
+
+    const weeklyClaim = e.target.closest('[data-weekly-claim]');
+    if (weeklyClaim && !weeklyClaim.disabled) {
+      const res = Actions.claimWeeklyEvent();
+      if (!res.ok) { toast(res.reason === 'claimed' ? 'That event is already claimed this week.' : 'No event is active right now.', '🎉'); paint(); return; }
+      Sfx.win();
+      burstOn(weeklyClaim, ['🎉', '✨', '🪙'], 9);
+      let msg = `${res.event.icon} ${res.event.name}`;
+      if (res.vault.length) msg += ` · +${res.vault.length} Vault sprites`;
+      if (res.foods.length) msg += ` · +${res.foods.length} pantry foods`;
+      if (res.crates) msg += ` · +${res.crates} catch-up crates`;
+      if (res.monthly) msg += ' · monthly crate';
+      if (res.coins) msg += ` · +${res.coins} coins`;
+      toast(msg, res.event.icon);
       paint();
       return;
     }

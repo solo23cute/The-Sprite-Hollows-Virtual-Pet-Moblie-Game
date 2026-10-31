@@ -29,7 +29,7 @@ function collectionScreen(root) {
     <div data-retired></div>
     <div class="section-title"><h2>Hollow notes</h2></div>
     <div class="card" style="padding:13px;font-size:11.5px;line-height:1.6;color:var(--muted)">
-      Sprites are born from eggs and grow through <b style="color:var(--text)">Baby → Juvenile → Sprite → Elder</b> as they level, up to the new cap of <b style="color:var(--text)">level 30</b>.
+      Sprites are born from eggs and grow through <b style="color:var(--text)">Baby → Juvenile → Sprite → Elder</b> as they level, up to the cap of <b style="color:var(--text)">level 1,000</b>. Open any sprite to see its next stage and the exact level it needs.
       Merge two level-3+ sprites in the Nest to blend their elements, colors and personalities into a brand new egg.
     </div>`;
 
@@ -147,8 +147,9 @@ function spriteCardHTML(s) {
 function openSpriteDetail(id) {
   const s = findSprite(id);
   if (!s) return;
+  Sfx.spriteBabble(s);
   const el = ELEMENTS[s.element] || ELEMENTS.bloom;
-  const tier = TYPE_EGG_RARITIES[typeEggRarity(s.element)];
+  const tier = spriteRarity(s);
   const breed = BREEDS[s.breed];
   const persona = PERSONALITIES[s.personality];
   const isActive = state.activeId === s.id && !s.retired;
@@ -159,6 +160,8 @@ function openSpriteDetail(id) {
   const finish = finishOf(s);
   const diet = dietInfo(s);
   const readyDiet = diet.filter((d) => d.points >= d.need);
+  const evo = stageEvolutionInfo(s);
+  const bondRank = bondRankFor(s.bond || 0);
   const formForDiet = (key) => Object.values(EVOLUTION_FORMS).find((f) => f.diet === key);
   const evolutionLabel = (f) => f.id === 'titan' ? (TITAN_NAMES[s.element] || 'Titan') : `${el.name} ${f.label}`;
   const body = `
@@ -174,6 +177,7 @@ function openSpriteDetail(id) {
         <span class="chip">${SIZES[s.size]?.name || 'Standard'}</span>
         <span class="chip">Gen ${(s.gen || 0) + 1}</span>
         <span class="chip chip-tier" style="--tier:${tier.color}">${tier.name}</span>
+        ${s.rarityBoost ? `<span class="chip" title="Earned by finishing trails">🥾 Trail +${s.rarityBoost}</span>` : ''}
         ${s.sugar ? `<span class="chip">🍬 Sugar ${s.sugar}/3</span>` : ''}
         ${s.shiny ? '<span class="chip chip-shine" title="A rare, permanent sparkle">✨ Shiny</span>' : ''}
         ${finish ? `<span class="chip" title="${esc(finish.desc)}">${finish.icon} ${esc(finish.name)} finish</span>` : ''}
@@ -197,6 +201,16 @@ function openSpriteDetail(id) {
         ${needBlock('joy', s.needs.joy)}
         ${needBlock('clean', s.needs.clean)}
         <div class="dstat"><span class="lbl">XP</span><div class="bar" style="background:rgba(255,255,255,.1)"><i style="width:${xp}%;background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div><b>${Math.round(xp)}%</b></div>
+      </div>
+      <div class="card evolution-next-card" style="padding:12px;margin-top:12px">
+        <div class="between"><div class="tiny muted" style="font-weight:800;letter-spacing:.08em">NEXT EVOLUTION</div><span class="chip">${evo.final ? `Lv ${MAX_LEVEL.toLocaleString()} cap` : `Lv ${evo.required}`}</span></div>
+        <div class="evo-next-main">
+          <span class="evo-next-icon">${evo.final ? '🏆' : evo.ready ? '🌟' : '🌱'}</span>
+          <div><b>${evo.final ? 'Elder is the final stage' : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}</b><p>${evo.final ? `The four stages are complete. Keep growing toward level ${MAX_LEVEL.toLocaleString()}.` : evo.ready ? `${esc(displayName(s))} is ready to become a ${evo.nextLabel}.` : `${evo.levelsLeft} level${evo.levelsLeft === 1 ? '' : 's'} and ${Math.max(0, Math.ceil(xpNeeded(s.level) - (s.xp || 0))).toLocaleString()} XP to ${evo.nextLabel}.`}</p></div>
+        </div>
+        <div class="bar" style="height:8px;margin-top:9px"><i style="width:${Math.round(evo.progress * 100)}%;background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
+        <div class="between tiny muted" style="margin-top:6px"><span>${bondRank.icon} ${esc(bondRank.name)} · ${Math.round(s.bond)} bond</span><span>${Math.round(evo.progress * 100)}%</span></div>
+        <button class="btn btn-soft btn-block" data-evo-open style="margin-top:9px">View full evolution path</button>
       </div>
       <div class="card" style="padding:12px;margin-top:12px">
         <div class="tiny muted" style="font-weight:800;letter-spacing:.08em">BREED PERK</div>
@@ -262,6 +276,7 @@ function openSpriteDetail(id) {
       });
       root.querySelector('[data-talk]')?.addEventListener('click', () => { close(); App.openChat(s.id); });
       root.querySelector('[data-style]')?.addEventListener('click', () => { close(); App.openStudio({ spriteId: s.id }); });
+      root.querySelector('[data-evo-open]')?.addEventListener('click', () => { close(); setTimeout(() => openEvolutionForecast(s.id), 160); });
       root.querySelector('[data-breed-open]')?.addEventListener('click', () => { close(); setTimeout(() => openBreedingCodex(s.element), 40); });
       root.querySelector('[data-retire]')?.addEventListener('click', () => {
         const wasRetired = s.retired;
@@ -302,6 +317,7 @@ function openSpriteDetail(id) {
       });
       root.querySelector('[data-pet]')?.addEventListener('click', (e) => {
         const r = Actions.pet(s.id);
+        Sfx.spriteCry(s);
         if (r.coins) coinFly(e.currentTarget, 1);
         burstOn(e.currentTarget, ['💛', '💗'], 5);
         toast(reactionLine(s, 'pet'), '💗');
@@ -309,6 +325,66 @@ function openSpriteDetail(id) {
     },
   });
   return overlay;
+}
+
+function openEvolutionForecast(id) {
+  const s = findSprite(id);
+  if (!s) return;
+  const evo = stageEvolutionInfo(s);
+  const rank = bondRankFor(s.bond || 0);
+  const diet = dietInfo(s);
+  const form = formOf(s);
+  const forms = Object.values(EVOLUTION_FORMS);
+  const stageRows = STAGE_ORDER.map((stage, index) => {
+    const reached = STAGE_ORDER.indexOf(s.stage) >= index;
+    const current = s.stage === stage;
+    return `<div class="evo-stage ${reached ? 'reached' : ''} ${current ? 'on' : ''}">
+      <span class="evo-stage-dot">${reached ? '✓' : index + 1}</span>
+      <span><b>${STAGE_LABELS[stage]}</b><span class="tiny muted">Level ${STAGE_LEVEL[stage]}+</span></span>
+      ${current ? '<span class="chip">CURRENT</span>' : ''}
+    </div>`;
+  }).join('');
+  const dietRows = diet.map((d) => {
+    const ready = s.level >= EVOLUTION_LEVEL && d.points >= d.need && !form;
+    const f = forms.find((item) => item.diet === d.key);
+    return `<div class="evo-diet ${ready ? 'ready' : ''}">
+      <span class="evo-next-icon">${d.icon}</span>
+      <span style="flex:1;min-width:0"><span class="between"><b>${esc(d.label)}</b><span class="chip">${d.points}/${d.need}</span></span><span class="tiny muted">${f ? esc(f.label) : 'Diet path'} · ${ready ? 'Ready to evolve' : `Reach level ${EVOLUTION_LEVEL} and ${d.need} points`}</span><div class="bar" style="height:6px;margin-top:5px"><i style="width:${Math.min(100, (d.points / d.need) * 100)}%"></i></div></span>
+    </div>`;
+  }).join('');
+  openSheet({
+    title: '🌟 Evolution path',
+    sub: `${displayName(s)} · ${evo.final ? 'Elder' : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}`,
+    body: `<div class="card evolution-next-card">
+        <div class="between"><span class="tiny muted" style="font-weight:800;letter-spacing:.08em">NEXT STAGE</span><span class="chip">Level ${s.level}${s.level >= MAX_LEVEL ? ' · MAX' : ''}</span></div>
+        <div class="evo-next-main"><span class="evo-next-icon">${evo.final ? '🏆' : evo.ready ? '🌟' : '🌱'}</span><div><b>${evo.final ? 'Elder is the final stage' : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}</b><p>${evo.final ? `All four stages are complete. The long road runs to level ${MAX_LEVEL.toLocaleString()}.` : evo.ready ? `Ready now: ${esc(displayName(s))} can become a ${evo.nextLabel}.` : `Needs ${evo.levelsLeft} more level${evo.levelsLeft === 1 ? '' : 's'} (level ${evo.required}) to reach ${evo.nextLabel}.`}</p></div></div>
+        <div class="bar" style="height:8px;margin-top:9px"><i style="width:${Math.round(evo.progress * 100)}%;background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
+      </div>
+      <h3>Life stages</h3>
+      <div class="evo-stage-list">${stageRows}</div>
+      <h3>Bond rank</h3>
+      <div class="card bond-now-card" style="padding:11px"><div class="between"><span class="tiny muted">${rank.icon} ${esc(rank.name)}</span><span class="chip">${Math.round(s.bond)} / 100</span></div><p class="tiny muted" style="margin:6px 0 0;line-height:1.5">${esc(rank.blurb)} · ${esc(bondEffectBits(rank.effect))}</p><button class="btn btn-soft btn-block" data-evo-bond style="margin-top:8px">Open Bond Codex</button></div>
+      <h3>Diet evolutions</h3>
+      <p class="tiny muted">At level ${EVOLUTION_LEVEL}, fill any path to ${EVOLUTION_AFFINITY} for a permanent form.</p>
+      <div class="evo-diet-list">${dietRows}</div>
+      <button class="btn btn-soft btn-block" data-evo-world style="margin-top:9px">🧬 World evolution atlas for ${esc(s.element)}</button>
+      ${form ? `<div class="card" style="padding:11px;margin-top:10px"><b>${form.icon} ${esc(formName(s))}</b><p class="tiny muted" style="margin:4px 0 0">${esc(form.desc)}</p></div>` : ''}
+      <button class="btn btn-ghost btn-block" data-evo-back style="margin-top:10px">Back to sprite details</button>`,
+    onMount: (sheet, close) => {
+      sheet.querySelector('[data-evo-bond]')?.addEventListener('click', () => {
+        close();
+        setTimeout(() => openBondCodex({ spriteId: s.id }), 160);
+      });
+      sheet.querySelector('[data-evo-world]')?.addEventListener('click', () => {
+        close();
+        setTimeout(() => openWorldEvolutionAtlas({ speciesKey: s.element, form: s.form || 'all' }), 160);
+      });
+      sheet.querySelector('[data-evo-back]')?.addEventListener('click', () => {
+        close();
+        setTimeout(() => openSpriteDetail(s.id), 160);
+      });
+    },
+  });
 }
 
 function openRenameModal(id) {

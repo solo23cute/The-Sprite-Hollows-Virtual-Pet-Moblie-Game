@@ -37,12 +37,14 @@ const TOUR_STEPS = [
   },
   {
     icon: '💛', kicker: 'SPRITES & GROWTH',
-    title: 'Raise them to level 30',
-    text: 'Everything you do together grants XP. Feeding, games, chats, baths, naps, and petting all count, and matching the habitat multiplies the gain. Sprites grow at levels 1, 5, 10, and 20, then stop at level 30.',
+    title: 'Raise them to level 1,000',
+    text: 'Everything you do together grants XP. Feeding, games, chats, baths, naps, trails, and petting all count, and matching the habitat multiplies the gain. Sprites grow through Baby, Juvenile, Sprite, and Elder at levels 1, 5, 10, and 20, then keep growing to the new cap of level 1,000.',
     points: [
       'Feeding builds the Hearty, Sweet, Eerie, and Wild diet affinities.',
-      'At level 10, twelve points in one diet path unlocks a permanent evolution.',
-      'At level 30 a sprite retires. A Rebirth Meal returns them to an egg with permanent rebirth bonuses, and retiring unlocks the Elder Keeper secret.',
+      'Open a sprite to see a NEXT EVOLUTION card with its next stage, required level, XP left, and progress.',
+      'At level 10, twelve points in one diet path unlocks a permanent Dragon, Fairy, Ghoul, or Titan form.',
+      'The Bond Codex lists all six bond ranks, their passive bonuses, every stage, and every diet evolution.',
+      'A sprite retires only at level 1,000. A Rebirth Meal returns them to an egg with permanent rebirth bonuses.',
     ],
     tip: 'Retired sprites still count for Vault progress and can merge. A Rebirth Meal starts their next life with permanent bonuses.',
   },
@@ -60,6 +62,8 @@ const TOUR_STEPS = [
       `A ${LEGEND_TOTAL}-character crossover legends pack adds curated families from FNAF, Mario, Spore, Tom and Jerry, Looney Tunes, Zelda, The Walking Dead, horror, and video games.`,
       `A ${NETFLIX_TOTAL}-character Netflix animation wing now sits under TV Legends: 10 Netflix Anime shows and 10 Netflix Toons shows with three characters each, show filters, and owned progress. A ${TV_FAMILY_TOTAL}-character TV family now spans both rosters.`,
       `A ${CATALOG_TOTAL}-sprite catalog adds PBS Kids, Monster Jam, Nickelodeon, Nick Jr., Nicktoons, Discovery, animated movies, comics, Disney Jr., Disney XD, and every video-game genre.`,
+      'The Types Codex now shows the full 12-tier ladder: nine base ranks plus the trail-only Celestial, Divine, and Eternal apex ranks.',
+      'Open the Bond Codex from Types or the Wiki to read all six bond ranks and the complete evolution path.',
       'Eighteen world type variants and the Shortcut pathfinder are in the Wiki, each with a live species file.',
     ],
     tip: 'Use the search on Types to find a species, then open its card for its egg, habitat, and hybrids.',
@@ -91,9 +95,10 @@ const TOUR_STEPS = [
   {
     icon: '🧭', kicker: 'TYPE BIOMES',
     title: 'Eighteen homes for eighteen types',
-    text: 'Every one of the eighteen standard types has a dedicated biome with its own sky, ground, weather, and guardian. Matching species earn 50% more XP there, and visitors still get a small bonus.',
+    text: 'Every one of the eighteen standard types has a dedicated biome with its own sky, ground, weather, and guardian. Studio now separates Core habitats, Type biomes, and Custom biomes so all 18 are visible and selectable. Matching species earn 50% more XP there, and visitors still get a small bonus.',
     points: [
-      'Open Types, then Biome Atlas, or choose a scene in Studio.',
+      'Open Studio, then use the Type biomes group or the Biome Atlas button.',
+      'The Biome Atlas shows all 18 guardians, species counts, and visited progress.',
       'The Biome Studio builds unlimited custom habitats with your own colours, emoji, and XP bonus.',
       'Custom biomes welcome every grown sprite with no resident cap.',
     ],
@@ -162,7 +167,7 @@ const TOUR_STEPS = [
     text: `${SECRET_SPECIES.length} secret sprites are not sold in the Nest. Open the Vault from the Nest to see every unlocked keeper, its parent types, named hybrids, and a possible-child preview. Milestone doors, twelve monthly keepers, and eight twice-weekly relays are tracked there. Exotic guardians are different: they can hatch from their type eggs.`,
     points: [
       'Finish this tour to earn the first secret, the Hollow Guide.',
-      'Reach level 30, visit all eighteen biomes, reach 100 bond, hatch 25 eggs, and decode the Master name for the rest.',
+      'Reach level 1,000, visit all eighteen biomes, reach 100 bond, hatch 25 eggs, and decode the Master name for the rest.',
       'Open the Vault during a monthly or Monday–Wednesday / Thursday–Sunday window, then claim the keeper before it rotates.',
       'Retired sprites still count for Vault progress and can be used as merge parents.',
       'Collect 8 Fortnite Legacy species for the Season Keeper, or 6 WWE species for the Ring Keeper. Reach 16 Legacy or 12 WWE to earn the exotic Rift Champion or Grand Slam.',
@@ -177,6 +182,7 @@ const TOUR_STEPS = [
     text: 'Studio changes the UI theme, climate, scene, body, colours, patterns, accessories, voice, and your Hollow name. The Wardrobe saves unlimited named outfits, and the Biome Studio builds unlimited custom habitats.',
     points: [
       'Apply or remove an outfit at any time, then edit or delete it later.',
+      'Studio separates Core habitats, Type biomes, and Custom biomes, so the 18 type environments no longer disappear in the picker.',
       'Custom biomes set their own colours, emoji, habitat label, and XP bonus.',
       'The Wiki Quick jump row reaches cartoons, comics, game genres, world variants, the Vault, and the breeder in one tap.',
       'Shortcut is a real pathfinder species with its own gene, habitats, and named hybrid.',

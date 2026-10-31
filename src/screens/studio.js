@@ -48,8 +48,11 @@ function openStudioSheet(opts = {}) {
     <div class="section-title"><h2>UI theme</h2><span>colours & glow</span></div>
     <div class="theme-grid" data-themes></div>
 
-    <div class="section-title"><h2>Hollow scene</h2><span>habitats &amp; type biomes</span></div>
+    <div class="section-title"><h2>Core habitats</h2><span>starter &amp; gift scenes</span></div>
     <div class="scene-grid" data-scenes></div>
+    <div class="section-title"><h2>Type biomes</h2><span>all 18 types · +50% XP for matches</span></div>
+    <button class="btn btn-sm btn-soft btn-block" data-open-biome-atlas style="margin-bottom:8px">🧭 Open the Biome Atlas</button>
+    <div class="biome-scene-grid" data-biome-scenes></div>
     <div class="habitat-info" data-habitat-info></div>
 
     <div class="section-title"><h2>Custom biomes</h2><span>unlimited habitats · no sprite cap</span></div>
@@ -311,13 +314,34 @@ function openStudioSheet(opts = {}) {
           <span>${THEMES[k].name}</span>
         </button>`).join('');
 
-      root.querySelector('[data-scenes]').innerHTML = SCENE_KEYS.filter((k) => !SCENES[k].custom).map((k) => {
+      const sceneLocked = (scene, k) => !(scene.unlocked || state.unlockedScenes.includes(k));
+      const coreSceneButton = (k) => {
         const scene = SCENES[k];
-        const locked = !state.unlockedScenes.includes(k);
+        const locked = sceneLocked(scene, k);
         const boost = Math.round((scene.bonus || 0.4) * 100);
         return `<button class="scene-swatch scene-${k} ${state.theme.scene === k ? 'on' : ''} ${locked ? 'locked' : ''}" data-scene="${k}" title="${scene.habitat} habitat · +${boost}% XP for its species" ${locked ? 'disabled' : ''}>${scene.name}${locked ? ` ${icon('lock')}` : ''}</button>`;
-      }).join('');
+      };
+      root.querySelector('[data-scenes]').innerHTML = SCENE_KEYS
+        .filter((k) => !SCENES[k].custom && !SCENES[k].biome)
+        .map(coreSceneButton)
+        .join('');
+      root.querySelector('[data-biome-scenes]').innerHTML = SCENE_KEYS
+        .filter((k) => SCENES[k].biome)
+        .map((k) => {
+          const scene = SCENES[k];
+          const palette = PDX_TYPES[scene.type] || PDX_TYPES.normal;
+          const locked = sceneLocked(scene, k);
+          const boost = Math.round((scene.bonus || 0.5) * 100);
+          return `<button class="biome-scene-swatch ${state.theme.scene === k ? 'on' : ''} ${locked ? 'locked' : ''}" data-scene="${k}" title="${scene.habitat} type biome · +${boost}% XP for ${scene.type} species" ${locked ? 'disabled' : ''} style="--b1:${palette.primary};--b2:${palette.deep};--b3:${palette.light}">
+            <span class="bs-icon">${scene.emoji}</span>
+            <span class="bs-copy"><b>${esc(scene.name)}</b><span>${scene.habitat} · +${boost}% XP</span></span>
+          </button>`;
+        }).join('');
 
+      root.querySelector('[data-open-biome-atlas]')?.addEventListener('click', () => {
+        close();
+        setTimeout(() => openBiomeAtlas(), 160);
+      });
       root.querySelectorAll('[data-theme]').forEach((b) => {
         b.addEventListener('click', () => {
           Actions.setTheme({ ui: b.dataset.theme });

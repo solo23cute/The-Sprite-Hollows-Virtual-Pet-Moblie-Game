@@ -1,7 +1,7 @@
 /* Game state, persistence, real-time simulation, and all player actions. */
 
 const SAVE_KEY = 'sprite-hollow.save.v2';
-const MAX_LEVEL = 30;
+const MAX_LEVEL = 1000;
 
 const CUSTOM_CLOTH_STYLES = {
   cape: { name: 'Cape', icon: '🦸' },
@@ -88,6 +88,7 @@ function freshState() {
     daily: null,
     weekly: null,
     monthly: null,
+    weeklyEvents: { weekKey: null, claims: [] },
     arcade: { coins: 0, bonusClaims: 0, monthKey: null, monthCoins: 0, monthClaims: [] },
     checkin: {
       last: null, streak: 0,
@@ -145,6 +146,7 @@ function normalizeSprite(raw) {
       wild: Math.max(0, Number(s.diet?.wild) || 0),
     },
     sugar: Math.min(2, Math.max(0, Number(s.sugar) || 0)),
+    rarityBoost: Math.max(0, Math.min(RARITY_BOOST_MAX, Math.floor(Number(s.rarityBoost) || 0))),
     form: EVOLUTION_FORMS[s.form] ? s.form : null,
     special: COMBOS.some((c) => c.id === s.special) ? s.special : null,
     evolvedAt: Number(s.evolvedAt) || 0,
@@ -215,6 +217,12 @@ function loadState() {
     merged.wardrobe = Array.from(new Set((Array.isArray(parsed.wardrobe) ? parsed.wardrobe : []).filter((k) => ACCESSORIES[k]?.price)));
     merged.foodUnlocks = Array.isArray(parsed.foodUnlocks) ? parsed.foodUnlocks.filter((k) => FOODS[k]?.monthly) : [];
     merged.checkin.monthCrateKey = parsed.checkin?.monthCrateKey || null;
+    merged.weeklyEvents = {
+      weekKey: parsed.weeklyEvents?.weekKey || null,
+      claims: Array.isArray(parsed.weeklyEvents?.claims)
+        ? Array.from(new Set(parsed.weeklyEvents.claims.filter((key) => WEEKLY_EVENT_BY_KEY[key])))
+        : [],
+    };
     const savedArcade = parsed.arcade && typeof parsed.arcade === 'object' ? parsed.arcade : {};
     merged.arcade = {
       coins: Math.max(0, Number(savedArcade.coins) || 0),
@@ -227,6 +235,7 @@ function loadState() {
     };
     merged.unlockedScenes = Array.from(new Set([
       ...base.unlockedScenes,
+      ...SCENE_KEYS.filter((k) => SCENES[k].unlocked),
       ...(Array.isArray(parsed.unlockedScenes) ? parsed.unlockedScenes : []),
       ...merged.customScenes.map((scene) => scene.id),
     ]))
@@ -365,6 +374,16 @@ function typeName(s) {
   if (!s) return 'Unknown';
   return s.hybrid || (ELEMENTS[s.element] || ELEMENTS.bloom).name;
 }
+function spriteRarityKey(s) {
+  if (!s) return 'common';
+  return rarityTierWithBoost(s.element, s.rarityBoost);
+}
+function spriteRarity(s) {
+  return TYPE_EGG_RARITIES[spriteRarityKey(s)] || TYPE_EGG_RARITIES.common;
+}
+function spriteRarityBonus(s) {
+  return s ? rarityCoinBonus(s.element, s.rarityBoost) : 0;
+}
 function stageForLevel(level) {
   if (level >= 20) return 'elder';
   if (level >= 10) return 'sprite';
@@ -373,6 +392,21 @@ function stageForLevel(level) {
 }
 function xpNeeded(level) {
   return 50 + level * 18;
+}
+const STAGE_ORDER = ['baby', 'juvenile', 'sprite', 'elder'];
+const STAGE_LABELS = { baby: 'Baby', juvenile: 'Juvenile', sprite: 'Sprite', elder: 'Elder' };
+const STAGE_LEVEL = { baby: 1, juvenile: 5, sprite: 10, elder: 20 };
+const GROWTH_MILESTONES = [5, 10, 20, 100, 250, 500, 1000];
+function stageEvolutionInfo(s) {
+  if (!s || s.stage === 'egg') return { egg: true, current: 'egg', next: null, nextLabel: 'Egg', required: 1, levelsLeft: 0, ready: false, final: false, progress: 0 };
+  const index = STAGE_ORDER.indexOf(s.stage);
+  const next = index >= 0 && index < STAGE_ORDER.length - 1 ? STAGE_ORDER[index + 1] : null;
+  if (!next) return { egg: false, current: s.stage, next: null, nextLabel: 'Final stage', required: MAX_LEVEL, levelsLeft: Math.max(0, MAX_LEVEL - s.level), ready: false, final: true, progress: s.level >= MAX_LEVEL ? 1 : Math.min(1, (s.xp || 0) / xpNeeded(s.level)) };
+  const required = STAGE_LEVEL[next];
+  const start = STAGE_LEVEL[s.stage] || 1;
+  const xpPart = s.level >= required ? 0 : Math.min(1, (s.xp || 0) / xpNeeded(s.level));
+  const raw = required > start ? (s.level - start + xpPart) / (required - start) : 1;
+  return { egg: false, current: s.stage, next, nextLabel: STAGE_LABELS[next] || next, required, levelsLeft: Math.max(0, required - s.level), ready: s.level >= required, final: false, progress: Math.max(0, Math.min(1, raw)) };
 }
 function moodOf(s) {
   if (!s) return { key: 'content', label: 'Content', icon: '🙂' };
@@ -391,12 +425,7 @@ function moodOf(s) {
   return { key: 'grumpy', label: 'Grumpy', icon: '😾' };
 }
 function bondTier(s) {
-  const b = s?.bond || 0;
-  if (b >= 90) return 'Inseparable';
-  if (b >= 70) return 'Close';
-  if (b >= 45) return 'Friendly';
-  if (b >= 20) return 'Warming up';
-  return 'New friend';
+  return bondRankFor(s?.bond || 0).name;
 }
 function spriteSubtitle(s) {
   if (!s) return '';
@@ -485,10 +514,11 @@ function gameCoinPayout(baseCoins = 0) {
     if (phase === 'night') effectCoins += fx.nightCoins || 0;
     if (phase === 'day') effectCoins += fx.dayCoins || 0;
   }
-  const rarityBonus = s ? rarityCoinBonus(s.element) : 0;
+  const rarityBonus = s ? spriteRarityBonus(s) : 0;
   const holiday = typeof holidayCoinMult === 'function' ? holidayCoinMult() : 1;
-  payout = Math.round((payout + effectCoins + rarityBonus) * holiday);
-  return { payout, effectCoins, rarityBonus, holiday };
+  const weekly = weeklyEventCoinMult();
+  payout = Math.round((payout + effectCoins + rarityBonus) * holiday * weekly);
+  return { payout, effectCoins, rarityBonus, holiday, weekly };
 }
 function formOf(s) {
   return s?.form ? EVOLUTION_FORMS[s.form] || null : null;
@@ -518,7 +548,8 @@ function spriteEffects(s) {
   add(FINISHES[s.variant]?.effect);
   add(specialCombo(s)?.power.effect);
   add(formOf(s)?.power.effect);
-  if (['common', 'uncommon'].includes(typeEggRarity(s.element))) {
+  add(bondRankFor(s?.bond || 0).effect);
+  if (['common', 'uncommon'].includes(spriteRarityKey(s))) {
     merged.giftSpeed = (merged.giftSpeed || 1) * 1.25;
   }
   const rebirths = Math.max(0, Number(s.rebirths) || 0);
@@ -617,7 +648,7 @@ function scheduleGiftRaw(first = false) {
     return;
   }
   const sprite = activeSprite() || pick(candidates);
-  const speed = (spriteEffects(sprite).giftSpeed || 1) * (typeof holidayGiftSpeed === 'function' ? holidayGiftSpeed() : 1);
+  const speed = (spriteEffects(sprite).giftSpeed || 1) * (typeof holidayGiftSpeed === 'function' ? holidayGiftSpeed() : 1) * weeklyEventGiftSpeed();
   const seconds = (first ? rand(45, 110) : rand(150, 360)) / speed;
   state.gift = {
     spriteId: sprite.id,
@@ -834,6 +865,54 @@ function periodCounter(task, period = 'daily') {
   return bucket?.counters?.[task.stat] || 0;
 }
 
+/* ---------------- weekly events ---------------- */
+function ensureWeeklyEvents() {
+  const key = weekKey();
+  if (!state.weeklyEvents || state.weeklyEvents.weekKey !== key) {
+    state.weeklyEvents = { weekKey: key, claims: [] };
+  }
+  state.weeklyEvents.claims = Array.isArray(state.weeklyEvents.claims)
+    ? state.weeklyEvents.claims.filter((claim) => WEEKLY_EVENT_BY_KEY[claim])
+    : [];
+  return state.weeklyEvents;
+}
+function activeWeeklyEvent() {
+  return weeklyEventForDate();
+}
+function weeklyEventClaimed(event = activeWeeklyEvent()) {
+  return !!event && ensureWeeklyEvents().claims.includes(event.key);
+}
+function weeklyEventEffects(event = activeWeeklyEvent()) {
+  return event?.effects || {};
+}
+function weeklyEventXpMult() { return weeklyEventEffects().xp || 1; }
+function weeklyEventCoinMult() { return weeklyEventEffects().coins || 1; }
+function weeklyEventGiftSpeed() { return weeklyEventEffects().giftSpeed || 1; }
+function weeklyEventBondMult() { return weeklyEventEffects().bond || 1; }
+function weeklyEventMissingVaultKeys() {
+  const unlocked = Array.isArray(state.secretUnlocks) ? state.secretUnlocks : [];
+  return SECRET_SPECIES.filter((key) => !unlocked.includes(key));
+}
+function weeklyEventFoodKeys(event = activeWeeklyEvent()) {
+  const cats = event?.reward?.foodCats || [];
+  if (!cats.length) return [];
+  return FOOD_KEYS.filter((key) => {
+    const food = FOODS[key];
+    return food && cats.includes(food.cat) && !food.rebirth && !food.stageBoost && !food.giftOnly;
+  });
+}
+function weeklyEventMissingCrates(event = activeWeeklyEvent()) {
+  const index = WEEKLY_EVENTS.findIndex((item) => item.key === event?.key);
+  if (index < 0) return 0;
+  const claims = ensureWeeklyEvents().claims;
+  let count = 0;
+  for (let i = 0; i < index; i++) {
+    if (!claims.includes(WEEKLY_EVENTS[i].key)) count += 1;
+  }
+  if (state.checkin?.monthCrateKey !== monthKey()) count += 1;
+  return count;
+}
+
 /* ---------------- economy & growth (raw, no commit) ---------------- */
 function addCoinsRaw(n) {
   state.coins = Math.max(0, state.coins + n);
@@ -842,14 +921,14 @@ function addCoinsRaw(n) {
 }
 function addBondRaw(s, amount) {
   const mod = BREEDS[s.breed]?.bondMod || 1;
-  s.bond = clamp(s.bond + amount * mod);
+  s.bond = clamp(s.bond + amount * mod * weeklyEventBondMult());
   if (s.bond >= 100) unlockSecret('heartkeeper');
 }
 /* A Starpath Feast is deliberately stage-based rather than a flat XP item. */
 function stageFeastRaw(s) {
   if (!s || s.stage === 'egg' || s.retired) return { ok: false, reason: 'missing' };
   if (s.level >= MAX_LEVEL) return { ok: false, reason: 'max' };
-  const target = [5, 10, 20, MAX_LEVEL].find((n) => n > s.level) || MAX_LEVEL;
+  const target = GROWTH_MILESTONES.find((n) => n > s.level) || MAX_LEVEL;
   let need = Math.max(0, xpNeeded(s.level) - s.xp);
   for (let level = s.level + 1; level < target; level++) need += xpNeeded(level);
   const factor = (BREEDS[s.breed]?.xpMod || 1)
@@ -879,7 +958,7 @@ function addXpRaw(s, amount) {
   }
   const breed = BREEDS[s.breed] || {};
   const habitat = habitatFor(s);
-  const total = amount * (breed.xpMod || 1) * (1 + (s.gen || 0) * 0.05) * (spriteEffects(s).xp || 1) * (1 + habitat.bonus);
+  const total = amount * weeklyEventXpMult() * (breed.xpMod || 1) * (1 + (s.gen || 0) * 0.05) * (spriteEffects(s).xp || 1) * (1 + habitat.bonus);
   s.xp += total;
   let ups = 0;
   while (s.level < MAX_LEVEL && s.xp >= xpNeeded(s.level)) {
@@ -1059,6 +1138,7 @@ function makeSprite(opts = {}) {
     size: SIZES[opts.size] ? opts.size : rollSize(),
     diet: opts.diet || { hearty: 0, sweet: 0, eerie: 0, wild: 0 },
     sugar: 0,
+    rarityBoost: Math.max(0, Math.min(RARITY_BOOST_MAX, Math.floor(Number(opts.rarityBoost) || 0))),
     form: EVOLUTION_FORMS[opts.form] ? opts.form : null,
     special: COMBOS.some((c) => c.id === opts.special) ? opts.special : null,
     evolvedAt: opts.evolvedAt || 0,
@@ -1178,6 +1258,41 @@ function rollEgg(tierId, opts = {}) {
     hatch: 0,
     needs: { hunger: 70, energy: 74, joy: 72, clean: 88 },
   });
+}
+
+const TRAIL_STAGE_ORDER = ['baby', 'juvenile', 'sprite', 'elder'];
+const TRAIL_STAGE_LABELS = { baby: 'Baby', juvenile: 'Juvenile', sprite: 'Sprite', elder: 'Elder' };
+const TRAIL_STAGE_LEVEL = { juvenile: 5, sprite: 10, elder: 20 };
+
+/* Every finished trail resolves one visible reward: a type-tier rise, a stage
+   evolution, or a generous coin bonus. Higher trails roll the rare outcomes more often. */
+function rollTrailBonus(s, info, payout) {
+  if (!s || s.stage === 'egg') return { kind: 'coins', coins: 0 };
+  const tierKey = spriteRarityKey(s);
+  const tierIndex = RARITY_TIER_ORDER.indexOf(tierKey);
+  const stageIndex = TRAIL_STAGE_ORDER.indexOf(s.stage);
+  const canTier = tierIndex >= 0 && tierIndex < RARITY_TIER_ORDER.length - 1;
+  const canEvolve = stageIndex >= 0 && stageIndex < TRAIL_STAGE_ORDER.length - 1 && !s.retired;
+  const evolveChance = Math.max(0, Number(info?.trailEvolveChance) || 0);
+  const tierChance = Math.max(0, Number(info?.trailTierChance) || 0);
+  const roll = Math.random();
+  if (canEvolve && roll < evolveChance) {
+    const fromStage = s.stage;
+    const toStage = TRAIL_STAGE_ORDER[stageIndex + 1];
+    s.stage = toStage;
+    s.level = Math.max(s.level, TRAIL_STAGE_LEVEL[toStage] || s.level);
+    return { kind: 'evolve', from: TRAIL_STAGE_LABELS[fromStage] || fromStage, to: TRAIL_STAGE_LABELS[toStage] || toStage, stage: toStage };
+  }
+  if (canTier && roll < evolveChance + tierChance) {
+    const fromRarity = TYPE_EGG_RARITIES[tierKey];
+    s.rarityBoost = Math.max(0, Math.min(RARITY_BOOST_MAX, Math.floor(Number(s.rarityBoost) || 0) + 1));
+    const toKey = spriteRarityKey(s);
+    const toRarity = TYPE_EGG_RARITIES[toKey];
+    return { kind: 'tier', from: fromRarity?.name || tierKey, to: toRarity?.name || toKey, tier: toRarity };
+  }
+  const coins = Math.max(1, Math.round(Math.max(1, Number(payout) || 0) * (Number(info?.trailCoinMult) || 1.5)));
+  addCoinsRaw(coins);
+  return { kind: 'coins', coins };
 }
 
 /* ---------------- actions ---------------- */
@@ -1636,6 +1751,7 @@ const Actions = {
     addBondRaw(s, bondGain);
     const ups = addXpRaw(s, Math.max(1, Number(xp) || 1));
     addCoinsRaw(payout);
+    const trail = rollTrailBonus(s, info, payout);
     const foodChance = Math.max(0, Math.min(1, Number(info.foodChance) || 0));
     const foodKey = foodChance && chance(foodChance) ? pick(unlockedFoodKeys()) : null;
     if (foodKey) addFoodRaw(foodKey, 1);
@@ -1664,7 +1780,7 @@ const Actions = {
     commit('walk', { route, distance: steps, walks, gift: !!gift, careGift: !!careGift });
     return {
       ok: true, sprite: s, coins: payout, xp: Math.max(1, Number(xp) || 1), bond: bondGain,
-      distance: steps, walks, foodKey, gift, unlocked, leveled: ups, rarityBonus: reward.rarityBonus, careGift,
+      distance: steps, walks, foodKey, gift, unlocked, leveled: ups, rarityBonus: reward.rarityBonus, careGift, trail,
     };
   },
 
@@ -1926,7 +2042,7 @@ const Actions = {
     const s = activeSprite();
     const bonusCoins = s ? (spriteEffects(s).checkinCoins || 0) : 0;
     const baseReward = firstToday ? 20 + Math.min(streak, 7) * 5 : 8 + Math.min(streak, 7) * 2;
-    const reward = Math.round(baseReward * (holiday?.coinMult || 1)) + bonusCoins;
+    const reward = Math.round(baseReward * (holiday?.coinMult || 1) * weeklyEventCoinMult()) + bonusCoins;
     addCoinsRaw(reward);
     if (s) addXpRaw(s, firstToday ? 12 : 5);
     const snackKey = chance(firstToday ? 0.45 : 0.3) ? pick(SNACK_KEYS) : null;
@@ -1962,6 +2078,71 @@ const Actions = {
       ok: true, reward, bonusCoins, streak, window: win, firstToday,
       snackKey, foodKey, holidayFood, holiday: holiday?.key || null, milestones, slots: c.slots.slice(), weekSlots: c.weekSlots,
     };
+  },
+
+  claimWeeklyEvent() {
+    const event = activeWeeklyEvent();
+    if (!event) return { ok: false, reason: 'event' };
+    const weekly = ensureWeeklyEvents();
+    if (weekly.claims.includes(event.key)) return { ok: false, reason: 'claimed', event };
+    const reward = event.reward || {};
+    const result = { ok: true, event, coins: reward.coins || 0, snacks: [], foods: [], vault: [], crates: 0, monthly: null };
+    if (reward.kind === 'vault') {
+      const missing = weeklyEventMissingVaultKeys();
+      missing.forEach((key) => {
+        const sprite = unlockSecretRaw(key);
+        if (sprite) result.vault.push(sprite);
+      });
+      if (!missing.length) result.coins += 250;
+    } else if (reward.kind === 'crates') {
+      const index = WEEKLY_EVENTS.findIndex((item) => item.key === event.key);
+      const missed = WEEKLY_EVENTS.slice(0, Math.max(0, index)).filter((item) => !weekly.claims.includes(item.key));
+      result.crates = missed.length;
+      missed.forEach(() => {
+        result.coins += 80;
+        const snack = pick(SNACK_KEYS);
+        addSnackRaw(snack, 1);
+        result.snacks.push(snack);
+      });
+      const c = ensureCheckinPeriods();
+      if (c.monthCrateKey !== monthKey()) {
+        const coins = 100 + Math.min(50, (c.monthDays || 0) * 5);
+        const lockedFoods = MONTHLY_FOOD_KEYS.filter((key) => !(state.foodUnlocks || []).includes(key));
+        const newFood = lockedFoods[0] || null;
+        if (newFood) {
+          state.foodUnlocks = state.foodUnlocks || [];
+          state.foodUnlocks.push(newFood);
+          addFoodRaw(newFood, 2);
+        }
+        const bundle = [];
+        for (let i = 0; i < 3; i++) {
+          const key = pick(unlockedFoodKeys());
+          bundle.push(key);
+          addFoodRaw(key, 1);
+        }
+        c.monthCrateKey = monthKey();
+        state.stats.monthCrates = (state.stats.monthCrates || 0) + 1;
+        result.monthly = { coins, newFood, bundle };
+        result.coins += coins;
+      }
+    } else if (reward.foodCats?.length) {
+      const keys = weeklyEventFoodKeys(event);
+      keys.forEach((key) => {
+        addFoodRaw(key, 1);
+        result.foods.push(key);
+      });
+    }
+    const snacks = Math.max(0, Number(reward.snacks) || 0);
+    for (let i = 0; i < snacks; i++) {
+      const snack = pick(SNACK_KEYS);
+      addSnackRaw(snack, 1);
+      result.snacks.push(snack);
+    }
+    addCoinsRaw(result.coins);
+    weekly.claims.push(event.key);
+    state.stats.weeklyEventClaims = (state.stats.weeklyEventClaims || 0) + 1;
+    commit('weekly-event', { event: event.key, coins: result.coins, vault: result.vault.length, foods: result.foods.length, crates: result.crates });
+    return result;
   },
 
   claimMonthly() {
@@ -2127,7 +2308,13 @@ const Actions = {
 
   setTheme(patch) {
     state.theme = { ...state.theme, ...patch };
-    if (patch.scene) recordBiomeVisit(patch.scene);
+    if (patch.scene) {
+      if (!SCENES[patch.scene]) state.theme.scene = 'grove';
+      else {
+        state.unlockedScenes = Array.from(new Set([...(state.unlockedScenes || []), patch.scene]));
+        recordBiomeVisit(patch.scene);
+      }
+    }
     commit('theme');
   },
 

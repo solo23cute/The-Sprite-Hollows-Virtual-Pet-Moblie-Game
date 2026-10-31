@@ -166,6 +166,7 @@ function openHatchFlow(spriteId, opts = {}) {
     }
     if (res.newShine) toast(`${displayName(res.sprite)} hatched shiny!`, '✨');
     Sfx.hatch();
+    Sfx.spriteCry(res.sprite, { delay: 0.38 });
     tapHaptic(24);
   }
 

@@ -1,3 +1,63 @@
+## 3.9.0 Every sprite finds its voice — animal cries and babbles
+
+- Added a synthesized voice to every one of the **2,888 sprite types** — no audio files, no downloads, and fully offline.
+- **23 animal and creature profiles:** meow, yip, bark, howl, growl, roar, chirp, hoot, croak, moo, oink, squeak, hiss, buzz, clank, chime, wail, babble, splash, rumble, spark, neigh, and trumpet.
+- Known creatures map to fitting calls: wolves howl, cats meow, dogs bark, birds chirp, dragons roar, frogs croak, ghosts wail, robots clank, fish splash, and more. Everything else falls back to one of the **18 element/type families**.
+- Each sprite's voice is deterministic from its **species, breed, hybrid, palette, pattern, finish, mutation, size, and form**, so different sprites of the same type still have their own pitch and phrasing.
+- Cries play when a sprite is **tapped or petted**, when it **wakes up**, when an egg **hatches** (after the shell fanfare), and softly when a **detail card opens**. Eggs stay quiet until they hatch.
+- Respects the Studio **sound toggle** and posts a descriptive **closed caption** such as “Luna meows” or “Ember roars”.
+- Android version **3.9.0 / versionCode 60**.
+- Verified with a dedicated Web Audio suite across all **2,888 element keys**: **7,776 oscillator notes scheduled**, zero missing voices, deterministic seeds, muted audio correctly silent, eggs correctly silent, and zero console/runtime errors. All prior 3.9 DOM suites also pass. Live Chromium screenshots remain unavailable in this VM because the NSS libraries are missing and there is no root access; the preview panel is the available visual check.
+
+## 3.8.0 Weekly Hollow events, Friday Vault rescue, and free food days
+
+- Added a seven-day weekly event calendar on **Today**, with one claim per event per week and a live seven-day strip showing claimed, current, and upcoming days.
+- **Momentum Monday:** +50% XP, +25% coins, and a starter event crate.
+- **Meal Train Tuesday:** every meal in the game is stocked free — **91 meal items** — with +10% XP and +20% bond.
+- **Dessert Moon Wednesday:** every dessert is stocked free, with +15% XP.
+- **Thirsty Thursday:** all **29 drinks** are stocked free, and gifts arrive 35% sooner.
+- **Vault Rescue Friday:** claims **every missing Secret Vault sprite**, including the Master Vault if missing. A complete Vault pays a 250-coin crown instead.
+- **Crate Catch-Up Saturday:** opens every unclaimed event crate from earlier in the week and the monthly crate if it is still sealed, plus +25% coins.
+- **Grand Feast Sunday:** free meals, desserts, and drinks, **double XP**, +50% coins, +25% bond, and gifts 20% sooner.
+- XP, game coins, check-in coins, gift timers, and bond gains now read the active day's live multiplier.
+- Android version **3.8.0 / versionCode 59**.
+- Verified with the weekly-event suite plus all prior 3.8 DOM suites: all 7 events registered, Saturday claimed its missing crates and monthly crate, Friday granted all **35** missing Vault sprites, all 91 meals and 29 drinks passed category checks, Monday's 1.5× XP and 1.25× coin multipliers resolved, Thursday's 1.35× gift speed resolved, and there were zero console/runtime errors. Live Chromium screenshots remain unavailable in this VM because the NSS libraries are missing and there is no root access; the preview panel is the available visual check.
+
+## 3.7.0 World evolution atlas, every biome, and the free Vault codex
+
+- Added the free **World Evolution Atlas**: **2,888 types × 4 forms = 11,552 evolution paths**, generated from the same live gene, biome, breeding, diet, and Vault tables the game uses.
+- Every path records its rarity tier, home biome or Hollow scene, type-egg/Vault source, gene power, parent types, signature habit, personality, finish, size, Titan name, and the four-form diet recipe.
+- Covers all **18 type biomes**, all **47 Hollow habitats**, and every **Secret Vault / Master Vault** species. **140 Vault evolution paths are readable for free**; owning the Vault sprite still requires its door.
+- Added filters for all **12 tiers**, all four forms, every environment, type eggs, exotic eggs, the Secret Vault, and the Master Vault, plus free-text search across genes, parents, personalities, and environments.
+- The Breeding Codex now has an **All type evolutions** section, the full form matrix, a free atlas launcher, and a per-parent “Every evolution path for this species” link.
+- The Bond Codex now carries the same four-form world summary and atlas launcher. The Types screen has a dedicated **World Evolution Atlas** feature card, and every sprite's evolution screen links directly to its type's paths.
+- The Wiki has a new **World evolution atlas** guide with tier coverage, all environments, parent inheritance, and the free Vault explanation; the Types guide now correctly says twelve tiers.
+- Android version **3.7.0 / versionCode 58**.
+- Verified with the new atlas suite plus the existing 3.7 DOM suites: 11,552 generated paths, all 18 biome buckets populated, 140 Vault/Master paths, correct Master Console/Vault gating labels, working environment and form filters, all three codex entry points, zero console/runtime errors. Live Chromium screenshots remain unavailable in this VM because the NSS libraries are missing and there is no root access; the preview panel is the available visual check.
+
+## 3.6.0 Biome picker repair, twelve tiers, Bond Codex, and level 1,000
+
+- Fixed the Studio scene picker: it now has separate **Core habitats**, **Type biomes**, and **Custom biomes** sections instead of one flat 47-button row. All **18 type biomes are always visible and selectable**, with palette tiles, emoji, habitat labels, and a direct **Biome Atlas** button.
+- Repaired biome availability and travel. Biome scenes are recognized as unlocked from live scene data, visits are recorded when selected, and the Atlas, Wiki, and Studio all switch to the same scene.
+- Expanded the ladder from nine to **twelve rarity tiers**: **Common → Uncommon → Rare → Epic → Legendary → Mythic → Secret → Exotic → Master → Celestial → Divine → Eternal**. The three apex ranks are trail-only and add **35,000 / 50,000 / 75,000** game coins.
+- Added the **Bond Codex** from the Types screen, the Wiki, and every sprite's evolution screen. It documents all six bond ranks — New Friend, Warming Up, Friendly, Close, Inseparable, and Heartbound — with their live passive XP, gift, coin, and need-decay bonuses.
+- Added a **NEXT EVOLUTION** card to every grown sprite with its next stage, required level, XP remaining, progress bar, and bond rank. The full evolution screen shows the four-stage timeline, current bond, and all four diet forms.
+- Increased the sprite level cap from 30 to **1,000**. Starpath Feasts now advance to the next milestone (**5, 10, 20, 100, 250, 500, 1,000**) instead of overshooting to the cap. Existing saves and retired sprites remain valid.
+- Updated the Wiki's habitat, Types, growth, and rebirth guides, plus the induction tour, for all 18 biomes, twelve tiers, six bonds, the evolution preview, and level 1,000.
+- Android version **3.6.0 / versionCode 57**.
+- Verified with the full DOM suite: 18 biome buttons with none disabled, all 12 tiers resolve, apex boosts cap at Eternal, all six bond ranks render with passive effects, the NEXT EVOLUTION screen opens, a level-20 Starpath Feast lands at milestone 100, the existing care-dock/tier suite passes, and there are zero console/runtime errors. Live Chromium screenshots remain unavailable in this VM because the NSS libraries are missing and there is no root access; the preview panel is the available visual check.
+
+## 3.5.0 Trail upgrades, faster scrolling, and mobile readability
+
+- Every finished **walk, jog, Moonlit Stroll, run, or Summit Scramble** now rolls one visible **Trail Upgrade**: raise this sprite's type tier, evolve it one stage, or take a bonus-coin payout. Higher trails roll the rare outcomes more often.
+- Type-tier upgrades are stored per sprite, stack on the base nine-tier rarity, increase that sprite's game payout and common/uncommon gift speed, and appear as a **Trail +N** chip in sprite details and Activities.
+- Stage upgrades advance the active sprite to its next life stage and raise its level to that stage's minimum. A maxed Elder or Master sprite falls back to the coin reward.
+- The coin fallback pays **2×–3×** the trail payout depending on the route. Trail cards and the walk sheet now preview the upgrade roll.
+- Faster scrolling: a passive mobile swipe boost plus a 1.45× wheel step for desktop/trackpad, with contained overscroll on screens, sheets, modals, and game boards.
+- Mobile readability pass: larger body, chip, tab, game, need, and care labels; 46px buttons; 16px screen gutters; wider result cards; and text-size adjustment enabled.
+- Android version **3.5.0 / versionCode 56**.
+- Verified with deterministic DOM tests: low roll → Juvenile stage-up at level 5; Elder roll → Uncommon to Rare tier with a higher coin bonus; maxed Elder → coin fallback; all nine rarity tiers, the 10-button dock, and the existing UI suite still pass with zero console/runtime errors. Live Chromium screenshots remain unavailable in this VM because the NSS libraries are missing and there is no root access; the preview panel is the available visual check.
+
 ## 3.4.4 Care dock placement fix
 
 - Moved the care dock out of the floating overlay and into the Hollow’s normal screen flow, directly above the tab bar. It no longer covers the scene or floats high over the page.
@@ -179,7 +239,7 @@ Any static file server works. The game saves to `localStorage` after every actio
 
 **Download:** [`SpriteHollow.apk`](SpriteHollow.apk) — 519 KB, debug-signed, fully offline. SHA-256 `e1de2c9e6a2c14b4dca1ef2dd36501ab99224fa385430d29906e96dccac85e08`.
 
-**Release build (3.4.4):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 559 KB, signed with the project release key. SHA-256 `c194733582e18811ce363b20a63ae6004663d92d08d91f2672119f0a97aefaed`.
+**Release build (3.9.0):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 579 KB, signed with the project release key. SHA-256 `ad03d06073b644ab2974dc8b8b7244813b05120f34d71aa21d9722827cdf6b0e`.
 
 - Minimum Android 8.0 (API 26); targets Android 14 (API 34).
 - Install: open the APK on the phone and allow installation from this source, or use `adb install -r SpriteHollow.apk`.

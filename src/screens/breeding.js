@@ -164,7 +164,8 @@ function openBreedingParent(key) {
         <div class="row" style="gap:6px;margin-top:7px"><button class="btn btn-soft btn-sm" data-mate-random>🎲 Random mate</button><button class="btn btn-primary btn-sm" data-mate-preview>Preview child</button></div>
         <div data-mate-result></div>
       </div>
-      <button class="btn btn-primary btn-block" data-breed-full style="margin-top:10px">Browse every parent in the codex</button>
+      <button class="btn btn-soft btn-block" data-world-evo-species="${key}" style="margin-top:10px">🧬 Every evolution path for ${esc(el.name)}</button>
+      <button class="btn btn-primary btn-block" data-breed-full style="margin-top:8px">Browse every parent in the codex</button>
       <div class="wiki-footnote">Parent type index · ${ELEMENT_KEYS.length} species</div>
     </div>`,
     onMount: (sheet, close) => {
@@ -195,6 +196,10 @@ function openBreedingParent(key) {
       sheet.querySelector('[data-mate-random]')?.addEventListener('click', () => {
         const pool = ELEMENT_KEYS.filter((k) => k !== key);
         buildPreviewMate(pick(pool));
+      });
+      sheet.querySelector('[data-world-evo-species]')?.addEventListener('click', () => {
+        close();
+        setTimeout(() => openWorldEvolutionAtlas({ speciesKey: key }), 30);
       });
       sheet.querySelector('[data-breed-full]')?.addEventListener('click', () => {
         close();
@@ -236,7 +241,7 @@ function openBreedingCodex(filterKey) {
     title: 'Breeding codex',
     sub: `${BREEDING_PAIRS.length} named hybrids · ${allSpecies.length} parent species${focusedPair ? ` · ${focusedPair}` : ''}`,
     body: `<div class="wiki-article">
-      <p class="wiki-lede">The codex now lists <b>${BREEDING_PAIRS.length} named hybrids</b> and the parent types of <b>${allSpecies.length} species</b>, including the full Fortnite Legacy and WWE waves. Named hybrids are special results; every two level 3+ sprites can still merge and blend.</p>
+      <p class="wiki-lede">The codex now lists <b>${BREEDING_PAIRS.length} named hybrids</b>, the parent types of <b>${allSpecies.length} species</b>, and <b>${WORLD_EVOLUTION_TOTAL.toLocaleString()} type × form evolution paths</b> across every biome and the Secret Vault. Named hybrids are special results; every two level 3+ sprites can still merge and blend.</p>
       <div class="type-tools" style="margin-top:8px">
         <input class="type-search" data-breed-search type="search" placeholder="Search any species or parent type…" autocomplete="off">
         <select class="type-search" data-breed-type-filter aria-label="Filter parent species by type">
@@ -249,6 +254,11 @@ function openBreedingCodex(filterKey) {
       <div class="breeding-grid" data-breed-pairs></div>
       <p class="tiny muted" data-breed-pairs-empty hidden>No named hybrid matches that search.</p>
       <button class="btn btn-soft btn-block" data-breed-pairs-more hidden style="margin-top:10px"></button>
+      <h3>🧬 All type evolutions</h3>
+      <p>Every type has four possible permanent forms. The free atlas adds the full world map: <b>${ELEMENT_KEYS.length.toLocaleString()} types × 4 forms</b>, all ${BIOME_KEYS.length} type biomes, every Hollow habitat, parent genes, signature personality, and every Secret Vault species.</p>
+      ${worldEvolutionFormSummaryHTML()}
+      <button class="btn btn-primary btn-block" data-world-evo-open style="margin-top:10px">🧬 Open the free World Evolution Atlas</button>
+      <p class="tiny muted" style="text-align:center;margin-top:6px">Vault genes and evolution recipes are free to read. Vault ownership is separate.</p>
       <h3>All parent types</h3>
       <p>Every species is listed by its primary parent type. Open one to see every named pair and its full compatibility notes.</p>
       <div class="breed-parent-grid" data-breed-parents></div>
@@ -287,6 +297,10 @@ function openBreedingCodex(filterKey) {
         const guide = btn.dataset.breedGuide;
         close();
         setTimeout(() => openWikiGuide(guide), 30);
+      }));
+      sheet.querySelectorAll('[data-world-evo-open]').forEach((btn) => btn.addEventListener('click', () => {
+        close();
+        setTimeout(() => openWorldEvolutionAtlas(), 30);
       }));
       const bindPairButtons = () => pairsBox.querySelectorAll('[data-breed-pair]').forEach((btn) => btn.addEventListener('click', () => {
         const pair = btn.dataset.breedPair;
@@ -348,5 +362,9 @@ function breedingGuideBody() {
     <p>Element, breed, palette, pattern, accessory, personality, and size are all inherited in different ways. The pair page breaks down the exact rules and odds for that specific cross.</p>
     <h3>Signature combos</h3>
     <p><b>${comboPairs.length}</b> pairs also have a named combo with its own power, such as ${comboPairs.slice(0, 3).map((p) => esc(p.combo.name)).join(', ')}. Combo odds rise with every merge you complete.</p>
-    <button class="btn btn-primary btn-block" data-breeding-open style="margin-top:12px">Open the breeding codex</button>`;
+    <h3>World evolution atlas</h3>
+    <p>The free atlas covers every species and all four forms, including all <b>${SECRET_SPECIES.length} Secret Vault species</b>. Use it to check a type's biome, gene, parent family, signature habit, personality, finish, and diet recipe before you merge.</p>
+    ${worldEvolutionFormSummaryHTML()}
+    <button class="btn btn-primary btn-block" data-world-evo-open style="margin-top:10px">🧬 Open the free World Evolution Atlas</button>
+    <button class="btn btn-soft btn-block" data-breeding-open style="margin-top:8px">Open the breeding codex</button>`;
 }
