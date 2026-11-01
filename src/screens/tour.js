@@ -202,6 +202,35 @@ const TOUR_STEPS = [
   },
 ];
 
+/* The tour reads the live game data, so new age tiers, biomes, and sprite waves
+   appear here automatically with no hand-maintained counts. */
+function tourLiveStep() {
+  const tiers = STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(' · ');
+  const waves = collectionWaves();
+  return {
+    icon: '🥋',
+    kicker: 'EVOLUTION & CODEX',
+    title: `${STAGE_ORDER.length} age tiers, ${ELEMENT_KEYS.length.toLocaleString()} sprites`,
+    text: `Every sprite grows through ${tiers}. Crossing an age tier opens an evolution screen with the new stage, its bonus, and the full ladder, and the same screen appears when a diet path unlocks a Dragon, Fairy, Ghoul, or Titan form. The final tier is Sensei, and a Sensei can retire at level 100.`,
+    points: [
+      `${waves.length} collection waves are live, and the Codex, Wiki, and this tour rebuild their counts from the same data whenever new sprites are added.`,
+      ...waves.slice(0, 7).map((wave) => `${wave.icon} ${wave.label} · ${wave.count()}`),
+      `The Type encyclopedia lists all ${ELEMENT_KEYS.length.toLocaleString()} species, ${BIOME_KEYS.length} biomes, and every evolution path.`,
+      'Weekends run an Admin Event: bonus XP, bonus coins, and one free Admin or special event egg.',
+    ],
+    tip: 'Open Codex → Type encyclopedia for the full list, or Wiki → Collection waves for live counts per wave.',
+  };
+}
+
+(function syncTourGrowth() {
+  const step = TOUR_STEPS.find((item) => item.kicker === 'SPRITES & GROWTH');
+  if (!step) return;
+  step.title = `Raise them to level ${MAX_LEVEL.toLocaleString()}`;
+  step.text = step.text.replace(/Sprites grow through[^.]*\./, `Sprites grow through ${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} at level ${STAGE_LEVEL[stage]}`).join(', ')}.`);
+})();
+
+TOUR_STEPS.splice(Math.max(0, TOUR_STEPS.length - 1), 0, tourLiveStep());
+
 function tourSentenceParts(text) {
   return (text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text])
     .map((sentence) => sentence.trim())

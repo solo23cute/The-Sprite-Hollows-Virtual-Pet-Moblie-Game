@@ -1629,17 +1629,17 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 .secret-code-row .btn { flex: none; }
 .tour-card { padding-top: 4px; }
 .tour-top { display: flex; align-items: center; gap: 10px; }
-.tour-icon { width: 52px; height: 52px; flex: none; display: grid; place-items: center; border-radius: 16px; background: linear-gradient(135deg, rgba(139, 123, 255, .28), rgba(255, 122, 200, .14)); font-size: 29px; }
+.tour-icon { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 13px; background: linear-gradient(135deg, rgba(139, 123, 255, .28), rgba(255, 122, 200, .14)); font-size: 23px; }
 .tour-kicker { color: var(--gold); font-size: 10px; font-weight: 900; letter-spacing: .13em; }
 .tour-count { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 800; }
-.tour-card h3 { margin: 16px 0 8px; font-size: 27px; line-height: 1.18; letter-spacing: -.025em; }
-.tour-text { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.68; }
+.tour-card h3 { margin: 12px 0 6px; font-size: 21px; line-height: 1.22; letter-spacing: -.02em; }
+.tour-text { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .tour-sentence { border-radius: 6px; transition: background .16s ease, color .16s ease, box-shadow .16s ease; }
 .tour-card .tour-speaking { background: rgba(255, 209, 102, .24); color: var(--text); box-shadow: 0 0 0 3px rgba(255, 209, 102, .12); }
 .tour-points { display: grid; gap: 9px; margin-top: 13px; }
-.tour-point { display: flex; gap: 8px; align-items: flex-start; color: var(--text); font-size: 15.5px; line-height: 1.56; }
+.tour-point { display: flex; gap: 8px; align-items: flex-start; color: var(--text); font-size: 13px; line-height: 1.5; }
 .tour-point > span:first-child { color: var(--gold); flex: none; }
-.tour-tip { display: flex; gap: 8px; align-items: flex-start; padding: 12px; margin: 14px 0 0; border-radius: 14px; border: 1px solid rgba(255, 209, 102, .28); background: rgba(255, 209, 102, .08); color: var(--text); font-size: 14px; line-height: 1.55; }
+.tour-tip { display: flex; gap: 8px; align-items: flex-start; padding: 10px 11px; margin: 11px 0 0; border-radius: 13px; border: 1px solid rgba(255, 209, 102, .28); background: rgba(255, 209, 102, .08); color: var(--text); font-size: 12.5px; line-height: 1.5; }
 .tour-tip span:first-child { color: var(--gold); flex: none; }
 .tour-voice { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; padding: 9px 11px; border-radius: 13px; background: rgba(139, 123, 255, .09); border: 1px solid rgba(139, 123, 255, .22); }
 .tour-voice .btn { flex: none; font-size: 12px; }
@@ -1732,13 +1732,89 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 /* ---------- biome picker, apex tiers, bonds & evolution ---------- */
 .biome-scene-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-.biome-scene-swatch { min-width: 0; min-height: 62px; border: 2px solid transparent; border-radius: 14px; padding: 8px 9px; display: flex; align-items: center; gap: 8px; text-align: left; color: #fff; background: linear-gradient(135deg, color-mix(in srgb, var(--b1) 82%, #111), color-mix(in srgb, var(--b2) 88%, #111)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.biome-scene-swatch { min-width: 0; min-height: 62px; border: 2px solid transparent; border-radius: 14px; padding: 8px 9px; display: flex; align-items: center; gap: 8px; text-align: left; color: #fff; background: linear-gradient(135deg, var(--b1, #5b4b8a), var(--b2, #1c1740)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); text-shadow: 0 1px 4px rgba(0,0,0,.55); }
 .biome-scene-swatch.on { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.14); }
 .biome-scene-swatch.locked { opacity: .45; filter: grayscale(.45); }
-.biome-scene-swatch .bs-icon { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 10px; background: color-mix(in srgb, var(--b3) 24%, transparent); font-size: 19px; }
+.biome-scene-swatch .bs-icon { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 10px; background: rgba(255,255,255,.16); font-size: 19px; }
 .biome-scene-swatch .bs-copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .biome-scene-swatch .bs-copy b { font-size: 10px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.biome-scene-swatch .bs-copy span { font-size: 8px; line-height: 1.2; color: color-mix(in srgb, var(--b3) 75%, #fff); }
+.biome-scene-swatch .bs-copy span { font-size: 8px; line-height: 1.2; color: rgba(255,255,255,.82); }
+/* growth celebrations */
+.evo-pop { text-align: center; }
+.evo-pop-art { position: relative; width: 170px; height: 170px; margin: 4px auto 8px; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--evo-glow, #8b7bff) 34%, transparent), transparent 68%); }
+.evo-pop-art svg { width: 150px; height: 150px; animation: evo-pop-bounce .9s ease-out; }
+.evo-pop-burst { position: absolute; inset: -8px; display: grid; place-items: center; font-size: 26px; opacity: .85; animation: evo-pop-spin 9s linear infinite; }
+.evo-pop-copy h3 { margin: 2px 0 4px; font-size: 18px; line-height: 1.25; }
+.evo-pop-copy p { margin: 0 0 9px; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.evo-pop-ladder { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+.evo-pop-step { display: grid; gap: 1px; justify-items: center; padding: 8px 5px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.03); opacity: .55; }
+.evo-pop-step.reached { opacity: 1; border-color: rgba(139,123,255,.4); background: rgba(139,123,255,.1); }
+.evo-pop-step.on { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(139,123,255,.18); }
+.evo-pop-step b { font-size: 10px; }
+.evo-pop-ico { font-size: 17px; }
+.evo-pop-note { margin-top: 11px; padding: 9px 11px; border-radius: 12px; border: 1px solid rgba(255,209,102,.28); background: rgba(255,209,102,.08); font-size: 11.5px; line-height: 1.5; }
+@keyframes evo-pop-bounce { 0% { transform: scale(.72) translateY(10px); opacity: 0; } 60% { transform: scale(1.06) translateY(0); opacity: 1; } 100% { transform: scale(1) translateY(0); } }
+@keyframes evo-pop-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Evolution-in-progress sequence */
+.evo-seq { width: min(420px, 92vw); padding: 18px 16px 16px; border-radius: 22px; text-align: center; background: linear-gradient(180deg, rgba(30, 26, 52, .98), rgba(16, 14, 28, .99)); border: 1px solid rgba(139, 123, 255, .32); box-shadow: 0 24px 70px rgba(0, 0, 0, .62); }
+.evo-seq-kicker { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; font-weight: 800; color: #b6a8ff; }
+.evo-seq-art { position: relative; width: 176px; height: 176px; margin: 10px auto 4px; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, .1), transparent 68%); box-shadow: 0 0 54px -8px var(--evo-glow, #8b7bff); }
+.evo-seq-old, .evo-seq-new { position: absolute; inset: 0; display: grid; place-items: center; transition: opacity .45s ease, transform .45s ease; }
+.evo-seq-old svg, .evo-seq-new svg { width: 150px; height: 150px; }
+.evo-seq-new { opacity: 0; transform: scale(.9); }
+.evo-seq.is-morph .evo-seq-old { opacity: 0; transform: scale(1.08); }
+.evo-seq.is-morph .evo-seq-new { opacity: 1; transform: scale(1); animation: evo-pop-bounce .8s ease-out; }
+.evo-seq-ring { position: absolute; inset: 2px; border-radius: 50%; border: 2px dashed rgba(255, 255, 255, .2); animation: evo-pop-spin 6s linear infinite; }
+.evo-seq-title { font-size: 19px; margin: 4px 0 0; }
+.evo-seq-sub { font-size: 12px; color: var(--muted); margin: 2px 0 12px; }
+.evo-seq-bar { height: 10px; border-radius: 99px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.evo-seq-bar i { display: block; height: 100%; width: 0%; border-radius: 99px; background: linear-gradient(90deg, #8b7bff, #8be9ff, #ffd166); transition: width .12s linear; }
+.evo-seq-phase { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.evo-seq-phase b { color: #ffd166; }
+.evo-seq.is-result .evo-seq-ring, .evo-seq.is-result .evo-seq-bar, .evo-seq.is-result .evo-seq-phase, .evo-seq.is-result [data-evo-skip] { display: none; }
+.evo-result-kicker { display: inline-block; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; font-weight: 800; color: #ffd166; margin-bottom: 3px; }
+.evo-result-head h2 { font-size: 18px; line-height: 1.3; margin: 2px 0 3px; }
+.evo-result-head .sub { font-size: 11.5px; color: var(--muted); margin: 0 0 8px; line-height: 1.5; }
+@media (max-width: 380px) { .evo-seq { width: 94vw; padding: 14px 12px; } .evo-seq-art { width: 150px; height: 150px; } .evo-seq-old svg, .evo-seq-new svg { width: 128px; height: 128px; } }
+
+/* Hollow loading transition */
+.load-screen { width: min(360px, 88vw); padding: 22px 18px; border-radius: 24px; text-align: center; background: linear-gradient(180deg, rgba(26, 22, 44, .97), rgba(14, 12, 24, .99)); border: 1px solid rgba(139, 123, 255, .28); box-shadow: 0 24px 60px rgba(0, 0, 0, .6); animation: load-in .3s ease-out; }
+.load-art { position: relative; width: 150px; height: 150px; margin: 0 auto 6px; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle, rgba(255, 255, 255, .12), transparent 70%); box-shadow: 0 0 46px -6px var(--load-glow, #8b7bff); }
+.load-art svg { width: 128px; height: 128px; animation: load-bob 1.4s ease-in-out infinite; }
+.load-mote { position: absolute; font-size: 12px; color: #fff3b0; animation: load-mote 1.6s ease-in-out infinite; }
+.load-mote.m1 { left: 6%; top: 18%; }
+.load-mote.m2 { right: 4%; top: 30%; animation-delay: .3s; }
+.load-mote.m3 { left: 24%; bottom: 8%; animation-delay: .6s; }
+.load-title { font-size: 17px; margin: 6px 0 10px; }
+.load-bar { height: 9px; border-radius: 99px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.load-bar i { display: block; height: 100%; width: 0%; border-radius: 99px; background: linear-gradient(90deg, #8b7bff, #8be9ff, #ffd166); transition: width .1s linear; }
+.load-line { margin-top: 8px; font-size: 11.5px; color: var(--muted); }
+.load-pct { margin-top: 2px; font-size: 11px; font-weight: 800; color: #ffd166; }
+.load-tip { margin-top: 10px; font-size: 10.5px; color: var(--muted); opacity: .82; }
+.overlay.is-leaving { animation: load-out .24s ease-in forwards; }
+@keyframes load-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes load-mote { 0%, 100% { opacity: .25; transform: translateY(0) scale(.9); } 50% { opacity: 1; transform: translateY(-7px) scale(1.1); } }
+@keyframes load-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes load-out { to { opacity: 0; transform: scale(1.02); } }
+@media (prefers-reduced-motion: reduce) {
+  .evo-pop-art svg, .evo-pop-burst { animation: none; }
+}
+@media (max-width: 520px) {
+  .evo-pop-art { width: 140px; height: 140px; }
+  .evo-pop-art svg { width: 124px; height: 124px; }
+  .evo-pop-copy h3 { font-size: 16px; }
+}
+
+/* daily egg gift & holiday season gifts */
+.egg-gift-card { border-color: rgba(255, 209, 102, .34) !important; background: linear-gradient(160deg, rgba(255, 209, 102, .1), rgba(255,255,255,.03)) !important; }
+.egg-picker-search { width: 100%; padding: 12px 14px; border-radius: 13px; background: rgba(255,255,255,.06); border: 1px solid var(--line); color: var(--text); outline: none; font-size: 13px; font-weight: 800; margin-top: 4px; }
+.egg-picker-list { display: flex; flex-direction: column; gap: 6px; max-height: 52vh; overflow: auto; padding-bottom: 6px; }
+.egg-picker-row { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 11px; border-radius: 13px; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--text); text-align: left; }
+.egg-picker-row:active { background: rgba(255,255,255,.1); }
+.egg-picker-row .ep-dot { width: 22px; height: 22px; flex: 0 0 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(255,255,255,.25); }
+.egg-picker-row b { font-size: 11.5px; }
+.egg-picker-row span span { font-size: 9px; color: var(--muted); }
 .apex-card { border-color: color-mix(in srgb, var(--apex) 48%, transparent) !important; background: linear-gradient(160deg, color-mix(in srgb, var(--apex) 14%, transparent), rgba(255,255,255,.03)) !important; }
 .apex-card .apex-symbol { font-size: 23px; color: var(--apex); text-shadow: 0 0 16px var(--apex); }
 .bond-feature { border-color: rgba(255, 158, 199, .38) !important; }

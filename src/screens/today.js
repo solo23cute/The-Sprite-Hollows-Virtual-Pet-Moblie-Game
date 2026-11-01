@@ -16,6 +16,8 @@ function todayScreen(root) {
     <div data-checkin></div>
     <div data-week-track></div>
     <div data-weekly-event></div>
+    <div data-egg-gift></div>
+    <div data-weekend-event></div>
     <div data-monthly-crate></div>
     <div data-holiday-card></div>
     <div class="section-title"><h2>Streaks</h2><span>daily · weekly · monthly · yearly</span></div>
@@ -35,7 +37,7 @@ function todayScreen(root) {
       <br><br><b style="color:var(--text)">Weekly events</b><br>
       Every day brings a different free event: Monday XP, Tuesday meals, Wednesday desserts, Thursday drinks, Friday missing Vault sprites, Saturday unclaimed crates, and Sunday a grand feast. Claim each event once per week.
       <br><br><b style="color:var(--text)">Growing up</b><br>
-      XP comes from petting, feeding, baths, chats, tasks and games. Level 5 makes a Juvenile, 10 makes a Sprite, and 20 makes an Elder. At level 10, diet affinity can evolve a sprite into a Dragon, Fairy, Ghoul, or Titan.
+      XP comes from petting, feeding, baths, chats, tasks and games. The age tiers are ${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(', ')} — crossing one opens an evolution screen. Sensei is the final tier and can retire at level 100. At level 10, diet affinity can evolve a sprite into a Dragon, Fairy, Ghoul, or Titan.
     </div>`;
 
   const dateEl = root.querySelector('[data-today-date]');
@@ -156,6 +158,48 @@ function todayScreen(root) {
         <p class="tiny muted" style="text-align:center;margin-top:6px">Events rotate every day. One claim per event, per week.</p>
       </div>`;
 
+    const eggDone = dailyEggClaimed();
+    const featuredKey = dailyEggFeatured();
+    const featured = ELEMENTS[featuredKey] || ELEMENTS.bloom;
+    const lastGiftKey = dailyEggClaimedKey();
+    root.querySelector('[data-egg-gift]').innerHTML = `
+      <div class="card egg-gift-card" style="padding:13px;margin-top:12px">
+        <div class="between" style="align-items:flex-start">
+          <div><div class="eyebrow">Daily event</div><b style="font-size:13px">🥚 Daily Egg Gift</b></div>
+          <span class="chip">${eggDone ? '✓ claimed today' : 'one per day'}</span>
+        </div>
+        <p class="tiny muted" style="margin:6px 0 8px;line-height:1.55">Every day the Hollow leaves one wrapped egg on the doorstep, and you pick the sprite inside. Featured today: <b style="color:var(--text)">${esc(featured.name)}</b>.</p>
+        <div class="row" style="gap:5px;flex-wrap:wrap;margin-bottom:9px"><span class="chip">${dailyEggPool().length.toLocaleString()} species</span><span class="chip">🎁 free egg</span><span class="chip">🔥 arrives 40% warmed</span></div>
+        <div class="row" style="gap:7px">
+          <button class="btn ${eggDone ? 'btn-ghost' : 'btn-gold'}" style="flex:1" data-egg-gift-claim ${eggDone ? 'disabled' : ''}>${eggDone ? 'Claimed — back tomorrow' : 'Claim today’s gift egg'}</button>
+          <button class="btn btn-soft" style="flex:1" data-egg-gift-choose ${eggDone ? 'disabled' : ''}>Choose any sprite</button>
+        </div>
+        ${eggDone && lastGiftKey && ELEMENTS[lastGiftKey] ? `<p class="tiny muted" style="margin:7px 0 0;text-align:center">Today’s gift: <b style="color:var(--text)">${esc(ELEMENTS[lastGiftKey].name)}</b> egg, warming in the Nest.</p>` : ''}
+      </div>`;
+
+    const weekEvent = typeof weekendAdminEvent === 'function' ? weekendAdminEvent() : null;
+    const weekendActive = typeof weekendAdminActive === 'function' && weekendAdminActive();
+    const weekendDone = typeof weekendAdminClaimed === 'function' && weekendAdminClaimed();
+    const weekendHint = weekendActive
+      ? (weekendDone ? 'The Admin team has already handed over this weekend’s egg.' : 'The Admin Event is live all weekend. One claim per weekend.')
+      : 'The Admin Event returns on Saturday. Special event sprites and Admin sprites only arrive during the weekend.';
+    root.querySelector('[data-weekend-event]').innerHTML = `
+      <div class="card weekly-event-card" style="padding:13px;margin-top:12px;border-color:${weekEvent?.color || '#8be9ff'}66">
+        <div class="between" style="align-items:flex-start">
+          <div><div class="eyebrow">Admin event · weekends</div><b style="font-size:13px">${weekEvent?.icon || '🛠️'} ${esc(weekEvent?.name || 'Admin Event')}</b></div>
+          <span class="chip">${weekendDone ? '✓ claimed' : weekendActive ? 'live now' : 'Sat & Sun'}</span>
+        </div>
+        <p class="tiny muted" style="margin:6px 0 8px;line-height:1.55">${esc(weekEvent?.blurb || 'The admin team opens the console every weekend with bonus XP, coins, and an egg.')}</p>
+        <div class="row" style="gap:5px;flex-wrap:wrap;margin-bottom:9px">
+          <span class="chip">⚡ +${Math.round(((weekEvent?.xpMult || 1) - 1) * 100)}% XP</span>
+          <span class="chip">🪙 +${weekEvent?.coins || 0} coins</span>
+          <span class="chip">🥚 ${ELEMENTS[weekEvent?.egg]?.name || 'Admin'} egg</span>
+          <span class="chip">🛠️ ${(typeof ADMIN_KEYS !== 'undefined' ? ADMIN_KEYS.length : 0) + (typeof EVENT_KEYS !== 'undefined' ? EVENT_KEYS.length : 0)} event &amp; admin sprites</span>
+        </div>
+        <button class="btn ${weekendDone ? 'btn-ghost' : weekendActive ? 'btn-gold' : 'btn-soft'} btn-block" data-weekend-claim ${weekendActive && !weekendDone ? '' : 'disabled'}>${weekendDone ? 'Claimed this weekend' : weekendActive ? 'Claim the weekend event gift' : 'Back on Saturday'}</button>
+        <p class="tiny muted" style="text-align:center;margin-top:6px;line-height:1.45">${esc(weekendHint)}</p>
+      </div>`;
+
     const monthNow = monthKey();
     const monthClaimed = c.monthCrateKey === monthNow;
     const nextMonthlyFood = MONTHLY_FOOD_KEYS.find((k) => !(state.foodUnlocks || []).includes(k));
@@ -174,10 +218,14 @@ function todayScreen(root) {
     if (holiday) {
       const daysLeft = typeof holidayDaysLeft === 'function' ? holidayDaysLeft(holiday) : 0;
       const treat = FOODS[holiday.treat];
+      const seasonEggs = holidayEggPool(holiday);
+      const giftDone = holidayGiftClaimed(holiday);
       holidayCard.innerHTML = `<div class="card" style="padding:13px;margin-top:12px;border-color:${holiday.color}66">
         <div class="between"><div><div class="eyebrow">Holiday event</div><b style="font-size:13px">${holiday.icon} ${esc(holiday.name)}</b></div><span class="chip">${daysLeft} day${daysLeft === 1 ? '' : 's'} left</span></div>
         <p class="tiny muted" style="margin:6px 0 8px;line-height:1.55">${esc(holiday.blurb)}</p>
-        <div class="row" style="gap:5px;flex-wrap:wrap"><span class="chip">🪙 +${Math.round((holiday.coinMult - 1) * 100)}% coins</span><span class="chip">🎁 +${Math.round((holiday.giftSpeed - 1) * 100)}% gifts</span>${treat ? `<span class="chip">🍬 daily treat: ${treat.emoji} ${esc(treat.name)}</span>` : ''}</div>
+        <div class="row" style="gap:5px;flex-wrap:wrap"><span class="chip">🪙 +${Math.round((holiday.coinMult - 1) * 100)}% coins</span><span class="chip">🎁 +${Math.round((holiday.giftSpeed - 1) * 100)}% gifts</span><span class="chip">⚡ +${Math.round(((holiday.xpMult || 1) - 1) * 100)}% XP</span>${treat ? `<span class="chip">🍬 daily treat: ${treat.emoji} ${esc(treat.name)}</span>` : ''}</div>
+        <div class="row" style="gap:4px;flex-wrap:wrap;margin-top:7px">${seasonEggs.slice(0, 5).map((key) => `<span class="chip" style="border-color:${ELEMENTS[key].primary}55">${esc(ELEMENTS[key].name)} egg</span>`).join('')}${seasonEggs.length > 5 ? `<span class="chip">+${seasonEggs.length - 5} more</span>` : ''}</div>
+        <button class="btn ${giftDone ? 'btn-ghost' : 'btn-gold'} btn-block" data-holiday-gift ${giftDone ? 'disabled' : ''} style="margin-top:9px">${giftDone ? 'Season gift claimed today' : 'Claim season gift egg + bonus coins'}</button>
       </div>`;
     } else if (nextHol) {
       holidayCard.innerHTML = `<div class="card" style="padding:12px;margin-top:12px;border-color:${nextHol.color}44">
@@ -260,6 +308,51 @@ function todayScreen(root) {
       if (res.monthly) msg += ' · monthly crate';
       if (res.coins) msg += ` · +${res.coins} coins`;
       toast(msg, res.event.icon);
+      paint();
+      return;
+    }
+
+    const eggGiftClaim = e.target.closest('[data-egg-gift-claim]');
+    if (eggGiftClaim && !eggGiftClaim.disabled) {
+      const res = Actions.claimDailyEgg();
+      if (!res.ok) { toast('Today’s gift egg is already claimed. Come back tomorrow.', '🥚'); paint(); return; }
+      burstOn(eggGiftClaim, ['🥚', '✨', '🎁'], 9);
+      toast(`Daily gift egg: ${ELEMENTS[res.element].name} · warm in the Nest.`, '🥚');
+      paint();
+      return;
+    }
+
+    const eggGiftChoose = e.target.closest('[data-egg-gift-choose]');
+    if (eggGiftChoose && !eggGiftChoose.disabled) {
+      openDailyEggGift();
+      return;
+    }
+
+    const holidayGift = e.target.closest('[data-holiday-gift]');
+    if (holidayGift && !holidayGift.disabled) {
+      const res = Actions.claimHolidayGift();
+      if (!res.ok) {
+        toast(res.reason === 'claimed' ? 'Today’s season gift is already claimed.' : 'No holiday is active right now.', '🎁');
+        paint();
+        return;
+      }
+      burstOn(holidayGift, ['🎁', '🥚', '🪙'], 9);
+      toast(`${res.holiday.icon} ${res.holiday.name}: ${ELEMENTS[res.element].name} egg + ${res.coins} coins`, res.holiday.icon);
+      paint();
+      return;
+    }
+
+    const weekendClaim = e.target.closest('[data-weekend-claim]');
+    if (weekendClaim && !weekendClaim.disabled) {
+      const res = Actions.claimWeekendGift();
+      if (!res.ok) {
+        toast(res.reason === 'claimed' ? 'This weekend’s Admin gift is already claimed.' : 'The Admin Event runs on Saturday and Sunday only.', '🛠️');
+        paint();
+        return;
+      }
+      Sfx.win();
+      burstOn(weekendClaim, ['🛠️', '🥚', '✨'], 9);
+      toast(`${res.event.icon} ${res.event.name}: ${ELEMENTS[res.element].name} egg + ${res.coins} coins`, res.event.icon);
       paint();
       return;
     }

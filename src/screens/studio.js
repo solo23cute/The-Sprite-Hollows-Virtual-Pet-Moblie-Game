@@ -50,7 +50,7 @@ function openStudioSheet(opts = {}) {
 
     <div class="section-title"><h2>Core habitats</h2><span>starter &amp; gift scenes</span></div>
     <div class="scene-grid" data-scenes></div>
-    <div class="section-title"><h2>Type biomes</h2><span>all 18 types · +50% XP for matches</span></div>
+    <div class="section-title"><h2>Biomes &amp; habitats</h2><span>18 type biomes + 8 biome habitats · +50% XP for matches</span></div>
     <button class="btn btn-sm btn-soft btn-block" data-open-biome-atlas style="margin-bottom:8px">🧭 Open the Biome Atlas</button>
     <div class="biome-scene-grid" data-biome-scenes></div>
     <div class="habitat-info" data-habitat-info></div>
@@ -319,7 +319,12 @@ function openStudioSheet(opts = {}) {
         const scene = SCENES[k];
         const locked = sceneLocked(scene, k);
         const boost = Math.round((scene.bonus || 0.4) * 100);
-        return `<button class="scene-swatch scene-${k} ${state.theme.scene === k ? 'on' : ''} ${locked ? 'locked' : ''}" data-scene="${k}" title="${scene.habitat} habitat · +${boost}% XP for its species" ${locked ? 'disabled' : ''}>${scene.name}${locked ? ` ${icon('lock')}` : ''}</button>`;
+        const tint = sceneTint(k);
+        const count = (scene.species || []).length;
+        return `<button class="biome-scene-swatch ${state.theme.scene === k ? 'on' : ''} ${locked ? 'locked' : ''}" data-scene="${k}" title="${esc(scene.habitat)} habitat · +${boost}% XP · ${count} species" ${locked ? 'disabled' : ''} style="--b1:${tint.b1};--b2:${tint.b2};--b3:${tint.b3};background:linear-gradient(135deg, ${tint.b1}, ${tint.b2})">
+          <span class="bs-icon">${scene.emoji}</span>
+          <span class="bs-copy"><b>${esc(scene.name)}</b><span>${esc(scene.habitat)} · +${boost}% XP · ${count} species${locked ? ' · locked' : ''}</span></span>
+        </button>`;
       };
       root.querySelector('[data-scenes]').innerHTML = SCENE_KEYS
         .filter((k) => !SCENES[k].custom && !SCENES[k].biome)
@@ -329,12 +334,13 @@ function openStudioSheet(opts = {}) {
         .filter((k) => SCENES[k].biome)
         .map((k) => {
           const scene = SCENES[k];
-          const palette = PDX_TYPES[scene.type] || PDX_TYPES.normal;
+          const tint = sceneTint(k);
+          const count = (scene.species || []).length;
           const locked = sceneLocked(scene, k);
           const boost = Math.round((scene.bonus || 0.5) * 100);
-          return `<button class="biome-scene-swatch ${state.theme.scene === k ? 'on' : ''} ${locked ? 'locked' : ''}" data-scene="${k}" title="${scene.habitat} type biome · +${boost}% XP for ${scene.type} species" ${locked ? 'disabled' : ''} style="--b1:${palette.primary};--b2:${palette.deep};--b3:${palette.light}">
+          return `<button class="biome-scene-swatch ${state.theme.scene === k ? 'on' : ''} ${locked ? 'locked' : ''}" data-scene="${k}" title="${esc(scene.habitat)} biome · +${boost}% XP · ${count} species" ${locked ? 'disabled' : ''} style="--b1:${tint.b1};--b2:${tint.b2};--b3:${tint.b3};background:linear-gradient(135deg, ${tint.b1}, ${tint.b2})">
             <span class="bs-icon">${scene.emoji}</span>
-            <span class="bs-copy"><b>${esc(scene.name)}</b><span>${scene.habitat} · +${boost}% XP</span></span>
+            <span class="bs-copy"><b>${esc(scene.name)}</b><span>${esc(scene.habitat)} · +${boost}% XP · ${count} species</span></span>
           </button>`;
         }).join('');
 

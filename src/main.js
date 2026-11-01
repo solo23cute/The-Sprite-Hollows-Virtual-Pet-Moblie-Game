@@ -7,8 +7,10 @@ const App = {
     if (!state.started) return;
     closeChat();
     closeAllOverlays();
+    const from = this.tab;
     this.tab = tab;
     this.mount();
+    if (tab === 'hollow' && from !== 'hollow' && typeof showHollowLoading === 'function') showHollowLoading();
     Sfx.click();
   },
   refresh() {
@@ -149,6 +151,7 @@ function startFromIntro(element, breed) {
     onDone: () => {
       App.tab = 'hollow';
       App.mount();
+      if (typeof showHollowLoading === 'function') showHollowLoading();
       toast('Your Hollow is alive. Tap your sprite to say hello.', '🌱');
       setTimeout(() => Voice.welcome(true), 500);
       setTimeout(() => { if (!state.seen.tour) startTour(); }, 1300);

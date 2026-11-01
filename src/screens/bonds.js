@@ -63,7 +63,7 @@ function bondWikiBody() {
     <h3>All six bond ranks</h3>
     <div class="bond-rank-table">${bondRankTable()}</div>
     <h3>Bond &amp; evolution</h3>
-    <p>Bond does not gate the four life stages. Stages follow level: <b>Baby 1, Juvenile 5, Sprite 10, Elder 20</b>. The level cap is now <b>${MAX_LEVEL.toLocaleString()}</b>. At level ${EVOLUTION_LEVEL}, a full diet path also unlocks a permanent Dragon, Fairy, Ghoul, or Titan form.</p>
+    <p>Bond does not gate the four life stages. Stages follow level: <b>${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(', ')}</b>. The level cap is now <b>${MAX_LEVEL.toLocaleString()}</b>. At level ${EVOLUTION_LEVEL}, a full diet path also unlocks a permanent Dragon, Fairy, Ghoul, or Titan form.</p>
     ${bondEvolutionPath()}
     <h3>Diet evolutions</h3>
     <div class="bond-diet-list">${bondDietTable()}</div>
