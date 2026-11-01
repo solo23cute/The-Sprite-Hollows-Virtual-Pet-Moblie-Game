@@ -42,6 +42,11 @@ function codexScreen(root) {
         <span class="tf-copy"><b>Secret Vault</b><span>${(state.secretUnlocks || []).length} / ${SECRET_SPECIES.length} found · not sold in the Nest</span></span>
         <span class="tf-arrow">›</span>
       </button>
+      <button class="type-feature gender-feature" data-open-genders>
+        <span class="tf-icon">⚥</span>
+        <span class="tf-copy"><b>Gender Codex</b><span>${genderCounts().female} ♀ · ${genderCounts().male} ♂ · ${genderCounts().neutral} ⚲ in your Hollow · breeding rules</span></span>
+        <span class="tf-arrow">›</span>
+      </button>
       <button class="type-feature bond-feature" data-open-bonds>
         <span class="tf-icon">💞</span>
         <span class="tf-copy"><b>Bond Codex</b><span>6 bond ranks, passive bonuses, and the full evolution path</span></span>
@@ -93,6 +98,7 @@ function codexScreen(root) {
   root.querySelector('[data-open-wiki]').addEventListener('click', () => App.go('wiki'));
   root.querySelector('[data-open-biomes]').addEventListener('click', openBiomeAtlas);
   root.querySelector('[data-open-secrets]').addEventListener('click', openSecretVault);
+  root.querySelector('[data-open-genders]').addEventListener('click', () => openGenderCodex());
   root.querySelector('[data-open-bonds]').addEventListener('click', () => openBondCodex());
   root.querySelector('[data-open-evolution]').addEventListener('click', () => openWorldEvolutionAtlas());
 

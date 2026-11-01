@@ -1,3 +1,16 @@
+## 3.18.0 Gender Codex, and a fresh pair of APKs
+
+- New **⚥ Gender Codex** tile on the Codex screen, with live counts right in its subtitle (`2 ♀ · 1 ♂ · 1 ⚲ in your Hollow`).
+- One card per gender: sample sprite, the ♀ / ♂ / ⚲ symbol, the share of your Hollow as a bar, the hatch odds, and how many of that gender are still eggs. Every grown sprite of that gender is a tappable chip that opens its detail sheet.
+- The **Breeding with genders** block answers the real question: gender never blocks a merge (any level-3+ pair works, including ♀+♀ and ♂+♂), the child's gender is a fresh roll at about 46% ♀ / 46% ♂ / 8% ⚲, parents keep theirs through merging, retiring and rebirth, and eggs already carry their symbol so you can check before hatching. Pick parents for element, breed, palette and bond instead.
+- **Pairs your Hollow can form now** lists the hybrid pairs your owned grown elements can actually make, with buttons through to the Nest, the Breeding codex and Sprite Homes.
+- Nothing about the breeding rules changed — this is the reference page for how gender works, not a new gate.
+
+### Downloads
+
+- **Android 7.0 and up:** `SpriteHollow-3.18.0-v67-release.apk` — 663,741 bytes, SHA-256 `54a57774c2fd77d7fe881f4fcff290d1d884c7dd3cd20b3d434c454be57d3585`. Rotated release lineage, v2+v3+v3.1, upgrades in place over 3.13.0 through 3.17.0.
+- **Android 5.0–6.0:** `SpriteHollow-3.18.0-v67-legacy.apk` — 663,940 bytes, SHA-256 `0ed18ed2b0562b6ad0c88150389a19ef0bca42ce768df98e0c62c792f1a4aa99`. JAR + v2 signed, package `com.spritehollow.game.legacy`, minSdk 21.
+
 ## 3.17.0 Genders, and a fresh pair of APKs
 
 - Every sprite now rolls a gender when it is created and keeps it for life: ♀ **Female**, ♂ **Male**, or ⚲ **Neutral** (roughly 46 / 46 / 8). The roll happens once inside `makeSprite`, so bought eggs, type eggs, merges, secret unlocks and the starter egg all get one.
