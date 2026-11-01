@@ -1,3 +1,12 @@
+## 3.15.0 Runs on Android 7.0 and up
+
+- The install floor drops from Android 8.0 (API 26) to **Android 7.0 / 7.1 (API 24)**, so the game now installs on essentially every phone and tablet still in use — from 2016 Nougat handsets upward.
+- Nothing about the game, the reset flow or your saves changes: 3.15.0 is the 3.14.0 Hollow with a wider door.
+- The signing chain is untouched. The rotated lineage already carries a certificate for the API 24–32 range (the same key 3.13.0 and 3.14.0 shipped with), so 3.15.0 installs straight over either of them on Android 7 through 12L, and over 3.14.0 on Android 13+.
+- Build: **versionName 3.15.0 / versionCode 64**, `SpriteHollow-3.15.0-v64-release.apk`, 636 KB.
+- Why not lower: APKs below API 24 need JAR (v1) signing, and the rotated lineage only covers API 24 and up. Going under 24 would mean either signing with the old leaked key as the sole signer or breaking in-place updates for everyone already installed — neither is worth the sub-1% of devices still on Android 5–6.
+- Verified: `apksigner verify` reports a valid v2 + v3 + v3.1 signature with two segments — API 24–32 under `107d75b5…` and API 33+ under `a64c2b04…` — and `aapt2 dump badging` confirms `sdkVersion:'24'`, `targetSdkVersion:'34'`, `versionCode='64'`.
+
 ## 3.14.0 Start over and keep your coins
 
 - **Reset now banks your coins.** "Start a brand-new Hollow" in Studio still wipes the Hollow — every sprite, egg, unlock, wardrobe item, journal entry, streak and stat — but the coins you already earned stay in your pocket, so you begin again at the egg picker with the full bank you built up.

@@ -42,10 +42,10 @@ echo "==> Linking APK shell"
   --manifest "$HERE/AndroidManifest.xml" \
   -A "$HERE/assets" \
   --java "$HERE/build/gen" \
-  --min-sdk-version 26 \
+  --min-sdk-version 24 \
   --target-sdk-version 34 \
-  --version-code 63 \
-  --version-name 3.14.0 \
+  --version-code 64 \
+  --version-name 3.15.0 \
   "$HERE/build/res.zip"
 
 echo "==> Compiling Java"
@@ -56,7 +56,7 @@ echo "==> Dexing"
 (
   cd "$HERE"
   "$JAVA_BIN/java$EXE" -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 \
-    --lib "$AJ" --release --min-api 26 --output build/dex \
+    --lib "$AJ" --release --min-api 24 --output build/dex \
     $(find build/classes -name '*.class')
 )
 
