@@ -138,7 +138,7 @@ function spriteCardHTML(s) {
       ${active ? '<span class="chip"><span class="active-dot"></span>Active</span>' : ''}
     </div>
     <div class="sc-art">${spriteSVG(s, { expr: expressionFor(s) })}</div>
-    <div class="sc-name">${esc(displayName(s))} ${s.asleep ? '<span class="tiny muted">💤</span>' : ''}</div>
+    <div class="sc-name">${esc(displayName(s))} <span class="gender-mark" style="color:${genderOf(s).color}" title="${esc(genderOf(s).name)}">${genderOf(s).symbol}</span> ${s.asleep ? '<span class="tiny muted">💤</span>' : ''}</div>
     <div class="sc-meta">${typeName(s)} · ${BREEDS[s.breed]?.name || 'Puff'}<br>${stageLabel(s)} · ${SIZES[s.size]?.name || 'Standard'} · ${bondTier(s)}</div>
     ${restLeft(s) > 0 ? '<span class="chip" style="position:absolute;bottom:8px;right:8px;font-size:8px">resting</span>' : ''}
   </button>`;
@@ -173,6 +173,7 @@ function openSpriteDetail(id) {
       <p class="sub" style="margin-top:2px">${typeName(s)} · ${breed?.name || 'Puff'} · ${stageLabel(s)}</p>
       <div class="row" style="justify-content:center;flex-wrap:wrap;gap:5px;margin-top:8px">
         <span class="chip">Lv ${s.level}${s.level >= MAX_LEVEL ? ' · MAX' : ''}</span>
+        <span class="chip gender-chip" style="color:${genderOf(s).color}" title="${esc(genderOf(s).blurb)}">${genderOf(s).symbol} ${esc(genderOf(s).name)}</span>
         <span class="chip">${s.hybrid ? 'Hybrid' : ELEMENTS[s.element].name}</span>
         <span class="chip">${SIZES[s.size]?.name || 'Standard'}</span>
         <span class="chip">Gen ${(s.gen || 0) + 1}</span>

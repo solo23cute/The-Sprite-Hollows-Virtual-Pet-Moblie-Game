@@ -1,3 +1,28 @@
+## 3.17.0 Genders, and a fresh pair of APKs
+
+- Every sprite now rolls a gender when it is created and keeps it for life: ♀ **Female**, ♂ **Male**, or ⚲ **Neutral** (roughly 46 / 46 / 8). The roll happens once inside `makeSprite`, so bought eggs, type eggs, merges, secret unlocks and the starter egg all get one.
+- It is visible where you look at a sprite: a coloured symbol after the name in the collection grid and in every Homes window, and a chip on the detail sheet and on the hatch reveal. `genderOf(s)` reads the `GENDERS` table in `data.js` (name, symbol, colour, blurb).
+- Saves from before this version are handled without churn: `normalizeSprite` derives a stable gender from the sprite id (`genderFromId`) rather than re-rolling on every load, so nobody flips between sessions.
+- Rebirth keeps it — a sprite that goes back to an egg after a Rebirth Meal stays the same individual. Merged children roll a fresh gender, which the breeding codex now says in "What the child inherits".
+- Purely cosmetic: no breeding gate and no stat change. Every pair is still compatible, exactly as before, and nothing about XP, needs, bonds or gifts moved.
+
+### Downloads
+
+- **Android 7.0 and up:** `SpriteHollow-3.17.0-v66-release.apk` — 659,567 bytes, SHA-256 `4c43db1c6ed41e58f0af87a9f6037fb3d76f7a24ce1f896b35d75024947995d3`. Signed with the rotated release lineage (v2+v3+v3.1), so it upgrades in place over 3.13.0 through 3.16.0.
+- **Android 5.0–6.0:** `SpriteHollow-3.17.0-v66-legacy.apk` — 659,766 bytes, SHA-256 `200ca311b5191ce7e970098388b34bba1b6149619c5d12713ec132bc5a2f9b98`. JAR + v2 signed under the separate `com.spritehollow.game.legacy` package, minSdk 21, installs alongside the main app.
+
+## 3.16.0 Sprite Homes — every sprite in its own biome window
+
+- New **🪟 Homes** button on the Hollow opens a neighbourhood of windows: one framed pane per sprite, each showing that sprite standing in its own biome with the biome's sky, hills, ground and drifting decor.
+- Biomes are chosen for them. A fire sprite wakes up in Cinder Caldera, a water sprite in Azure Lagoon, and so on: the game looks for the type biome whose species list already holds the sprite's element. Anything without a type match falls back to the first habitat that lists it, then to the sunny grove.
+- **Tap the biome badge** in a window's corner to move that sprite somewhere else — the picker lists every biome you have unlocked. A gold ring on the badge marks a hand-picked home, and **Type home** in the picker puts it back to the automatic one.
+- **Visit** switches your main Hollow to that window's biome so you can spend time there together; tapping the window itself opens the sprite's full details.
+- The same sheet has a shelf for the whole story: **Living rooms** for everyone awake and grown, **Retirement home** for retired elders (dimmed windows with a 🌿 Retired ribbon — tap one to bring them back from the detail screen), and **Returning** for sprites that went back to their egg after a Rebirth Meal.
+- Every returning egg window shows the welcome bonus already waiting inside it: the bond carried over from the last life plus the permanent rebirth multipliers (+8% XP, +1 game coin and +3% faster gifts per life). Tap the window or **Warm this egg** to go straight to hatching it.
+- Care works straight from the windows: every living or retired window carries Food/Rest/Joy/Clean bars plus 🤲 Rub belly, 🍎 Feed (from your pantry), 🛁 Bath and 🌙 Nap / ☀️ Wake, so nobody has to be walked back to the main Hollow to be looked after. Eggs keep just their Warm button.
+- Assignments live in the save (`state.homes`, sanitised on load so a stale or unknown scene key is dropped), so each window stays put between sessions. Your main Hollow is untouched: it still holds the whole roster in one shared scene.
+- Rooms are decoration, not a new stat system. Nothing about XP, needs, or gifts changed — the window is exactly the biome that already earns the habitat bonus if you visit it.
+
 ## 3.15.0 legacy build for Android 5.0 - 6.0
 
 - A second APK now covers the phones the main build cannot reach: **`SpriteHollow-3.15.0-v64-legacy.apk`**, 636 KB, for Android 5.0 through 6.0 (API 21-23). Same game, same Hollow, same reset-keeps-coins behaviour.

@@ -1206,6 +1206,13 @@ const ACCESSORIES = {
 const ACCESSORY_KEYS = Object.keys(ACCESSORIES);
 const FREE_ACCESSORY_KEYS = ACCESSORY_KEYS.filter((k) => !ACCESSORIES[k].price);
 
+const GENDERS = {
+  female: { key: 'female', name: 'Female', symbol: '♀', color: '#ff8fc7', blurb: 'She / her. Rolled once and kept for life.' },
+  male: { key: 'male', name: 'Male', symbol: '♂', color: '#7cc4ff', blurb: 'He / him. Rolled once and kept for life.' },
+  neutral: { key: 'neutral', name: 'Neutral', symbol: '⚲', color: '#c9a6ff', blurb: 'They / them. Rolled once and kept for life.' },
+};
+const GENDER_KEYS = Object.keys(GENDERS);
+
 const PERSONALITIES = {
   sunny: { name: 'Sunny', desc: 'Everything is the best thing ever.' },
   grump: { name: 'Grumpy', desc: 'Secretly soft. Publicly unimpressed.' },

@@ -143,6 +143,7 @@ function hollowScreen(root) {
         <span class="chip" data-phase>${timePhase().icon} ${timePhase().label}</span>
         <span class="chip" data-size-chip>${SIZES[s0.size]?.name || 'Standard'} ${formName(s0) ? `· ${esc(formName(s0))}` : ''}</span>
         <button class="chip bedroom-chip" type="button" data-bedroom>🛏️ Bedroom</button>
+        <button class="chip homes-chip" type="button" data-homes title="Every sprite in its own biome window">🪟 Homes</button>
         <button class="chip gift-chip" data-gift-chip>🎁 Gift</button>
       </div>
       <div class="needs-strip" data-needs>
@@ -188,6 +189,7 @@ function hollowScreen(root) {
   root.querySelector('[data-habitat]')?.addEventListener('click', () => { Sfx.click(); openStudioSheet(); });
   root.querySelector('[data-warm]')?.addEventListener('click', () => { Sfx.click(); openStudioSheet(); });
   root.querySelector('[data-bedroom]')?.addEventListener('click', () => { Sfx.click(); openBedroomSheet(); });
+  root.querySelector('[data-homes]')?.addEventListener('click', () => { Sfx.click(); openHomesSheet(); });
 
   const stageEl = root.querySelector('[data-stage]');
   if (stageEl && sceneUsesTint(state.theme.scene) && !SCENES[state.theme.scene]?.custom) {

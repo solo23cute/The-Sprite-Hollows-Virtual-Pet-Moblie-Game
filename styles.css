@@ -1905,3 +1905,93 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .weekly-day b { font-size: 17px; }
   .weekly-day span { font-size: 7.5px; }
 }
+
+/* ---------- sprite homes: one biome window per sprite ---------- */
+.homes-intro { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.homes-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 640px) { .homes-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.home-window {
+  position: relative; padding: 6px; border-radius: 16px;
+  background: linear-gradient(180deg, var(--home-a), var(--home-b));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  text-align: left; color: inherit; font: inherit; cursor: pointer;
+}
+.home-window.active { border-color: var(--gold, #ffd166); box-shadow: 0 12px 26px rgba(255, 209, 102, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
+.home-pane {
+  position: relative; height: 96px; border-radius: 11px; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.3);
+}
+.home-pane .sun { width: 32px; height: 32px; right: 12px; top: 9px; box-shadow: 0 0 18px rgba(255, 220, 150, 0.45); }
+.home-pane.scene-night .sun, .home-pane.scene-neon .sun { width: 26px; height: 26px; }
+.home-pane .hill { height: 52px; opacity: 0.55; }
+.home-pane .hill.h1 { left: -22%; }
+.home-pane .hill.h2 { right: -26%; }
+.home-pane .ground { height: 30%; }
+.home-pane .biome-mote { font-size: 8px; }
+.home-pane .firefly, .home-pane .star { transform: scale(0.7); }
+.home-window-shine { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(118deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.04) 34%, transparent 46%); }
+.home-actor { position: absolute; left: 50%; bottom: 4%; width: 66px; transform: translateX(-50%); filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.35)); pointer-events: none; }
+.home-actor svg { display: block; width: 100%; height: auto; }
+.home-change { position: absolute; top: 5px; right: 5px; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.32); background: rgba(0, 0, 0, 0.42); font-size: 13px; line-height: 1; cursor: pointer; }
+.home-change[data-custom] { border-color: var(--gold, #ffd166); }
+.home-plate { display: grid; gap: 1px; padding: 6px 3px 2px; min-width: 0; }
+.home-plate b { font-size: 11.5px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-biome, .home-sub { font-size: 9.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-biome { color: var(--text); opacity: 0.86; }
+.home-visit { margin-top: 5px; padding: 5px 7px; border-radius: 9px; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.09); color: var(--text); font-size: 9.5px; font-weight: 800; cursor: pointer; }
+.home-visit:hover { background: rgba(255, 255, 255, 0.16); }
+.homes-foot { margin: 11px 3px 0; line-height: 1.55; }
+.home-pick-actions { margin-bottom: 9px; }
+.home-pick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+.home-pick { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.14); background: linear-gradient(135deg, var(--pick-a), var(--pick-b)); color: var(--text); text-align: left; cursor: pointer; }
+.home-pick.on { border-color: var(--gold, #ffd166); box-shadow: inset 0 0 0 1px rgba(255, 209, 102, 0.5); }
+.home-pick-art { font-size: 17px; }
+.home-pick-copy { display: grid; min-width: 0; }
+.home-pick-copy b { font-size: 11px; }
+.home-pick-copy span { font-size: 9px; color: rgba(255, 255, 255, 0.72); }
+
+/* ---------- sprite homes: retired windows and returning eggs ---------- */
+.homes-section { margin-top: 14px; }
+.home-window.is-retired { filter: saturate(0.55); }
+.home-window.is-retired:hover { filter: saturate(0.85); }
+.home-window.is-egg .home-actor { width: 52px; bottom: 2%; }
+.home-ribbon {
+  position: absolute; top: 5px; left: 5px; z-index: 2;
+  padding: 2px 6px; border-radius: 99px;
+  background: rgba(0, 0, 0, 0.46); border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 7.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+  color: #fff; white-space: nowrap;
+}
+.home-bonus { margin-top: 3px; font-size: 8.5px; line-height: 1.4; color: var(--gold, #ffd166); }
+
+/* ---------- care inside each home window ---------- */
+.home-needs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-top: 4px; }
+.home-need { position: relative; height: 4px; border-radius: 99px; background: rgba(255, 255, 255, 0.16); overflow: hidden; }
+.home-need i { position: absolute; inset: 0 auto 0 0; border-radius: 99px; background: #7ee08a; }
+.home-need.energy i { background: #7cc4ff; }
+.home-need.joy i { background: #ffd166; }
+.home-need.clean i { background: #c9a6ff; }
+.home-care { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 5px; }
+.home-care-btn {
+  display: grid; place-items: center; height: 24px; padding: 0;
+  border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08); font-size: 12px; line-height: 1; cursor: pointer;
+}
+.home-care-btn:hover { background: rgba(255, 255, 255, 0.18); }
+.home-feed-grid { display: grid; gap: 6px; }
+.home-feed-row {
+  display: flex; align-items: center; gap: 9px; padding: 8px 9px;
+  border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06); color: var(--text); text-align: left; cursor: pointer;
+}
+.home-feed-row:hover { background: rgba(255, 255, 255, 0.12); }
+.hfr-emoji { font-size: 18px; }
+.hfr-copy { display: grid; min-width: 0; }
+.hfr-copy b { font-size: 12px; }
+.hfr-copy span { font-size: 9.5px; color: var(--muted); }
+
+/* ---------- sprite gender markers ---------- */
+.gender-mark { font-size: 10px; font-weight: 900; line-height: 1; margin-left: 1px; }
+.gender-chip { border-color: currentColor !important; }

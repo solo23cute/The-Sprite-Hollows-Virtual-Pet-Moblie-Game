@@ -105,6 +105,7 @@ function breedingEntryBody(pair) {
     <ul class="wiki-list">
       <li><b>Element:</b> a 50/50 pick of ${esc(a.name)} or ${esc(b.name)}. The hybrid name appears when the merge rolls it.</li>
       <li><b>Breed:</b> 50/50 from either parent, with an 8% chance of a random breed.</li>
+      <li><b>Gender:</b> a fresh roll for every child — ♀ female, ♂ male, or ⚲ neutral.</li>
       <li><b>Colours:</b> a blend of both palettes, a mutation, or one parent's palette.</li>
       <li><b>Shiny:</b> about ${odds.shine}% before shiny parents, finishes, and generation push it higher.</li>
       <li><b>Signature combo:</b> ${odds.combo}%, rising with every merge you have ever done.</li>

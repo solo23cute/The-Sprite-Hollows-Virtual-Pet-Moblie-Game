@@ -100,6 +100,7 @@ function freshState() {
     },
     inventory: { snacks: {}, foods: {} },
     unlockedScenes: SCENE_KEYS.filter((k) => SCENES[k].unlocked),
+    homes: {},
     gift: null,
     care: { tokens: 0, gifts: 0 },
     journal: [],
@@ -139,6 +140,7 @@ function normalizeSprite(raw) {
     accessory: ACCESSORIES[s.accessory] ? s.accessory : 'none',
     outfit: typeof s.outfit === 'string' && s.outfit ? s.outfit : null,
     personality: PERSONALITIES[s.personality] ? s.personality : 'sunny',
+    gender: GENDERS[s.gender] ? s.gender : genderFromId(s.id),
     mutation: s.mutation || null,
     variant: FINISHES[s.variant] ? s.variant : null,
     shiny: !!s.shiny,
@@ -235,6 +237,10 @@ function loadState() {
       foods: { ...(parsed.inventory?.foods || {}) },
     };
     merged.world = { climate: CLIMATES[parsed.world?.climate] ? parsed.world.climate : 'temperate' };
+    merged.homes = {};
+    Object.entries(parsed.homes && typeof parsed.homes === 'object' ? parsed.homes : {}).forEach(([spriteId, sceneKey]) => {
+      if (SCENES[sceneKey]) merged.homes[spriteId] = sceneKey;
+    });
     merged.wardrobe = Array.from(new Set((Array.isArray(parsed.wardrobe) ? parsed.wardrobe : []).filter((k) => ACCESSORIES[k]?.price)));
     merged.foodUnlocks = Array.isArray(parsed.foodUnlocks) ? parsed.foodUnlocks.filter((k) => FOODS[k]?.monthly) : [];
     merged.checkin.monthCrateKey = parsed.checkin?.monthCrateKey || null;
@@ -517,7 +523,24 @@ function finishSleep(s) {
   return { cycles, dream };
 }
 
-/* ---------------- size, powers & evolution ---------------- */
+/* ---------------- gender, size, powers & evolution ---------------- */
+function rollGender() {
+  const r = Math.random();
+  return r < 0.46 ? 'female' : r < 0.92 ? 'male' : 'neutral';
+}
+function genderOf(s) {
+  return GENDERS[s && s.gender] ? GENDERS[s.gender] : GENDERS.neutral;
+}
+/* Older saves have no gender stored, so derive a stable one from the sprite id
+   instead of rolling a new one on every load. */
+function genderFromId(id) {
+  const text = String(id || 'sprite');
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) % 99991;
+  const roll = hash % 100;
+  return roll < 46 ? 'female' : roll < 92 ? 'male' : 'neutral';
+}
+
 function rollSize() {
   const r = Math.random();
   return r < 0.28 ? 'small' : r < 0.8 ? 'standard' : 'large';
@@ -1159,6 +1182,7 @@ function makeSprite(opts = {}) {
     pattern: opts.pattern || 'plain',
     accessory: opts.accessory || 'none',
     personality: opts.personality || pick(PERSONALITY_KEYS),
+    gender: GENDERS[opts.gender] ? opts.gender : rollGender(),
     mutation: opts.mutation || null,
     variant: FINISHES[opts.variant] ? opts.variant : null,
     shiny: !!(opts.shiny || ELEMENTS[element]?.alwaysShiny),
@@ -2402,6 +2426,15 @@ const Actions = {
       }
     }
     commit('theme');
+  },
+
+  setHome(spriteId, sceneKey) {
+    const s = findSprite(spriteId);
+    if (!s) return;
+    state.homes = { ...(state.homes || {}) };
+    if (sceneKey && SCENES[sceneKey]) state.homes[spriteId] = sceneKey;
+    else delete state.homes[spriteId];
+    commit('homes', { spriteId });
   },
 
   setClimate(key) {

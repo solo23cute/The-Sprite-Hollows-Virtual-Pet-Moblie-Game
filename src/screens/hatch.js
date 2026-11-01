@@ -183,6 +183,7 @@ function openHatchFlow(spriteId, opts = {}) {
       </div>
       <div class="row" style="justify-content:center;flex-wrap:wrap;gap:5px">
         <span class="chip">${BREEDS[s.breed]?.name || 'Puff'} breed</span>
+        <span class="chip gender-chip" style="color:${genderOf(s).color}">${genderOf(s).symbol} ${esc(genderOf(s).name)}</span>
         <span class="chip">${PERSONALITIES[s.personality]?.name || 'Sunny'} soul</span>
         <span class="chip">${PATTERNS[s.pattern]?.name || 'Plain'}</span>
         <span class="chip">${SIZES[s.size]?.name || 'Standard'} size</span>
