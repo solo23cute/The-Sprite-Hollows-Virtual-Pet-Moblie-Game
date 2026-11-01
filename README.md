@@ -1,3 +1,12 @@
+## 3.15.0 legacy build for Android 5.0 - 6.0
+
+- A second APK now covers the phones the main build cannot reach: **`SpriteHollow-3.15.0-v64-legacy.apk`**, 636 KB, for Android 5.0 through 6.0 (API 21-23). Same game, same Hollow, same reset-keeps-coins behaviour.
+- It is a genuinely separate app, not a patch: package `com.spritehollow.game.legacy`, launcher name **Sprite Hollow Legacy**, its own key. Below Android 7 there is no v2 signature support, so the APK carries a JAR (v1) signature plus v2, and the rotated release lineage cannot reach it. A distinct package makes that safe — the legacy build can never try to overwrite the main one, and both can sit on the same phone for testing.
+- Saves do not cross between the two builds. A Hollow started in the legacy app lives under the legacy package, so it stays there; there is no import path and no update path from legacy to main.
+- Old devices need an up-to-date **Android System WebView** from the Play Store to run the game's modern JavaScript. Stock Android 5.0 WebView (Chromium 37) is far too old; anything current runs it fine.
+- Verified: `apksigner verify --min-sdk-version 21` passes with `Verified using v1 scheme: true` and `v2: true` under certificate `fa577cf1…`; `aapt2 dump badging` reports `sdkVersion:'21'`, `targetSdkVersion:'34'`, `versionCode='64'`, `versionName='3.15.0-legacy'`, launchable activity `com.spritehollow.game.MainActivity`.
+- Reproducing it: `build.sh` now takes `MIN_SDK`, `VERSION_CODE`, `VERSION_NAME`, `MANIFEST` and `SIGN_V1` overrides. The shell only ever used API 21 calls, so no Java changes were needed; the legacy manifest is generated from the main one by swapping the package, the label, the fully-qualified activity name and the minimum SDK.
+
 ## 3.15.0 Runs on Android 7.0 and up
 
 - The install floor drops from Android 8.0 (API 26) to **Android 7.0 / 7.1 (API 24)**, so the game now installs on essentially every phone and tablet still in use — from 2016 Nougat handsets upward.
