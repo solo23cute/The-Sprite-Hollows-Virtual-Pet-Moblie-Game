@@ -15,3 +15,7 @@ android/legacy-*.keystore
 .preview.pid
 smoke.cjs
 verify9.cjs
+
+# a restored legacy key and its password notes must never be committed
+android/*-key.properties
+android/legacy-*.bin

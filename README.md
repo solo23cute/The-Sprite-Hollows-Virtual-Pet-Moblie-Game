@@ -1,3 +1,37 @@
+## 4.1.2 Import a saved Hollow on the first screen (current release)
+
+- **Restore before you hatch.** The first-run intro now carries a **💾 Restore a saved Hollow** button, so a Hollow can be brought back from a rescue code or a file before a starter egg is picked - the case that matters after a reinstall. It opens the same confirm-guarded sheet as Studio's backup screen, which explains how many sprites, eggs and coins the code holds before anything is written.
+- **Accepts what the rescue tool produces.** `SH-save-1:` codes, deflated `SH-save-2:` codes, and raw JSON (the direct output of `tools/rescue-save.py`) all import, so a save pulled off an older install can be carried in without conversion. A successful restore sets `state.started` and reloads straight into the game, skipping the intro.
+- Package: `versionName 4.1.2` / `versionCode 71`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34, signed with the same key as 3.19.0 through 4.1.1 (SHA-256 `799ec735323db8c9cbc362c66ab27633aeb79531ace3fe9a8ae87739a61be9b4`), v2 + v3 with v1 off. Version 4.1.2 installs over 3.19.0, 3.20.0 and 4.1.1 and keeps the saved Hollow; the 3.18.0 wall described below is unchanged.
+
+### Downloads
+
+- **Android 7.0 and up:** `SpriteHollow-4.1.2-v71-release.apk` - 722,338 bytes, release-signed (v2 + v3, v1 off), `versionName 4.1.2` / `versionCode 71`. SHA-256 `45dd299381d3c298645cc00c47a7825e455555827324aa8aa0f3f97bef74c4bb`.
+- Debug build: `SpriteHollow-4.1.2-v71.apk` - 718,242 bytes, debug-signed with the local build key. SHA-256 `a0936c2689a9d460d714e1a80324630d93d799787705e55303ee77b77e94e55a`.
+- The generic names `SpriteHollow-release.apk` and `SpriteHollow.apk` now serve this 4.1.2 build (release SHA-256 `45dd299381d3c298645cc00c47a7825e455555827324aa8aa0f3f97bef74c4bb`), so the plain downloads always give the newest release.
+
+## 4.1.1 Save backup codes, renumbered (current release)
+
+- **Version 4.1.1** ships the 3.20.0 feature set under a new version name: Studio's **💾 Save backup & restore** (copy code, download a `.txt`, or paste/choose a file to bring a Hollow back), plus everything from 3.19.0 - free colours, free decor, free boss bouts, earned custom guardians, guardian vaults and the four event sprites.
+- Android package: `versionName 4.1.1` / `versionCode 70`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Same signing key as 3.19.0 and 3.20.0** (certificate SHA-256 `799ec735323db8c9cbc362c66ab27633aeb79531ace3fe9a8ae87739a61be9b4`), and versionCode 70 > 69, so 4.1.1 installs straight over either of them and keeps the saved Hollow. The key stays at `android/release.keystore` (password in `android/release-key.properties`, both gitignored and reused by every later build) - back that file up, because Android needs the identical key for every future update.
+- The version string comes from `APP_VERSION` in `src/util.js`, so the top bar, intro screen, boot screen and Studio footer all read v4.1.1; `android/build.sh` now defaults to `VERSION_CODE=70` / `VERSION_NAME=4.1.1`.
+
+- **Coming from 3.18.0 or earlier:** those releases carry the earlier rotated key (`107d75b5…` below Android 13, `a64c2b04…` on Android 13+), not this one, and Android refuses a differently signed APK over an installed app however much higher the versionCode is - that refusal is the `App not installed` message. An APK can only update an installed one when it carries the same key, or a rotation lineage containing it, and the private keys behind those two certificates are not in this repository. Restore the matching keystore from `Documents/SpriteHollow-signing-backup` and re-sign the build with it - no lineage file is needed, because the keystore already holds the certificate the device trusts:
+
+  ```bash
+  KEYSTORE=~/keys/release.keystore ALIAS=<alias> PASS=<password> \
+    android/resign.sh SpriteHollow-4.1.1-v70-release.apk SpriteHollow-4.1.1-oldkey.apk
+  ```
+
+  Use the pre-rotation key (`107d75b5…`) for Android 12 and below, and the 2026-11 rotated key (`a64c2b04…`) for Android 13 and above; each will install on its own side of that line only. The script reuses the tested 4.1.1 code and changes only the signature, so the Hollow's save data (`sprite-hollow.save.v2`) survives untouched. Without the key, uninstall first - and note that 3.18.0 has no save-code exporter (that arrived in 3.20.0), so `tools/rescue-save.py` is the way to pull the Hollow out of a rooted device or an `adb backup` archive beforehand.
+
+### Downloads
+
+- **Android 7.0 and up:** `SpriteHollow-4.1.1-v70-release.apk` - 722,338 bytes, release-signed (v2 + v3, `--v1-signing-enabled false`), `versionName 4.1.1` / `versionCode 70`. SHA-256 `6f85a661b391e06006aeb3812f7f0f7a3224cccf1715f86e8256a710636f0449`.
+- Debug build: `SpriteHollow-4.1.1-v70.apk` - 718,242 bytes, debug-signed with the local build key. SHA-256 `dbb87902421ec261a713c9380e3aef8614b88f5f5941bc5accaf8853676b7e62`.
+- The generic download names (`SpriteHollow-release.apk`, `SpriteHollow.apk`) follow the newest release; the 4.1.1 files above stay in place under their versioned names.
+
 ## 3.20.0 Save backup codes
 
 - **Carry the whole Hollow in one line of text.** Studio now has **💾 Save backup & restore**: *Copy code* puts a save code on the clipboard, *Download file* drops a `.txt` copy, and *Choose a file* or a paste into the restore box brings it back on any device.
@@ -9,7 +43,7 @@
 ### Downloads
 
 - **Android 7.0 and up:** `SpriteHollow-3.20.0-v69-release.apk` - 722,338 bytes, release-signed, `versionName 3.20.0` / `versionCode 69`, minSdk 24, targetSdk 34. SHA-256 `255bad0ba86204900cdff40ec5ee978a20bdeb8421ceed4fa7a0feb8d26b13ff`.
-- Debug build: `SpriteHollow-3.20.0-v69.apk` - 730,729 bytes, SHA-256 `53eb453eaaca7c22252fc115ca5c41c34273e7e74486484239beaed7b3ce783a`.
+- Debug build: `SpriteHollow-3.20.0-v69.apk` - 718,242 bytes, SHA-256 `53eb453eaaca7c22252fc115ca5c41c34273e7e74486484239beaed7b3ce783a`.
 - Both are signed with the **same key as 3.19.0**, so 3.20.0 installs straight over it and keeps the saved Hollow. That key is kept at `android/release.keystore` (password in `android/release-key.properties`, both gitignored, certificate SHA-256 `799ec735323db8c9cbc362c66ab27633aeb79531ace3fe9a8ae87739a61be9b4`) and every later build reuses it, so the upgrade chain from here is unbroken. Back that file up - Android needs the same key for every future update.
 
 ## 3.19.0 Free colours, free decor, earned guardians, and guardian vaults
@@ -378,9 +412,9 @@ Any static file server works. The game saves to `localStorage` after every actio
 
 ## Android APK
 
-**Download:** [`SpriteHollow-3.20.0-v69-release.apk`](SpriteHollow-3.20.0-v69-release.apk) — 706 KB, release-signed with the project release key, fully offline, `versionName 3.20.0` / `versionCode 69`. SHA-256 `255bad0ba86204900cdff40ec5ee978a20bdeb8421ceed4fa7a0feb8d26b13ff`. It installs in place over 3.19.0; a debug-signed [`SpriteHollow-3.20.0-v69.apk`](SpriteHollow-3.20.0-v69.apk) (714 KB, SHA-256 `53eb453eaaca7c22252fc115ca5c41c34273e7e74486484239beaed7b3ce783a`) is kept for sideloading onto clean devices.
+**Download:** [`SpriteHollow-4.1.1-v70-release.apk`](SpriteHollow-4.1.1-v70-release.apk) — 706 KB, release-signed with the project release key, fully offline, `versionName 4.1.1` / `versionCode 70`. SHA-256 `6f85a661b391e06006aeb3812f7f0f7a3224cccf1715f86e8256a710636f0449`. It installs in place over 3.19.0 and 3.20.0; a debug-signed [`SpriteHollow-4.1.1-v70.apk`](SpriteHollow-4.1.1-v70.apk) (714 KB, SHA-256 `dbb87902421ec261a713c9380e3aef8614b88f5f5941bc5accaf8853676b7e62`) is kept for sideloading onto clean devices.
 
-**Release build (3.20.0):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 706 KB, signed with the project release key. SHA-256 `255bad0ba86204900cdff40ec5ee978a20bdeb8421ceed4fa7a0feb8d26b13ff`.
+**Release build (4.1.1):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 706 KB, signed with the project release key. SHA-256 `6f85a661b391e06006aeb3812f7f0f7a3224cccf1715f86e8256a710636f0449`.
 
 - Minimum Android 7.0 (API 24); targets Android 14 (API 34).
 - Install: open the APK on the phone and allow installation from this source, or use `adb install -r SpriteHollow.apk`.
