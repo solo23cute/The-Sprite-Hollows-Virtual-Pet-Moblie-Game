@@ -391,9 +391,9 @@ Any static file server works. The game saves to `localStorage` after every actio
 
 ## Android APK
 
-**Download:** [`SpriteHollow-3.20.0-v69-release.apk`](SpriteHollow-3.20.0-v69-release.apk) — 706 KB, release-signed with the project release key, fully offline, `versionName 3.20.0` / `versionCode 69`. SHA-256 `255bad0ba86204900cdff40ec5ee978a20bdeb8421ceed4fa7a0feb8d26b13ff`. It installs in place over 3.19.0; a debug-signed [`SpriteHollow-3.20.0-v69.apk`](SpriteHollow-3.20.0-v69.apk) (714 KB, SHA-256 `53eb453eaaca7c22252fc115ca5c41c34273e7e74486484239beaed7b3ce783a`) is kept for sideloading onto clean devices.
+**Download:** [`SpriteHollow-4.1.1-v70-release.apk`](SpriteHollow-4.1.1-v70-release.apk) — 706 KB, release-signed with the project release key, fully offline, `versionName 4.1.1` / `versionCode 70`. SHA-256 `a91a698e7b6eb42d79e895f02db5ca48d3b3930e4b5e4a2fd3e63ed0e4950cab`. It installs in place over 3.19.0 and 3.20.0; a debug-signed [`SpriteHollow-4.1.1-v70.apk`](SpriteHollow-4.1.1-v70.apk) (714 KB, SHA-256 `02a1d136a68c579cfa6f9ce4c44dd9f4f4dab1fa4fff3804f77b0944b5c9752d`) is kept for sideloading onto clean devices.
 
-**Release build (3.20.0):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 706 KB, signed with the project release key. SHA-256 `255bad0ba86204900cdff40ec5ee978a20bdeb8421ceed4fa7a0feb8d26b13ff`.
+**Release build (4.1.1):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 706 KB, signed with the project release key. SHA-256 `a91a698e7b6eb42d79e895f02db5ca48d3b3930e4b5e4a2fd3e63ed0e4950cab`.
 
 - Minimum Android 7.0 (API 24); targets Android 14 (API 34).
 - Install: open the APK on the phone and allow installation from this source, or use `adb install -r SpriteHollow.apk`.
