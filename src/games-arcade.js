@@ -318,16 +318,17 @@ function openHollowDuelGame(opts = {}) {
   const shell = gameOverlayShell('duel');
   const { board } = shell;
   const active = activeSprite();
+  const out = typeof hollowSprites === 'function' ? hollowSprites() : grownSprites();
+  const fallbackHome = active && active.stage !== 'egg' && !active.retired ? active : null;
   const player = active && active.stage !== 'egg' && !active.retired && !active.atHome
     ? active
-    : (typeof hollowSprites === 'function' ? hollowSprites()[0] : active);
+    : (out[0] || fallbackHome);
   if (!player) {
     shell.close();
-    toast('Everyone is home. Bring a sprite back to the Hollow to duel.', '🏠');
+    toast('Hatch a sprite first to duel.', '🥚');
     return;
   }
-  const roster = (typeof hollowSprites === 'function' ? hollowSprites() : grownSprites())
-    .filter((s) => s && s.id !== player.id && s.stage !== 'egg' && !s.retired && !s.atHome);
+  const roster = out.filter((s) => s && s.id !== player.id && s.stage !== 'egg' && !s.retired && !s.atHome);
   const brute = { id: 'bramble-brute', name: 'Bramble Brute', brute: true };
   const requested = opts.opponentId ? roster.find((s) => s.id === opts.opponentId) : null;
   let running = false;

@@ -315,7 +315,7 @@ function openGuardianDuel(sceneKey, onWin, opts = {}) {
   const guardian = ELEMENTS[guardianKey];
   const tint = sceneTint(sceneKey);
   const active = activeSprite();
-  const mine = active && active.stage !== 'egg' && !active.atHome && !active.retired
+  const mine = active && active.stage !== 'egg' && !active.retired
     ? active
     : (typeof hollowSprites === 'function' ? hollowSprites()[0] : active);
   const greeting = (Array.isArray(guardian.greeting) ? guardian.greeting[0] : guardian.greeting) || 'The guardian steps forward.';
@@ -451,9 +451,13 @@ function openGuardianDuel(sceneKey, onWin, opts = {}) {
 
 function wireBiomeQuests(root) {
   const grid = root.querySelector('[data-quest-grid]');
-  if (!grid) return;
+  if (!grid || grid.dataset.questWired) return;
+  grid.dataset.questWired = '1';
   const paint = () => { grid.innerHTML = BIOME_QUEST_KEYS.map(biomeQuestCard).join(''); };
-  root.addEventListener('click', (event) => {
+  /* The sheet stops propagation at its own boundary. Listen on the grid so
+     claim, travel, and finale clicks still reach the quest handlers. */
+  grid.addEventListener('click', (event) => {
+    event.stopPropagation();
     const travel = event.target.closest('[data-quest-travel]');
     if (travel) {
       event.preventDefault();

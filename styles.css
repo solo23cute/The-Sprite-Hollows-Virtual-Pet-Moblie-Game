@@ -40,6 +40,7 @@ body {
     radial-gradient(900px 600px at 100% 20%, rgba(255, 94, 178, 0.16), transparent 55%),
     radial-gradient(800px 800px at 50% 110%, rgba(60, 210, 190, 0.12), transparent 60%),
     var(--bg);
+  min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   align-items: center;
@@ -71,6 +72,7 @@ input { user-select: text; -webkit-user-select: text; }
   position: relative;
   z-index: 2;
   width: min(100vw, 460px);
+  height: 100vh;
   height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -80,6 +82,7 @@ input { user-select: text; -webkit-user-select: text; }
 }
 @media (min-width: 520px) and (min-height: 720px) {
   .app {
+    height: min(920px, calc(100vh - 36px));
     height: min(920px, calc(100dvh - 36px));
     border-radius: 34px;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -736,24 +739,25 @@ input { user-select: text; -webkit-user-select: text; }
 .game-overlay {
   position: absolute; inset: 0; z-index: 60;
   display: flex; flex-direction: column;
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
   background: radial-gradient(120% 80% at 50% 0%, rgba(60, 40, 120, 0.9), rgba(8, 6, 20, 0.98));
   padding: calc(12px + var(--safe-t)) 14px calc(14px + var(--safe-b));
   animation: fadein 0.25s;
 }
 @keyframes fadein { from { opacity: 0; } }
-.game-top { display: flex; align-items: center; gap: 10px; z-index: 2; }
+.game-top { display: flex; align-items: center; gap: 10px; z-index: 2; flex: none; }
 .game-top h2 { font-size: 16px; font-weight: 900; }
 .game-top .gstat { margin-left: auto; text-align: right; }
 .gstat b { font-size: 20px; font-variant-numeric: tabular-nums; }
 .gstat span { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); display: block; }
 .game-board {
-  position: relative; flex: 1; margin-top: 10px; border-radius: 22px; overflow: hidden;
+  position: relative; flex: 1; min-height: 0; margin-top: 10px; border-radius: 22px; overflow: hidden;
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid var(--line);
-  touch-action: none;
+  touch-action: manipulation;
   cursor: pointer;
 }
-.game-foot { padding-top: 10px; }
+.game-foot { padding-top: 10px; flex: none; }
 .game-timer { height: 5px; border-radius: 99px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
 .game-timer i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.25s linear; }
 

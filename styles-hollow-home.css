@@ -307,10 +307,10 @@
 
 /* ---------- responsive layout guard: every menu, sprite and card stays in frame ---------- */
 html, body, #app, .shell, .screen { max-width: 100%; }
-.sheet, .modal { width: 100%; max-height: calc(100dvh - max(10px, var(--safe-t))); }
+.sheet, .modal { width: 100%; max-height: calc(100vh - max(10px, var(--safe-t))); max-height: calc(100dvh - max(10px, var(--safe-t))); }
 .sheet, .modal, .sheet *, .modal * { min-width: 0; }
 .sheet .sub, .sheet p, .modal p, .home-biome, .home-sub, .sh-status, .quest-step { overflow-wrap: anywhere; }
-.overlay { max-height: 100dvh; }
+.overlay { max-height: 100vh; max-height: 100dvh; }
 .home-window { min-width: 0; overflow: hidden; }
 .home-pane, .sh-art, .oo-hero, .hangout-stage, .guardian-duel-stage, .duel-pick-art, .gc-art, .duel-art { overflow: hidden; }
 .home-actor, .home-actor svg, .sh-sprite, .sh-sprite svg, .oo-art, .oo-art svg,
@@ -345,7 +345,7 @@ html, body, #app, .shell, .screen { max-width: 100%; }
   .duel-pick-art { width: 40px; height: 40px; flex-basis: 40px; }
 }
 @media (max-height: 560px) {
-  .sheet { max-height: calc(100dvh - 4px); }
+  .sheet { max-height: calc(100vh - 4px); max-height: calc(100dvh - 4px); }
   .guardian-duel-stage { height: 136px; }
   .home-pane { height: 82px; }
 }
