@@ -1142,6 +1142,22 @@ const BREEDS = {
     name: 'Wisp', kicker: 'Dream breed', perk: 'Energy fades 35% slower', energyMod: 0.65,
     desc: 'Floats a thumb above the ground. Nobody knows why.',
   },
+  bun: {
+    name: 'Bun', kicker: 'Cloud breed', perk: 'Joy fades 20% slower', joyMod: 0.8,
+    desc: 'Tall ears, soft hops, and a talent for finding the sunniest spot.',
+  },
+  fin: {
+    name: 'Fin', kicker: 'Reef breed', perk: 'Hunger fades 20% slower', hungerMod: 0.8,
+    desc: 'A sleek little swimmer with a tail that never stops wagging.',
+  },
+  shell: {
+    name: 'Shell', kicker: 'Stone breed', perk: 'Stays clean 30% longer', cleanMod: 0.7,
+    desc: 'A sturdy spiral shell with a very soft centre.',
+  },
+  star: {
+    name: 'Star', kicker: 'Spark breed', perk: 'Earns 12% more XP', xpMod: 1.12,
+    desc: 'A bright little constellation with a pointy grin.',
+  },
 };
 const BREED_KEYS = Object.keys(BREEDS);
 
@@ -1886,6 +1902,10 @@ const HABITS = {
   horn: { name: 'Steady', icon: '🛡️', desc: 'Hunger fades 15% slower.', effect: { hungerDecay: 0.85 } },
   blob: { name: 'Slick', icon: '🫧', desc: 'Clean fades 20% slower.', effect: { cleanDecay: 0.8 } },
   wisp: { name: 'Dreamer', icon: '✨', desc: 'Energy fades 20% slower.', effect: { energyDecay: 0.8 } },
+  bun: { name: 'Softstep', icon: '🐰', desc: 'Joy fades 15% slower.', effect: { joyDecay: 0.85 } },
+  fin: { name: 'Tidebound', icon: '🐟', desc: 'Hunger fades 15% slower.', effect: { hungerDecay: 0.85 } },
+  shell: { name: 'Tuck', icon: '🐚', desc: 'Clean fades 20% slower.', effect: { cleanDecay: 0.8 } },
+  star: { name: 'Starglow', icon: '⭐', desc: '+10% XP from all care.', effect: { xp: 1.1 } },
 };
 
 /* Special breeding combos: pair-specific fusions with their own signature power. */
@@ -1926,10 +1946,10 @@ const YEAR_MILESTONE = { id: 'yearly-mythic', n: 150, label: 'Mythic elder', ico
 
 /* Food builds evolution affinity. At level 10, enough affinity unlocks a form. */
 const DIET_PATHS = {
-  hearty: { label: 'Hearty', icon: '🍲', desc: 'Warm, filling food. Grows dragons and big bodies.' },
-  sweet: { label: 'Sweet', icon: '🍯', desc: 'Nectar and treats. Grows fairies and bright magic.' },
-  eerie: { label: 'Eerie', icon: '🌙', desc: 'Moon berries and midnight snacks. Grows ghouls.' },
-  wild: { label: 'Wild', icon: '🌿', desc: 'Fizzy, untamed snacks. Grows elemental titans.' },
+  hearty: { label: 'Hearty', icon: '🍲', desc: 'Warm, filling food. Grows dragons, leviathans, and big bodies.' },
+  sweet: { label: 'Sweet', icon: '🍯', desc: 'Nectar and treats. Grows fairies, seraphs, and bright magic.' },
+  eerie: { label: 'Eerie', icon: '🌙', desc: 'Moon berries and midnight snacks. Grows ghouls and wraiths.' },
+  wild: { label: 'Wild', icon: '🌿', desc: 'Fizzy, untamed snacks. Grows elemental titans and golems.' },
 };
 
 const FOOD_DIET = {
@@ -2018,7 +2038,28 @@ const EVOLUTION_FORMS = {
     desc: 'An adult elemental, crackling with the raw stuff of its gene.',
     power: { name: 'Awakened Core', icon: '💥', desc: '+20% XP, +4 game coins, and +1 coin per pet.', effect: { xp: 1.2, gameCoins: 4, petCoins: 1 } },
   },
+  leviathan: {
+    id: 'leviathan', label: 'Leviathan', icon: '🐋', diet: 'hearty', size: 'large',
+    desc: 'Deep-current armour, a sweeping tail, and a song that settles storms.',
+    power: { name: 'Deepwell', icon: '🌊', desc: '+20% XP, +3 game coins, and energy fades slower.', effect: { xp: 1.2, gameCoins: 3, energyDecay: 0.85 } },
+  },
+  seraph: {
+    id: 'seraph', label: 'Seraph', icon: '😇', diet: 'sweet', size: 'standard',
+    desc: 'Six soft wings, a warm halo, and a voice that makes the Hollow glow.',
+    power: { name: 'Halo Song', icon: '🌟', desc: 'Pets and chats build extra bond, and gifts arrive sooner.', effect: { petBond: 1.45, chatCoins: 1, giftSpeed: 1.2 } },
+  },
+  wraith: {
+    id: 'wraith', label: 'Wraith', icon: '🌫️', diet: 'eerie', size: 'standard',
+    desc: 'A ribbon of night with bright eyes and a whisper for a tail.',
+    power: { name: 'Nightveil', icon: '🌑', desc: 'Night games pay +5 coins and joy fades slower.', effect: { nightCoins: 5, joyDecay: 0.85 } },
+  },
+  golem: {
+    id: 'golem', label: 'Golem', icon: '🗿', diet: 'wild', size: 'large',
+    desc: 'Living stone laced with wild growth, steady as a hill.',
+    power: { name: 'Runebound', icon: '🪨', desc: '+15% XP, +3 game coins, and all needs fade slower.', effect: { xp: 1.15, gameCoins: 3, decay: 0.9 } },
+  },
 };
+const EVOLUTION_FORM_KEYS = Object.keys(EVOLUTION_FORMS);
 
 const TITAN_NAMES = {
   ember: 'Inferno Titan',

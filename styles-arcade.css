@@ -142,3 +142,18 @@
   .duel-art { width: 64px; height: 64px; }
   .zombie { font-size: 25px; }
 }
+
+/* ---------- sprite sparring picker ---------- */
+.duel-picker { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 9px; padding: 12px; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+.duel-picker-head h3 { margin: 3px 0 4px; font-size: 16px; }
+.duel-picker-head p { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--muted); }
+.duel-picker-list { display: flex; flex-direction: column; gap: 6px; }
+.duel-pick { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, .045); color: var(--text); text-align: left; }
+.duel-pick:active { transform: scale(.99); }
+.duel-pick-art { width: 46px; height: 46px; flex: 0 0 46px; }
+.duel-pick-art svg { width: 100%; height: 100%; }
+.duel-pick-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.duel-pick-copy b { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duel-pick-copy span { font-size: 9.5px; color: var(--muted); }
+.duel-pick .go { color: var(--muted); font-size: 16px; line-height: 1; }
+.duel-rival { background: radial-gradient(circle at 50% 40%, rgba(255, 138, 92, .26), rgba(255, 255, 255, .035)); filter: drop-shadow(0 0 14px rgba(255, 138, 92, .2)); }

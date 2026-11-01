@@ -42,7 +42,7 @@ const TOUR_STEPS = [
     points: [
       'Feeding builds the Hearty, Sweet, Eerie, and Wild diet affinities.',
       'Open a sprite to see a NEXT EVOLUTION card with its next stage, required level, XP left, and progress.',
-      'At level 10, twelve points in one diet path unlocks a permanent Dragon, Fairy, Ghoul, or Titan form.',
+      `At level 10, twelve points in one diet path unlocks one of ${EVOLUTION_FORM_KEYS.length} permanent forms.`,
       'The Bond Codex lists all six bond ranks, their passive bonuses, every stage, and every diet evolution.',
       'A sprite retires only at level 1,000. A Rebirth Meal returns them to an egg with permanent rebirth bonuses.',
     ],
@@ -211,7 +211,7 @@ function tourLiveStep() {
     icon: '🥋',
     kicker: 'EVOLUTION & CODEX',
     title: `${STAGE_ORDER.length} age tiers, ${ELEMENT_KEYS.length.toLocaleString()} sprites`,
-    text: `Every sprite grows through ${tiers}. Crossing an age tier opens an evolution screen with the new stage, its bonus, and the full ladder, and the same screen appears when a diet path unlocks a Dragon, Fairy, Ghoul, or Titan form. The final tier is Sensei, and a Sensei can retire at level 100.`,
+    text: `Every sprite grows through ${tiers}. Crossing an age tier opens an evolution screen with the new stage, its bonus, and the full ladder, and the same screen appears when a diet path unlocks one of ${EVOLUTION_FORM_KEYS.length} permanent forms. The final tier is Sensei, and a Sensei can retire at level 100.`,
     points: [
       `${waves.length} collection waves are live, and the Codex, Wiki, and this tour rebuild their counts from the same data whenever new sprites are added.`,
       ...waves.slice(0, 7).map((wave) => `${wave.icon} ${wave.label} · ${wave.count()}`),

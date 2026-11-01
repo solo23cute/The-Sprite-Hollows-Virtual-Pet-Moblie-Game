@@ -1,4 +1,4 @@
-const APP_VERSION = '4.1.2';
+const APP_VERSION = '4.1.5';
 
 const clamp = (n, min = 0, max = 100) => Math.max(min, Math.min(max, n));
 const rand = (a = 0, b = 1) => a + Math.random() * (b - a);
@@ -144,6 +144,10 @@ function weatherFor(seasonKey, climateKey, slot) {
 }
 
 function currentWeather(d = new Date()) {
+  const override = (typeof state !== 'undefined' && state.world && WEATHERS[state.world.weather])
+    ? state.world.weather
+    : null;
+  if (override) return WEATHERS[override];
   const climate = (typeof state !== 'undefined' && state.world && CLIMATES[state.world.climate])
     ? state.world.climate
     : 'temperate';

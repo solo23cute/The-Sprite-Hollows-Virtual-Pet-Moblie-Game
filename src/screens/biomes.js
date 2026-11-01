@@ -95,7 +95,7 @@ function openBiomeAtlas() {
       <div class="section-title" style="margin-top:14px"><h2>Hollow exotics</h2><span>${SPECIAL_EXOTIC_SPECIES.length} signatures</span></div>
       ${specialCards}
       <div class="section-title" style="margin-top:14px"><h2>🗺️ District quests</h2><span>${typeof BIOME_QUEST_KEYS !== 'undefined' ? BIOME_QUEST_KEYS.length : 0} three-step lines</span></div>
-      <p class="quest-intro">Every GTA district and every Hollow exotic biome has a short story line. Travel there, play its games, and look after a sprite on location — each step pays coins, XP, and bond.</p>
+      <p class="quest-intro">Every GTA district and every Hollow exotic biome has a short story line. Travel there for free — each trip pays ${TRAVEL_COINS} coins — play its games, and look after a sprite on location. Each step also pays coins, XP, and bond.</p>
       <div class="quest-grid" data-quest-grid>${typeof BIOME_QUEST_KEYS !== 'undefined' ? BIOME_QUEST_KEYS.map(biomeQuestCard).join('') : ''}</div>
       <div class="card" style="padding:12px;margin-top:12px;font-size:11px;line-height:1.6;color:var(--muted)">
         <b style="color:var(--text)">How biomes work</b><br>
@@ -107,11 +107,11 @@ function openBiomeAtlas() {
           const key = btn.dataset.biomeTravel;
           const type = key.replace('biome-', '');
           const biome = TYPE_BIOMES[type] || null;
-          Actions.setTheme({ scene: key });
+          const trip = Actions.setTheme({ scene: key });
           close();
-          App.refresh();
+          App.go('hollow');
           const travelled = SCENES[key];
-          toast(`${travelled.emoji} ${travelled.name} · ${(travelled.species || []).length.toLocaleString()} species thriving.`, '🧭');
+          toast(`${travelled.emoji} ${travelled.name} · ${(travelled.species || []).length.toLocaleString()} species thriving${trip && trip.coins ? ` · +${trip.coins} coins` : ''}.`, '🧭');
           Sfx.click();
         });
       });

@@ -173,8 +173,8 @@ function openStudioSheet(opts = {}) {
             btn.addEventListener('click', () => {
               const scene = (state.customScenes || []).find((item) => item.id === btn.dataset.customScene);
               if (!scene) return;
-              Actions.setTheme({ scene: scene.id });
-              toast(`${scene.emoji} ${scene.name} · every sprite is welcome here.`, scene.emoji);
+              const trip = Actions.setTheme({ scene: scene.id });
+              toast(`${scene.emoji} ${scene.name} · every sprite is welcome here${trip && trip.coins ? ` · +${trip.coins} coins` : ''}.`, scene.emoji);
               paint();
               Sfx.click();
             });
@@ -259,7 +259,7 @@ function openStudioSheet(opts = {}) {
 
         root.querySelector('[data-bodies]').innerHTML = BREED_KEYS.map((k) => `
           <button class="style-opt ${t.breed === k ? 'on' : ''}" data-breed="${k}">
-            <span class="sw acc">${({ puff: '●', sprig: '🌱', flit: '🪽', horn: '🌙', blob: '🫧', wisp: '✨' })[k]}</span>${BREEDS[k].name}
+            <span class="sw acc">${({ puff: '●', sprig: '🌱', flit: '🪽', horn: '🌙', blob: '🫧', wisp: '✨', bun: '🐰', fin: '🐟', shell: '🐚', star: '⭐' })[k]}</span>${BREEDS[k].name}
           </button>`).join('');
         root.querySelectorAll('[data-breed]').forEach((b) => {
           b.addEventListener('click', () => { Actions.customize(t.id, { breed: b.dataset.breed }); paint(); Sfx.pop(); });
@@ -363,9 +363,9 @@ function openStudioSheet(opts = {}) {
             toast('That environment is a gift from your sprites. Keep an eye on their gift bubbles.', '🎁');
             return;
           }
-          Actions.setTheme({ scene: b.dataset.scene });
+          const trip = Actions.setTheme({ scene: b.dataset.scene });
           const scene = SCENES[b.dataset.scene];
-          if (scene) toast(`${scene.emoji} ${scene.name} · +${Math.round((scene.bonus || 0.4) * 100)}% XP for ${scene.habitat.toLowerCase()} species.`, scene.emoji);
+          if (scene) toast(`${scene.emoji} ${scene.name} · +${Math.round((scene.bonus || 0.4) * 100)}% XP for ${scene.habitat.toLowerCase()} species${trip && trip.coins ? ` · +${trip.coins} coins` : ''}.`, scene.emoji);
           paint();
           Sfx.click();
         });

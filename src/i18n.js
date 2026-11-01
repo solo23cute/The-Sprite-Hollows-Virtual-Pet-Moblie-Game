@@ -10,7 +10,7 @@ const I18N_LANGUAGE_ORDER = ['en', 'es', 'fr'];
 
 const I18N = {
   en: {
-    'tab.hollow': 'Hollow', 'tab.collection': 'Sprites', 'tab.codex': 'Types', 'tab.nest': 'Nest',
+    'tab.hollow': 'Home', 'tab.collection': 'Sprites', 'tab.codex': 'Types', 'tab.nest': 'Nest',
     'tab.play': 'Play', 'tab.today': 'Today', 'tab.settings': 'Settings',
     'settings.language': 'Language', 'settings.languageNote': 'Applies to the app navigation, settings, captions, and the induction tour.',
     'settings.captions': 'Closed captions (CC)', 'settings.captionsNote': 'Shows sound descriptions and spoken lines on screen for the hearing impaired.',

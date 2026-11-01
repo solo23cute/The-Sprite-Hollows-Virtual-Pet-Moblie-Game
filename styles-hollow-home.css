@@ -19,12 +19,13 @@
 @keyframes boot-out { to { opacity: 0; transform: scale(1.02); } }
 
 /* ---------- the nav bar now carries eight tabs ---------- */
-.tabbar { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.tabbar { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .tab span { font-size: 8.5px; }
 
 /* ---------- Sent Home ---------- */
 .sh-intro { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
-.sh-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 14px 2px 8px; }
+.sh-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 8px; flex-wrap: wrap; margin: 14px 2px 8px; }
+.sh-section-head .btn { margin-left: auto; }
 .sh-section-head h2 { font-size: 13px; margin: 0; }
 .sh-section-head span { font-size: 9.5px; color: var(--muted); }
 .sh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
@@ -38,7 +39,7 @@
 .sh-name b { font-size: 12px; }
 .sh-status { line-height: 1.4; }
 .sh-tag { font-size: 9px; color: var(--accent-2, #ff7ac8); line-height: 1.4; }
-.sh-coins { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 10.5px; font-weight: 800; color: var(--gold, #ffd166); }
+.sh-coins { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; font-size: 10.5px; font-weight: 800; color: var(--gold, #ffd166); }
 .sh-actions { display: flex; flex-direction: column; gap: 5px; margin-top: 2px; }
 .sh-actions .btn { width: 100%; }
 .sh-house-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
@@ -178,7 +179,8 @@
 
 /* ---------- Sent Home room upgrades ---------- */
 .sh-upgrades { display: flex; flex-direction: column; gap: 7px; }
-.sh-upgrade { display: flex; gap: 9px; align-items: center; padding: 9px 10px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, .035); }
+.sh-upgrade { display: flex; gap: 9px; align-items: center; min-width: 0; padding: 9px 10px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, .035); }
+.sh-upgrade > .btn, .sh-upgrade > .chip { flex: 0 0 auto; }
 .sh-upgrade.owned { border-color: rgba(143, 224, 122, .35); background: rgba(143, 224, 122, .06); }
 .sh-upgrade-icon { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: 11px; background: rgba(255, 255, 255, .07); font-size: 18px; }
 .sh-upgrade-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
@@ -186,8 +188,10 @@
 .sh-upgrade-effect { font-size: 9px; font-weight: 800; color: var(--accent-2, #ff7ac8); }
 
 /* ---- district quests ---- */
-.quest-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-@media (max-width:430px){.quest-grid{grid-template-columns:1fr}}
+.quest-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (max-width:430px){.quest-grid{grid-template-columns:minmax(0,1fr)}}
+.quest-card{min-width:0}
+.quest-foot .btn{flex:0 0 auto;max-width:100%}
 .quest-card{display:flex;flex-direction:column;gap:5px;padding:10px;border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09)}
 .quest-card.ready{border-color:rgba(255,209,102,.55);box-shadow:inset 0 0 0 1px rgba(255,209,102,.18)}
 .quest-card.done{opacity:.62}
@@ -242,7 +246,7 @@
 .qt-progress{font-size:11px;font-weight:700;color:#ffd166}
 
 /* ---- guardian duel ---- */
-.duel-stage{position:relative;height:196px;border-radius:16px;overflow:hidden;display:flex;align-items:flex-end;justify-content:space-between;padding:10px 14px}
+.guardian-duel-stage{position:relative;height:196px;border-radius:16px;overflow:hidden;display:flex;align-items:flex-end;justify-content:space-between;padding:10px 14px}
 .duel-guardian,.duel-challenger{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .duel-guardian{transform:scale(1.05)}
 .duel-challenger{transform:scale(.78);opacity:.95}
@@ -300,3 +304,48 @@
 .vd-copy b{font-size:12px}
 .guardian-card.custom{border-color:rgba(255,209,102,.35)}
 .sh-art .room-wash{opacity:.3}
+
+/* ---------- responsive layout guard: every menu, sprite and card stays in frame ---------- */
+html, body, #app, .shell, .screen { max-width: 100%; }
+.sheet, .modal { width: 100%; max-height: calc(100vh - max(10px, var(--safe-t))); max-height: calc(100dvh - max(10px, var(--safe-t))); }
+.sheet, .modal, .sheet *, .modal * { min-width: 0; }
+.sheet .sub, .sheet p, .modal p, .home-biome, .home-sub, .sh-status, .quest-step { overflow-wrap: anywhere; }
+.overlay { max-height: 100vh; max-height: 100dvh; }
+.home-window { min-width: 0; overflow: hidden; }
+.home-pane, .sh-art, .oo-hero, .hangout-stage, .guardian-duel-stage, .duel-pick-art, .gc-art, .duel-art { overflow: hidden; }
+.home-actor, .home-actor svg, .sh-sprite, .sh-sprite svg, .oo-art, .oo-art svg,
+.duel-art svg, .duel-pick-art svg, .gc-art svg, .guardian-duel-stage svg { max-width: 100%; max-height: 100%; }
+.home-plate b { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; }
+.home-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-plate b > .home-tier, .home-plate b > .gender-mark { flex: 0 0 auto; }
+.home-tier { padding: 1px 5px; border-radius: 99px; font-size: 7.5px; line-height: 1.4; font-weight: 900; color: var(--tier, #ffd166); background: color-mix(in srgb, var(--tier, #ffd166) 14%, transparent); border: 1px solid color-mix(in srgb, var(--tier, #ffd166) 36%, transparent); }
+.home-toggle { margin-top: 3px; opacity: .92; }
+.home-window.is-away .home-pane { filter: saturate(.72); }
+.home-filter { display: flex; gap: 5px; overflow-x: auto; padding: 2px 1px 8px; scrollbar-width: none; }
+.home-filter-btn { flex: 0 0 auto; padding: 6px 8px; border-radius: 99px; border: 1px solid var(--line); background: rgba(255,255,255,.045); color: var(--muted); font-size: 9px; font-weight: 800; white-space: nowrap; }
+.home-filter-btn.on { color: var(--text); border-color: var(--gold, #ffd166); background: rgba(255,209,102,.1); }
+.homes-grid { grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); }
+.home-pick-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.guardian-grid { grid-template-columns: repeat(auto-fit, minmax(82px, 1fr)); }
+.guardian-card { min-width: 0; }
+.guardian-tier { font-size: 7px; padding: 1px 5px; color: var(--tier, #ffd166); border-color: color-mix(in srgb, var(--tier, #ffd166) 36%, transparent); }
+.duel-pick-copy span { overflow-wrap: anywhere; }
+.duel-picker { max-height: 100%; }
+.game-card .g-meta { min-width: 0; }
+.game-card .g-meta .chip { max-width: 100%; overflow-wrap: anywhere; }
+.guardian-duel-stage .scene-decor { pointer-events: none; }
+@media (max-width: 380px) {
+  .homes-grid { grid-template-columns: minmax(0, 1fr); }
+  .home-pane { height: 112px; }
+  .home-actor { width: 78px; }
+  .sheet { padding-left: 12px; padding-right: 12px; }
+  .guardian-duel-stage { height: 158px; padding: 8px 9px; }
+  .guardian-duel-stage .duel-guardian svg { max-width: 96px; max-height: 96px; }
+  .guardian-duel-stage .duel-challenger svg { max-width: 74px; max-height: 74px; }
+  .duel-pick-art { width: 40px; height: 40px; flex-basis: 40px; }
+}
+@media (max-height: 560px) {
+  .sheet { max-height: calc(100vh - 4px); max-height: calc(100dvh - 4px); }
+  .guardian-duel-stage { height: 136px; }
+  .home-pane { height: 82px; }
+}

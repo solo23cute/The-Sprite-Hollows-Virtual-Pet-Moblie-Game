@@ -24,7 +24,7 @@ Object.assign(GAME_INFO, {
     icon: '⚔️',
     tag: 'Fight',
     group: 'arcade',
-    desc: 'Time strikes in the sweet spot, guard the counterattack, and topple the brute.',
+    desc: 'Pick another sprite from your Hollow, time your strikes, and guard their counterattack.',
     g1: '#ff8a5c',
     g2: '#c9455c',
   },
@@ -313,11 +313,71 @@ function openZombieSiegeGame() {
 }
 
 /* ---------------- HOLLOW DUEL ---------------- */
-function openHollowDuelGame() {
+function openHollowDuelGame(opts = {}) {
+  Sfx.init();
   const shell = gameOverlayShell('duel');
   const { board } = shell;
-  const player = activeSprite();
-  board.innerHTML = `<div class="duel-stage">
+  const active = activeSprite();
+  const out = typeof hollowSprites === 'function' ? hollowSprites() : grownSprites();
+  const fallbackHome = active && active.stage !== 'egg' && !active.retired ? active : null;
+  const player = active && active.stage !== 'egg' && !active.retired && !active.atHome
+    ? active
+    : (out[0] || fallbackHome);
+  if (!player) {
+    shell.close();
+    toast('Hatch a sprite first to duel.', '🥚');
+    return;
+  }
+  const roster = out.filter((s) => s && s.id !== player.id && s.stage !== 'egg' && !s.retired && !s.atHome);
+  const brute = { id: 'bramble-brute', name: 'Bramble Brute', brute: true };
+  const requested = opts.opponentId ? roster.find((s) => s.id === opts.opponentId) : null;
+  let running = false;
+  let raf = 0;
+
+  shell.addCleanup(() => {
+    running = false;
+    cancelAnimationFrame(raf);
+  });
+
+  const opponentButton = (s) => {
+    const tier = typeof spriteRarity === 'function' ? spriteRarity(s) : null;
+    return `<button class="duel-pick" type="button" data-duel-opponent="${s.id}">
+      <span class="duel-pick-art">${spriteSVG(s, { expr: 'happy' })}</span>
+      <span class="duel-pick-copy"><b>${esc(displayName(s))}</b><span>Lv ${s.level} · ${typeName(s)}${tier ? ` · <b style="color:${tier.color}">${tier.name}</b>` : ''}</span></span>
+      <span class="go">${icon('chevron')}</span>
+    </button>`;
+  };
+
+  function showPicker() {
+    running = false;
+    cancelAnimationFrame(raf);
+    board.innerHTML = `<div class="duel-picker">
+      <div class="duel-picker-head">
+        <div class="arcade-kicker">⚔️ Friendly spar</div>
+        <h3>Fight another sprite</h3>
+        <p>Choose anyone out in your Hollow. Both sides fight for fun, and your active sprite keeps the rewards. Sprites resting at home sit this one out.</p>
+      </div>
+      ${roster.length
+        ? `<div class="duel-picker-list">${roster.map(opponentButton).join('')}</div>`
+        : `<div class="card empty-state" style="padding:18px">No other sprites are out in the Hollow right now. Bring someone back from Home, or take on the Bramble Brute.</div>`}
+      <button class="btn btn-soft btn-block" type="button" data-duel-brute>👹 Fight the Bramble Brute</button>
+      <p class="tiny muted" style="text-align:center;margin:0">No coin cost · unlimited retries</p>
+    </div>`;
+    board.querySelectorAll('[data-duel-opponent]').forEach((button) => button.addEventListener('click', () => {
+      const rival = roster.find((s) => s.id === button.dataset.duelOpponent);
+      if (rival) start(rival);
+    }));
+    board.querySelector('[data-duel-brute]').addEventListener('click', () => start(brute));
+  }
+
+  function start(opponent) {
+    if (running) return;
+    running = true;
+    const oppName = opponent.brute ? 'Bramble Brute' : displayName(opponent);
+    const oppArt = opponent.brute
+      ? '<span class="duel-art duel-brute">👹</span>'
+      : `<span class="duel-art duel-rival">${spriteSVG(opponent, { expr: 'happy' })}</span>`;
+    board.innerHTML = `<div class="duel-stage">
       <div class="duel-combatants">
         <div class="duel-fighter player">
           <span class="duel-label">${player ? esc(displayName(player)) : 'You'}</span>
@@ -326,8 +386,8 @@ function openHollowDuelGame() {
         </div>
         <span class="duel-vs">VS</span>
         <div class="duel-fighter enemy">
-          <span class="duel-label">Bramble Brute</span>
-          <span class="duel-art duel-brute">👹</span>
+          <span class="duel-label">${esc(oppName)}</span>
+          ${oppArt}
           <span class="duel-bar"><i data-enemy-bar style="width:100%"></i></span>
         </div>
       </div>
@@ -342,134 +402,132 @@ function openHollowDuelGame() {
       </div>
       <div class="tiny muted" style="text-align:center;margin-top:7px">Perfect center = 2 damage · block attacks with Guard</div>
     </div>`;
-  const marker = board.querySelector('[data-marker]');
-  const status = board.querySelector('[data-duel-status]');
-  const enemyBar = board.querySelector('[data-enemy-bar]');
-  const heartsEl = board.querySelector('[data-player-hearts]');
-  const strikeBtn = board.querySelector('[data-strike]');
-  const guardBtn = board.querySelector('[data-guard]');
-  let position = 12;
-  let direction = 1;
-  let enemyHp = 4;
-  let playerHp = 3;
-  let score = 0;
-  let perfects = 0;
-  let blocks = 0;
-  let running = true;
-  let raf = 0;
-  let last = performance.now();
-  let elapsed = 0;
-  let nextEnemy = 4.2;
-  let guardUntil = 0;
-  let strikeCooldown = 0;
-  let lastPosition = 0;
+    const marker = board.querySelector('[data-marker]');
+    const status = board.querySelector('[data-duel-status]');
+    const enemyBar = board.querySelector('[data-enemy-bar]');
+    const heartsEl = board.querySelector('[data-player-hearts]');
+    const strikeBtn = board.querySelector('[data-strike]');
+    const guardBtn = board.querySelector('[data-guard]');
+    let position = 12;
+    let direction = 1;
+    let enemyHp = 4;
+    let playerHp = 3;
+    let score = 0;
+    let perfects = 0;
+    let blocks = 0;
+    let last = performance.now();
+    let elapsed = 0;
+    let nextEnemy = 4.2;
+    let guardUntil = 0;
+    let strikeCooldown = 0;
 
-  function updateHud() {
-    shell.scoreEl.textContent = score;
-    enemyBar.style.width = `${Math.max(0, (enemyHp / 4) * 100)}%`;
-    heartsEl.textContent = '💛'.repeat(Math.max(0, playerHp)) + '🖤'.repeat(Math.max(0, 3 - playerHp));
-  }
-
-  function pulse(text, tone = 'normal') {
-    status.textContent = text;
-    status.className = `duel-status ${tone}`;
-    setTimeout(() => { if (running) status.className = 'duel-status'; }, 650);
-  }
-
-  function strike() {
-    if (!running || strikeCooldown > 0) return;
-    strikeCooldown = 0.28;
-    const dist = Math.abs(position - 50);
-    if (dist <= 6) {
-      enemyHp -= 2;
-      perfects += 1;
-      score += 12;
-      pulse('Perfect strike! ⚡', 'good');
-      Sfx.win();
-      burstOn(strikeBtn, ['⚡', '💥', '✨'], 7);
-    } else if (dist <= 18) {
-      enemyHp -= 1;
-      score += 6;
-      pulse('Solid hit!', 'good');
-      Sfx.pop();
-      burstOn(strikeBtn, ['💥', '✨'], 4);
-    } else {
-      playerHp -= 1;
-      pulse('Whiff! The brute counters.', 'bad');
-      Sfx.error();
-      tapHaptic(22);
+    function updateHud() {
+      shell.scoreEl.textContent = score;
+      enemyBar.style.width = `${Math.max(0, (enemyHp / 4) * 100)}%`;
+      heartsEl.textContent = '💛'.repeat(Math.max(0, playerHp)) + '🖤'.repeat(Math.max(0, 3 - playerHp));
     }
-    guardUntil = 0;
-    updateHud();
-    if (enemyHp <= 0) finish(true);
-    else if (playerHp <= 0) finish(false);
-  }
 
-  function guard() {
-    if (!running) return;
-    guardUntil = performance.now() + 1400;
-    pulse('Guard up — brace for the next hit.', 'guard');
-    guardBtn.classList.add('guarding');
-    setTimeout(() => guardBtn.classList.remove('guarding'), 750);
-    Sfx.tick();
-  }
+    function pulse(text, tone = 'normal') {
+      status.textContent = text;
+      status.className = `duel-status ${tone}`;
+      setTimeout(() => { if (running) status.className = 'duel-status'; }, 650);
+    }
 
-  function draw(now) {
-    if (!running) return;
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-    elapsed += dt;
-    strikeCooldown = Math.max(0, strikeCooldown - dt);
-    position += direction * 70 * dt;
-    if (position >= 88) { position = 88; direction = -1; }
-    if (position <= 12) { position = 12; direction = 1; }
-    marker.style.left = `${position}%`;
-    const remaining = Math.max(0, 60 - elapsed);
-    shell.timerEl.textContent = `${Math.ceil(remaining)}s`;
-    shell.timerBar.style.width = `${(remaining / 60) * 100}%`;
-    nextEnemy -= dt;
-    if (nextEnemy <= 1.4 && nextEnemy > 0) status.textContent = `Incoming in ${nextEnemy.toFixed(1)}s — Guard!`;
-    if (nextEnemy <= 0) {
-      if (now < guardUntil) {
-        blocks += 1;
-        score += 4;
-        pulse('Blocked! Beautiful footwork.', 'guard');
-        Sfx.coin();
+    function strike() {
+      if (!running || strikeCooldown > 0) return;
+      strikeCooldown = 0.28;
+      const dist = Math.abs(position - 50);
+      if (dist <= 6) {
+        enemyHp -= 2;
+        perfects += 1;
+        score += 12;
+        pulse('Perfect strike! ⚡', 'good');
+        Sfx.win();
+        burstOn(strikeBtn, ['⚡', '💥', '✨'], 7);
+      } else if (dist <= 18) {
+        enemyHp -= 1;
+        score += 6;
+        pulse('Solid hit!', 'good');
+        Sfx.pop();
+        burstOn(strikeBtn, ['💥', '✨'], 4);
       } else {
         playerHp -= 1;
-        pulse('The brute lands a hit!', 'bad');
+        pulse(`Whiff! ${oppName} counters.`, 'bad');
         Sfx.error();
-        tapHaptic(24);
+        tapHaptic(22);
       }
+      guardUntil = 0;
       updateHud();
-      nextEnemy = 4.2;
-      if (playerHp <= 0) finish(false);
+      if (enemyHp <= 0) finish(true);
+      else if (playerHp <= 0) finish(false);
     }
-    if (remaining <= 0) finish(enemyHp <= 0);
-    if (running) raf = requestAnimationFrame(draw);
-  }
 
-  function finish(won) {
-    if (!running) return;
-    running = false;
-    cancelAnimationFrame(raf);
-    const coins = won ? Math.min(155, 50 + score * 2 + playerHp * 12) : Math.min(60, 12 + score);
-    const xp = won ? Math.min(90, 20 + score * 2) : Math.min(35, 8 + score);
-    showGameResult(shell, {
-      kind: 'duel', score, coins, xp, perfect: perfects,
-      blurb: won ? 'The Bramble Brute yields. Victory!' : 'Down, but not out. The Hollow is proud.',
+    function guard() {
+      if (!running) return;
+      guardUntil = performance.now() + 1400;
+      pulse('Guard up — brace for the next hit.', 'guard');
+      guardBtn.classList.add('guarding');
+      setTimeout(() => guardBtn.classList.remove('guarding'), 750);
+      Sfx.tick();
+    }
+
+    function draw(now) {
+      if (!running) return;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      elapsed += dt;
+      strikeCooldown = Math.max(0, strikeCooldown - dt);
+      position += direction * 70 * dt;
+      if (position >= 88) { position = 88; direction = -1; }
+      if (position <= 12) { position = 12; direction = 1; }
+      marker.style.left = `${position}%`;
+      const remaining = Math.max(0, 60 - elapsed);
+      shell.timerEl.textContent = `${Math.ceil(remaining)}s`;
+      shell.timerBar.style.width = `${(remaining / 60) * 100}%`;
+      nextEnemy -= dt;
+      if (nextEnemy <= 1.4 && nextEnemy > 0) status.textContent = `Incoming in ${nextEnemy.toFixed(1)}s — Guard!`;
+      if (nextEnemy <= 0) {
+        if (now < guardUntil) {
+          blocks += 1;
+          score += 4;
+          pulse('Blocked! Beautiful footwork.', 'guard');
+          Sfx.coin();
+        } else {
+          playerHp -= 1;
+          pulse(`${oppName} lands a hit!`, 'bad');
+          Sfx.error();
+          tapHaptic(24);
+        }
+        updateHud();
+        nextEnemy = 4.2;
+        if (playerHp <= 0) finish(false);
+      }
+      if (remaining <= 0) finish(enemyHp <= 0);
+      if (running) raf = requestAnimationFrame(draw);
+    }
+
+    function finish(won) {
+      if (!running) return;
+      running = false;
+      cancelAnimationFrame(raf);
+      const coins = won ? Math.min(155, 50 + score * 2 + playerHp * 12) : Math.min(60, 12 + score);
+      const xp = won ? Math.min(90, 20 + score * 2) : Math.min(35, 8 + score);
+      showGameResult(shell, {
+        kind: 'duel', score, coins, xp, perfect: perfects,
+        blurb: won ? `${oppName} yields. Victory!` : `${oppName} wins this round. The Hollow is proud.`,
+      });
+    }
+
+    strikeBtn.addEventListener('click', strike);
+    guardBtn.addEventListener('click', guard);
+    updateHud();
+    raf = requestAnimationFrame((now) => {
+      last = now;
+      draw(now);
     });
   }
 
-  strikeBtn.addEventListener('click', strike);
-  guardBtn.addEventListener('click', guard);
-  updateHud();
-  raf = requestAnimationFrame((now) => {
-    last = now;
-    draw(now);
-  });
-  shell.addCleanup(() => {
-    running = false;
-    cancelAnimationFrame(raf);
-  });
+  if (requested) start(requested);
+  else if (!roster.length) start(brute);
+  else showPicker();
 }

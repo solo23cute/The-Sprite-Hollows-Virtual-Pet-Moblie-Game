@@ -105,6 +105,39 @@ function buildWeatherFx(key) {
   return '';
 }
 
+function openWeatherSheet() {
+  const selected = state.world?.weather || 'auto';
+  const wx = currentWeather();
+  const options = [
+    `<button class="style-opt ${selected === 'auto' ? 'on' : ''}" data-weather-key="auto"><span class="sw acc">🔄</span>Auto</button>`,
+    ...WEATHER_KEYS.map((key) => {
+      const weather = WEATHERS[key];
+      return `<button class="style-opt ${selected === key ? 'on' : ''}" data-weather-key="${key}"><span class="sw acc">${weather.icon}</span>${weather.name}</button>`;
+    }),
+  ].join('');
+  const { close } = openSheet({
+    title: 'Hollow weather',
+    sub: 'Change the sky for free. Auto follows the real season and climate.',
+    body: `<div class="style-picker weather-picker">${options}</div>
+      <div class="card" style="padding:11px;margin-top:10px;font-size:11px;line-height:1.55;color:var(--muted)">
+        <b style="color:var(--text)">${wx.icon} ${wx.name}</b> — ${wx.blurb}
+        <div class="tiny" style="margin-top:5px">Manual weather overrides each biome's local ambience until you choose Auto.</div>
+      </div>`,
+    onMount: (root) => {
+      root.querySelectorAll('[data-weather-key]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const key = button.dataset.weatherKey;
+          Actions.setWeather(key === 'auto' ? null : key);
+          Sfx.click();
+          close();
+          toast(key === 'auto' ? 'Weather is following the season again.' : `${WEATHERS[key].icon} ${WEATHERS[key].name} — the Hollow sky changes now.`, key === 'auto' ? '🔄' : WEATHERS[key].icon);
+          if (typeof App !== 'undefined' && App.refresh) App.refresh();
+        });
+      });
+    },
+  });
+}
+
 function spriteSize(stage, size = 'standard') {
   const base = { baby: 132, juvenile: 146, sprite: 160, elder: 174, ancient: 184, sensei: 192 }[stage] || 132;
   return Math.round(base * (SIZES[size]?.scale || 1));
@@ -112,17 +145,29 @@ function spriteSize(stage, size = 'standard') {
 
 function hollowScreen(root) {
   ensureDaily();
-  const s0 = activeSprite();
+  const active = activeSprite();
+  const outside = (typeof hollowSprites === 'function' ? hollowSprites() : grownSprites())
+    .filter((s) => s.stage !== 'egg' && !s.retired && !s.atHome);
+  const s0 = active && active.stage !== 'egg' && !active.retired && !active.atHome ? active : outside[0];
+  const atHomeCount = state.sprites.filter((s) => s.stage !== 'egg' && s.atHome).length;
 
   if (!s0) {
+    const homeCopy = atHomeCount ? 'Everyone is home' : 'Your Hollow is quiet';
+    const bodyCopy = atHomeCount
+      ? `${atHomeCount} sprite${atHomeCount === 1 ? ' is' : 's are'} resting in their own biome. Call someone back, or visit a room to spend time together.`
+      : 'Hatch your first egg in the Nest, then come back and say hello.';
     root.innerHTML = `<div class="screen-head"><div><div class="eyebrow">Your hollow</div><h1>${esc(state.hollowName)}</h1></div></div>
       <div class="card empty-state">
-        <div style="font-size:38px">🥚</div>
-        <h3 style="font-size:16px;margin:8px 0 4px">Your Hollow is quiet</h3>
-        <p>Hatch your first egg in the Nest, then come back and say hello.</p>
-        <button class="btn btn-primary" data-go-nest style="margin-top:14px">Go to the Nest</button>
+        <div style="font-size:38px">${atHomeCount ? '🏡' : '🥚'}</div>
+        <h3 style="font-size:16px;margin:8px 0 4px">${homeCopy}</h3>
+        <p>${bodyCopy}</p>
+        <div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px">
+          ${atHomeCount ? '<button class="btn btn-primary" data-go-homes>Open Homes</button>' : ''}
+          <button class="btn ${atHomeCount ? 'btn-soft' : 'btn-primary'}" data-go-nest>${atHomeCount ? 'Visit the Nest' : 'Go to the Nest'}</button>
+        </div>
       </div>`;
     root.querySelector('[data-go-nest]').onclick = () => App.go('nest');
+    root.querySelector('[data-go-homes]')?.addEventListener('click', () => { Sfx.click(); openHomesSheet(); });
     return () => {};
   }
 
@@ -144,15 +189,17 @@ function hollowScreen(root) {
         <button class="icon-btn" data-open-detail aria-label="Sprite details">${icon('chevron')}</button>
       </div>
       <div class="hollow-quick">
-        <button class="chip" type="button" data-world title="Climate and weather">${seasonOf().icon} ${esc(seasonLabel(seasonOf(), state.world?.climate))} · ${currentWeather().icon} ${currentWeather().name}</button>
+        <button class="chip" type="button" data-world title="Season and climate">${seasonOf().icon} ${esc(seasonLabel(seasonOf(), state.world?.climate))} · ${esc(CLIMATES[state.world?.climate]?.name || 'Temperate')}</button>
+        <button class="chip weather-chip" type="button" data-weather title="Change the Hollow weather">${currentWeather().icon} ${currentWeather().name} · change</button>
         <button class="chip habitat-chip" type="button" data-habitat title="${esc(hab0.scene.habitat)} habitat — ${hab0.scene.name}">${hab0.scene.emoji} ${esc(hab0.scene.habitat)} · +${hab0.percent}% XP</button>
         <button class="chip" type="button" data-warm title="Warm clothes" hidden></button>
         <span class="chip" data-phase>${timePhase().icon} ${timePhase().label}</span>
         <span class="chip" data-size-chip>${SIZES[s0.size]?.name || 'Standard'} ${formName(s0) ? `· ${esc(formName(s0))}` : ''}</span>
         <button class="chip bedroom-chip" type="button" data-bedroom>🛏️ Bedroom</button>
-        <button class="chip homes-chip" type="button" data-homes title="Every sprite in its own biome window">🪟 Homes</button>
-        <button class="chip" type="button" data-senthome-link title="Send a sprite home to rest and earn">🏠 Sent Home</button>
+        <button class="chip homes-chip" type="button" data-homes title="Every sprite in its own biome window">🪟 Homes${atHomeCount ? ` · ${atHomeCount} home` : ''}</button>
+        <button class="chip" type="button" data-senthome-link title="Visit the room where sprites rest and earn">🏠 Home</button>
         <button class="chip guardians-chip" type="button" data-guardians-link title="Every biome has guardians — challenge as many as you like">⚔️ Guardians</button>
+        <button class="chip duel-chip" type="button" data-duel-link title="Spar with another sprite in your Hollow">⚔️ Duel</button>
         <button class="chip gift-chip" data-gift-chip>🎁 Gift</button>
       </div>
       ${typeof questTrackHtml === 'function' ? questTrackHtml() : ''}
@@ -172,30 +219,31 @@ function hollowScreen(root) {
       </div>
       <div class="whisper">${icon('sparkle')}<span data-whisper>${esc(idleLine(s0))}</span></div>
     </div>
-    <div class="care-dock" role="group" aria-label="Care and play actions">
+    <div class="care-dock" role="group" aria-label="Care and play actions" tabindex="0">
       <div class="dock-group">
         <span class="dock-label">Care</span>
         <div class="dock-row">
-          <button class="care-btn feed" data-care="feed"><span class="cb-ico">${icon('food')}</span>Feed</button>
-          <button class="care-btn care-rub" data-care="rub"><span class="cb-ico">🤲</span>Rub Belly</button>
-          <button class="care-btn bath" data-care="bath"><span class="cb-ico">${icon('bath')}</span>Bath</button>
-          <button class="care-btn nap" data-care="nap"><span class="cb-ico">${icon('moon')}</span><span data-nap-label>Nap</span></button>
-          <button class="care-btn care-bed" data-care="bed"><span class="cb-ico">🛏️</span>Bed</button>
+          <button class="care-btn feed" data-care="feed"><span class="cb-ico">${icon('food')}</span><span class="cb-label">Feed</span></button>
+          <button class="care-btn care-rub" data-care="rub"><span class="cb-ico">🤲</span><span class="cb-label">Rub Belly</span></button>
+          <button class="care-btn bath" data-care="bath"><span class="cb-ico">${icon('bath')}</span><span class="cb-label">Bath</span></button>
+          <button class="care-btn nap" data-care="nap"><span class="cb-ico">${icon('moon')}</span><span class="cb-label" data-nap-label>Nap</span></button>
+          <button class="care-btn care-bed" data-care="bed"><span class="cb-ico">🛏️</span><span class="cb-label">Bed</span></button>
         </div>
       </div>
       <div class="dock-group">
         <span class="dock-label">Play &amp; social</span>
         <div class="dock-row">
-          <button class="care-btn play" data-care="play"><span class="cb-ico">${icon('play')}</span>Play</button>
-          <button class="care-btn walk" data-care="walk"><span class="cb-ico">🥾</span>Walk</button>
-          <button class="care-btn care-throw" data-care="throw"><span class="cb-ico">🎾</span>Throw Ball</button>
-          <button class="care-btn care-catch" data-care="catch"><span class="cb-ico">🧤</span>Play Catch</button>
-          <button class="care-btn chat" data-care="chat"><span class="cb-ico">${icon('chat')}</span>Talk</button>
+          <button class="care-btn play" data-care="play"><span class="cb-ico">${icon('play')}</span><span class="cb-label">Play</span></button>
+          <button class="care-btn walk" data-care="walk"><span class="cb-ico">🥾</span><span class="cb-label">Walk</span></button>
+          <button class="care-btn care-throw" data-care="throw"><span class="cb-ico">🎾</span><span class="cb-label">Throw Ball</span></button>
+          <button class="care-btn care-catch" data-care="catch"><span class="cb-ico">🧤</span><span class="cb-label">Play Catch</span></button>
+          <button class="care-btn chat" data-care="chat"><span class="cb-ico">${icon('chat')}</span><span class="cb-label">Talk</span></button>
         </div>
       </div>
     </div>`;
 
   root.querySelector('[data-world]')?.addEventListener('click', () => { Sfx.click(); openStudioSheet(); });
+  root.querySelector('[data-weather]')?.addEventListener('click', () => { Sfx.click(); openWeatherSheet(); });
   root.querySelector('[data-habitat]')?.addEventListener('click', () => { Sfx.click(); openStudioSheet(); });
   root.querySelector('[data-warm]')?.addEventListener('click', () => { Sfx.click(); openStudioSheet(); });
   root.querySelector('[data-bedroom]')?.addEventListener('click', () => { Sfx.click(); openBedroomSheet(); });
@@ -203,6 +251,7 @@ function hollowScreen(root) {
   root.querySelector('[data-senthome-link]')?.addEventListener('click', () => { Sfx.click(); App.go('senthome'); });
   root.querySelector('[data-quest-tracker]')?.addEventListener('click', () => { Sfx.click(); if (typeof openDistrictQuests === 'function') openDistrictQuests(); });
   root.querySelector('[data-guardians-link]')?.addEventListener('click', () => { Sfx.click(); if (typeof openGuardianGallery === 'function') openGuardianGallery(); });
+  root.querySelector('[data-duel-link]')?.addEventListener('click', () => { Sfx.click(); if (typeof openHollowDuelGame === 'function') openHollowDuelGame(); });
 
   const stageEl = root.querySelector('[data-stage]');
   if (stageEl && sceneUsesTint(state.theme.scene) && !SCENES[state.theme.scene]?.custom) {
@@ -224,16 +273,27 @@ function hollowScreen(root) {
   };
 
   function roster() {
-    const all = grownSprites();
-    const active = activeSprite();
-    const list = active ? [active, ...all.filter((s) => s.id !== active.id)] : all.slice();
-    return (SCENES[state.theme.scene]?.custom || SCENES[state.theme.scene]?.allSprites) ? list : list.slice(0, 7);
+    const all = (typeof hollowSprites === 'function' ? hollowSprites() : grownSprites())
+      .filter((s) => s.stage !== 'egg' && !s.retired && !s.atHome);
+    const current = activeSprite();
+    const list = current && all.some((s) => s.id === current.id)
+      ? [current, ...all.filter((s) => s.id !== current.id)]
+      : all.slice();
+    /* Every sprite that is not at home shares the Hollow. Custom and open
+       scenes have no resident cap, so do not silently hide the rest. */
+    return list;
+  }
+
+  function currentSprite() {
+    const current = activeSprite();
+    if (current && current.stage !== 'egg' && !current.retired && !current.atHome) return current;
+    return roster()[0] || null;
   }
 
   function renderRoster() {
     const list = roster();
     const sig = list.map((s) => s.id).join('|');
-    const activeId = activeSprite()?.id;
+    const activeId = currentSprite()?.id;
     if (sig === rosterSignature) {
       // update active highlight and tags only
       actors.forEach((node, id) => {
@@ -385,7 +445,7 @@ function hollowScreen(root) {
     const phase = timePhase();
     const season = seasonOf();
     const wx = currentWeather();
-    const localWeather = typeof sceneWeatherKey === 'function' ? sceneWeatherKey(state.theme.scene) : null;
+    const localWeather = state.world?.weather ? null : (typeof sceneWeatherKey === 'function' ? sceneWeatherKey(state.theme.scene) : null);
     const wxKey = localWeather || wx.key;
     const climate = state.world?.climate || 'temperate';
     stageEl.className = `stage scene-${state.theme.scene} phase-${phase.key} season-${season.key} weather-${wxKey}`;
@@ -401,8 +461,13 @@ function hollowScreen(root) {
     if (sky) sky.textContent = phase.key === 'night' ? '🌙' : phase.key === 'day' ? '☀️' : phase.key === 'dawn' ? '🌅' : '🌇';
     const worldChip = root.querySelector('[data-world]');
     if (worldChip) {
-      worldChip.textContent = `${season.icon} ${seasonLabel(season, climate)} · ${wx.icon} ${wx.name}`;
-      worldChip.title = wx.blurb;
+      worldChip.textContent = `${season.icon} ${seasonLabel(season, climate)} · ${CLIMATES[climate]?.name || 'Temperate'}`;
+      worldChip.title = `Season and climate. ${CLIMATES[climate]?.blurb || ''}`;
+    }
+    const weatherChip = root.querySelector('[data-weather]');
+    if (weatherChip) {
+      weatherChip.textContent = `${wx.icon} ${wx.name}${state.world?.weather ? ' · set' : ' · change'}`;
+      weatherChip.title = `${wx.blurb} ${state.world?.weather ? 'Tap to change it or return to Auto.' : 'Tap to change the weather.'}`;
     }
     const warmChip = root.querySelector('[data-warm]');
     if (warmChip) {
@@ -426,7 +491,7 @@ function hollowScreen(root) {
   }
 
   function paint() {
-    const s = activeSprite();
+    const s = currentSprite();
     if (!s) return;
     root.querySelector('[data-name]').textContent = displayName(s);
     root.querySelector('[data-mood]').innerHTML = moodChip(s);
@@ -539,7 +604,7 @@ function hollowScreen(root) {
 
   function ambientWhisper() {
     if (Date.now() - lastWhisper < 9000) return;
-    const s = activeSprite();
+    const s = currentSprite();
     if (!s) return;
     const line = idleLine(pick(roster()));
     setWhisper(line);
@@ -550,7 +615,7 @@ function hollowScreen(root) {
   root.querySelector('[data-care="play"]').addEventListener('click', () => App.go('play'));
   root.querySelector('[data-care="walk"]').addEventListener('click', () => openWalkSheet());
   root.querySelector('[data-care="rub"]').addEventListener('click', () => {
-    const s = activeSprite();
+    const s = currentSprite();
     if (!s) return;
     const res = Actions.rubBelly(s.id);
     if (res.cooled) {
@@ -575,7 +640,7 @@ function hollowScreen(root) {
   root.querySelector('[data-care="catch"]').addEventListener('click', () => openFetchGame('catch'));
   root.querySelector('[data-care="bath"]').addEventListener('click', openBathModal);
   root.querySelector('[data-care="nap"]').addEventListener('click', () => {
-    const s = activeSprite();
+    const s = currentSprite();
     if (!s) return;
     if (s.asleep) {
       Actions.wake(s.id);
@@ -593,11 +658,11 @@ function hollowScreen(root) {
     openBedroomSheet();
   });
   root.querySelector('[data-care="chat"]').addEventListener('click', () => {
-    const s = activeSprite();
+    const s = currentSprite();
     if (s) App.openChat(s.id);
   });
   root.querySelector('[data-open-detail]').addEventListener('click', () => {
-    const s = activeSprite();
+    const s = currentSprite();
     if (s) App.openDetail(s.id);
   });
   root.querySelector('[data-gift-chip]').addEventListener('click', () => {
@@ -611,7 +676,7 @@ function hollowScreen(root) {
   });
 
   function openFeedSheet() {
-    const s = activeSprite();
+    const s = currentSprite();
     if (!s) return;
     const dietLine = dietInfo(s).filter((d) => d.points > 0)
       .map((d) => `${d.icon} ${d.points}/${d.need}`).join(' · ');
@@ -771,7 +836,7 @@ function hollowScreen(root) {
   }
 
   function openBathModal() {
-    const s = activeSprite();
+    const s = currentSprite();
     if (!s) return;
     let scrubs = 0;
     const total = 8;
@@ -811,7 +876,7 @@ function hollowScreen(root) {
   }
 
   function openFetchGame(mode) {
-    const s = activeSprite();
+    const s = currentSprite();
     if (!s) return;
     if (s.asleep) Actions.wake(s.id);
     const total = 5;

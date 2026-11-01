@@ -130,7 +130,6 @@ function renderShell() {
         <button class="tab" data-tab="codex">${icon('types')}<span>${t('tab.codex')}</span></button>
         <button class="tab" data-tab="nest">${icon('nest')}<span>${t('tab.nest')}</span><span class="tab-badge" data-badge="nest" hidden></span></button>
         <button class="tab" data-tab="play">${icon('play')}<span>${t('tab.play')}</span></button>
-        <button class="tab" data-tab="senthome">${icon('hollow')}<span>Home</span></button>
         <button class="tab" data-tab="today">${icon('today')}<span>${t('tab.today')}</span><span class="tab-badge" data-badge="today" hidden></span></button>
         <button class="tab" data-settings-btn aria-label="Open settings">${icon('settings')}<span>${t('tab.settings')}</span></button>
       </nav>

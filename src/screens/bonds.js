@@ -63,7 +63,7 @@ function bondWikiBody() {
     <h3>All six bond ranks</h3>
     <div class="bond-rank-table">${bondRankTable()}</div>
     <h3>Bond &amp; evolution</h3>
-    <p>Bond does not gate the four life stages. Stages follow level: <b>${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(', ')}</b>. The level cap is now <b>${MAX_LEVEL.toLocaleString()}</b>. At level ${EVOLUTION_LEVEL}, a full diet path also unlocks a permanent Dragon, Fairy, Ghoul, or Titan form.</p>
+    <p>Bond does not gate the four life stages. Stages follow level: <b>${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(', ')}</b>. The level cap is now <b>${MAX_LEVEL.toLocaleString()}</b>. At level ${EVOLUTION_LEVEL}, a full diet path also unlocks one of ${EVOLUTION_FORM_KEYS.length} permanent forms, two for each diet path.</p>
     ${bondEvolutionPath()}
     <h3>Diet evolutions</h3>
     <div class="bond-diet-list">${bondDietTable()}</div>
@@ -99,7 +99,7 @@ function openBondCodex(opts = {}) {
       <p class="tiny muted">Feeding builds Hearty, Sweet, Eerie, and Wild. At level ${EVOLUTION_LEVEL}, a path with ${EVOLUTION_AFFINITY} points unlocks its permanent form.</p>
       <div class="bond-diet-list">${bondDietTable(sprite)}</div>
       <h3>World evolution paths</h3>
-      <p class="tiny muted">Every type, all four forms, every biome, and every Vault path. The atlas stays free even when the sprite does not.</p>
+      <p class="tiny muted">Every type, all ${EVOLUTION_FORM_KEYS.length} forms, every biome, and every Vault path. The atlas stays free even when the sprite does not.</p>
       ${worldEvolutionFormSummaryHTML()}
       <button class="btn btn-primary btn-block" data-bond-world-evo style="margin-top:10px">🧬 Open the free World Evolution Atlas</button>
       ${sprite ? `<button class="btn btn-soft btn-block" data-bond-evo style="margin-top:8px">View ${esc(displayName(sprite))}'s full evolution screen</button>` : ''}
