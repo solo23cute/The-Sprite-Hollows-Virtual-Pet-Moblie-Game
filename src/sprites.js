@@ -41,6 +41,14 @@ function bodyPath(breed) {
       return 'M60 30c17 0 30 14 30 34s-13 33-30 33-30-13-30-33 13-34 30-34Z';
     case 'horn':
       return 'M60 28c18 0 31 15 31 35 0 21-13 35-31 35S29 84 29 63c0-20 13-35 31-35Z';
+    case 'bun':
+      return 'M60 31c16 0 27 12 27 30 0 15-4 22-8 29-4 7-11 10-19 10s-15-3-19-10c-4-7-8-14-8-29 0-18 11-30 27-30Z';
+    case 'fin':
+      return 'M60 28c19 0 32 15 32 35 0 21-13 35-32 35S28 84 28 63c0-20 13-35 32-35Z';
+    case 'shell':
+      return 'M60 28c19 0 33 15 33 35 0 15-5 23-10 29-5 6-14 9-23 9s-18-3-23-9c-5-6-10-14-10-29 0-20 14-35 33-35Z';
+    case 'star':
+      return 'M60 24l9 24 25 3-19 17 6 25-21-13-21 13 6-25-19-17 25-3Z';
     case 'blob':
       return 'M60 27c19 0 33 13 33 31 0 12-3 18-5 25-2 6-8 11-14 8-5-3-8 3-14 3s-10-6-14-3c-6 3-12-2-14-8-2-7-5-13-5-25 0-18 14-31 33-31Z';
     case 'wisp':
@@ -1542,11 +1550,37 @@ function breedMarkup(sprite, c) {
       <circle cx="65" cy="102" r="4.5" fill="${c.body}" opacity=".38"/>
       <circle cx="59" cy="107" r="3" fill="${c.body}" opacity=".22"/>`;
   }
+  if (b === 'bun') {
+    return `
+      <path d="M43 35C36 20 38 8 45 8c7 0 9 11 8 27Z" fill="${c.body}" stroke="${c.deep}" stroke-width="1.1"/>
+      <path d="M77 35c7-15 5-27-2-27-7 0-9 11-8 27Z" fill="${c.body}" stroke="${c.deep}" stroke-width="1.1"/>
+      <path d="M46 17c0 5 1 9 3 12" stroke="${c.light}" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>
+      <path d="M74 17c0 5-1 9-3 12" stroke="${c.light}" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>`;
+  }
+  if (b === 'fin') {
+    return `
+      <path d="M33 63C20 54 12 56 10 65c-2 10 7 16 22 15Z" fill="${c.accent}" opacity=".9"/>
+      <path d="M87 63c13-9 21-7 23 2 2 10-7 16-22 15Z" fill="${c.accent}" opacity=".9"/>
+      <path d="M78 92c11 4 18 10 22 18-10 0-18-3-24-9Z" fill="${c.body}" stroke="${c.deep}" stroke-width="1.1"/>`;
+  }
+  if (b === 'shell') {
+    return `
+      <path d="M31 67c2-18 14-31 29-31s27 13 29 31c-8 9-18 13-29 13S39 76 31 67Z" fill="${c.light}" opacity=".24" stroke="${c.deep}" stroke-width="1.1"/>
+      <path d="M43 53c5-7 11-11 17-11s12 4 17 11" stroke="${c.accent}" stroke-width="1.4" fill="none" opacity=".65"/>
+      <path d="M38 71c7 5 14 7 22 7s15-2 22-7" stroke="${c.deep}" stroke-width="1.2" fill="none" opacity=".45"/>`;
+  }
+  if (b === 'star') {
+    return `
+      <g fill="${c.light}" opacity=".85">
+        <path d="M24 34l1.5 4 4 1.5-4 1.5L24 45l-1.5-4-4-1.5 4-1.5Z"/>
+        <path d="M99 64l1.5 4 4 1.5-4 1.5L99 75l-1.5-4-4-1.5 4-1.5Z"/>
+      </g>`;
+  }
   return '';
 }
 
 function feetMarkup(breed, c) {
-  if (breed === 'wisp') return '';
+  if (breed === 'wisp' || breed === 'fin') return '';
   return `
     <ellipse cx="46" cy="96" rx="10" ry="5.4" fill="${c.deep}" opacity=".9"/>
     <ellipse cx="74" cy="96" rx="10" ry="5.4" fill="${c.deep}" opacity=".9"/>
@@ -1966,6 +2000,39 @@ function formMarkup(sprite, c, layer) {
         <circle cx="97" cy="56" r="1.8" fill="${c.accent}" opacity=".7"/>
       </g>`;
     }
+    if (form === 'leviathan') {
+      return `<g opacity=".9">
+        <path d="M32 68C17 58 7 64 8 78c10 1 20-2 29-8Z" fill="${c.accent}" stroke="${c.deep}" stroke-width="1.2"/>
+        <path d="M88 68c15-10 25-4 24 10-10 1-20-2-29-8Z" fill="${c.accent}" stroke="${c.deep}" stroke-width="1.2"/>
+        <path d="M79 92c14 2 23 10 26 18-11 1-19-3-27-10Z" fill="${c.body}" stroke="${c.deep}" stroke-width="1.2"/>
+        <path d="M18 70c5 5 10 8 16 9M102 70c-5 5-10 8-16 9" stroke="${c.light}" stroke-width="1.4" fill="none" opacity=".65"/>
+      </g>`;
+    }
+    if (form === 'seraph') {
+      return `<g opacity=".82">
+        <ellipse cx="28" cy="56" rx="17" ry="30" fill="${c.light}" opacity=".4" transform="rotate(-22 28 56)"/>
+        <ellipse cx="92" cy="56" rx="17" ry="30" fill="${c.light}" opacity=".4" transform="rotate(22 92 56)"/>
+        <ellipse cx="37" cy="82" rx="10" ry="19" fill="${c.accent}" opacity=".28" transform="rotate(-32 37 82)"/>
+        <ellipse cx="83" cy="82" rx="10" ry="19" fill="${c.accent}" opacity=".28" transform="rotate(32 83 82)"/>
+        <ellipse cx="44" cy="95" rx="7" ry="12" fill="${c.light}" opacity=".22" transform="rotate(-40 44 95)"/>
+        <ellipse cx="76" cy="95" rx="7" ry="12" fill="${c.light}" opacity=".22" transform="rotate(40 76 95)"/>
+        <circle cx="60" cy="21" r="16" fill="none" stroke="${c.accent}" stroke-width="2" opacity=".7"/>
+      </g>`;
+    }
+    if (form === 'wraith') {
+      return `<g opacity=".68">
+        <path d="M34 78c-7 13-4 24 5 32 8 7 3 12-2 16 14-3 20-14 17-25-2-8 2-15 9-19Z" fill="${c.light}" opacity=".5"/>
+        <path d="M86 76c8 13 5 24-4 31-8 6-3 12 2 15-14-2-20-13-17-24 2-8-2-14-8-18Z" fill="${c.light}" opacity=".4"/>
+        <circle cx="23" cy="46" r="2.4" fill="${c.accent}"/><circle cx="98" cy="60" r="1.8" fill="${c.accent}"/>
+      </g>`;
+    }
+    if (form === 'golem') {
+      return `<g opacity=".9">
+        <path d="M28 61c-8-4-13-1-15 7 1 8 6 13 15 14Z" fill="${c.deep}" opacity=".65"/>
+        <path d="M92 61c8-4 13-1 15 7-1 8-6 13-15 14Z" fill="${c.deep}" opacity=".65"/>
+        <path d="M34 91c4 7 12 11 26 11s22-4 26-11c-9 3-17 4-26 4s-17-1-26-4Z" fill="${c.deep}" opacity=".5"/>
+      </g>`;
+    }
     return `<g opacity=".85">
       <circle cx="60" cy="58" r="48" fill="none" stroke="${c.accent}" stroke-width="1.2" stroke-dasharray="3 7" opacity=".55"/>
       <path d="M31 49c-7-4-12-2-16 4 6 1 9 5 11 11" stroke="${c.accent}" stroke-width="2" fill="none" stroke-linecap="round"/>
@@ -1995,6 +2062,34 @@ function formMarkup(sprite, c, layer) {
       <path d="M60 25l5 7-5 7-5-7Z" fill="${c.accent}" opacity=".9"/>
       <path d="M44 77c4 4 8 4 12 0M64 77c4 4 8 4 12 0" stroke="${c.light}" stroke-width="1.3" fill="none" opacity=".45"/>
       <path d="M32 34c-4 3-5 7-3 11M88 34c4 3 5 7 3 11" stroke="${c.deep}" stroke-width="1.2" fill="none" opacity=".5"/>
+    </g>`;
+  }
+  if (form === 'leviathan') {
+    return `<g>
+      <path d="M41 33c-3-8 1-14 7-17-2 6 1 9 5 11Z" fill="${c.accent}" stroke="${c.deep}" stroke-width="1.2"/>
+      <path d="M79 33c3-8-1-14-7-17 2 6-1 9-5 11Z" fill="${c.accent}" stroke="${c.deep}" stroke-width="1.2"/>
+      <path d="M45 76c5 3 10 3 15 0M60 76c5 3 10 3 15 0" stroke="${c.light}" stroke-width="1.3" fill="none" opacity=".5"/>
+    </g>`;
+  }
+  if (form === 'seraph') {
+    return `<g>
+      <circle cx="60" cy="22" r="12" fill="none" stroke="${c.accent}" stroke-width="2" opacity=".8"/>
+      <path d="M25 40l1.5 4 4 1.5-4 1.5L25 51l-1.5-4-4-1.5 4-1.5Z" fill="${c.light}"/>
+      <path d="M96 64l1.2 3.2 3.2 1.2-3.2 1.2L96 73l-1.2-3.2-3.2-1.2 3.2-1.2Z" fill="${c.accent}"/>
+      <path d="M53 27l7-5 7 5" stroke="${c.light}" stroke-width="1.5" fill="none" opacity=".8"/>
+    </g>`;
+  }
+  if (form === 'wraith') {
+    return `<g>
+      <path d="M44 28l16 8 16-8-5 13 5 11-16-6-16 6 5-11Z" fill="${c.deep}" opacity=".55"/>
+      <path d="M44 77c4 4 8 4 12 0M64 77c4 4 8 4 12 0" stroke="${c.light}" stroke-width="1.3" fill="none" opacity=".45"/>
+    </g>`;
+  }
+  if (form === 'golem') {
+    return `<g>
+      <path d="M40 34l8 9-5 10M80 34l-8 9 5 10" stroke="${c.light}" stroke-width="1.4" fill="none" opacity=".55"/>
+      <path d="M50 77c6 5 14 5 20 0" stroke="${c.accent}" stroke-width="1.4" fill="none"/>
+      <circle cx="36" cy="54" r="2" fill="${c.accent}"/><circle cx="84" cy="75" r="2" fill="${c.accent}"/>
     </g>`;
   }
   return `<g>

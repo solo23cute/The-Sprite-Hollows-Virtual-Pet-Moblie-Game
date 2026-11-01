@@ -193,8 +193,8 @@ function worldEvolutionWikiBody() {
   const stats = worldEvolutionStats();
   return `<p class="wiki-lede">The whole world is in one free atlas: <b>${stats.species.toLocaleString()} types × ${stats.forms} forms = ${stats.total.toLocaleString()} evolution paths</b>. Every path is readable for free, including all <b>${stats.vaultSpecies} Secret Vault species</b>. Owning a Vault sprite still requires its door, but its genes, parents, environment, and evolution recipe are never hidden.</p>
     ${worldEvolutionStatHTML()}
-    <p class="tiny muted">The atlas is generated from the same live tables the Hollow uses: type biomes, genes, parent types, breeding inheritance, diet affinity, and the four permanent forms. Nothing here is a mock-up or a separate lore list.</p>
-    <h3>The four forms</h3>
+    <p class="tiny muted">The atlas is generated from the same live tables the Hollow uses: type biomes, genes, parent types, breeding inheritance, diet affinity, and the ${WORLD_EVOLUTION_FORM_KEYS.length} permanent forms. Nothing here is a mock-up or a separate lore list.</p>
+    <h3>The ${WORLD_EVOLUTION_FORM_KEYS.length} forms</h3>
     ${worldEvolutionFormSummaryHTML()}
     <h3>What shapes an evolution</h3>
     <ul class="wiki-list">
@@ -242,7 +242,7 @@ function openWorldEvolutionAtlas(opts = {}) {
     sub: `${species ? `${species.name} · ` : ''}${WORLD_EVOLUTION_TOTAL.toLocaleString()} paths · free reference`,
     body: `<div class="wiki-article">
       ${worldEvolutionStatHTML()}
-      <p class="tiny muted" style="line-height:1.55">Every type, all four forms, every biome and Hollow scene, and every Secret Vault path. This reference is free; Vault ownership is separate.</p>
+      <p class="tiny muted" style="line-height:1.55">Every type, all ${WORLD_EVOLUTION_FORM_KEYS.length} forms, every biome and Hollow scene, and every Secret Vault path. This reference is free; Vault ownership is separate.</p>
       <div class="type-tools" style="margin-top:8px">
         <input class="type-search" data-we-search type="search" placeholder="Search type, gene, parent, personality, environment…" value="${esc(query)}" autocomplete="off">
         <select class="type-search" data-we-env aria-label="Filter by environment">
@@ -252,7 +252,7 @@ function openWorldEvolutionAtlas(opts = {}) {
           <optgroup label="Secret Vault"><option value="vault"${environment === 'vault' ? ' selected' : ''}>🔐 Secret Vault · free to read</option></optgroup>
         </select>
         <select class="type-search" data-we-form aria-label="Filter by evolution form">
-          <option value="all">All four forms</option>
+          <option value="all">All ${WORLD_EVOLUTION_FORM_KEYS.length} forms</option>
           ${WORLD_EVOLUTION_FORM_KEYS.map((formId) => `<option value="${formId}"${form === formId ? ' selected' : ''}>${EVOLUTION_FORMS[formId].icon} ${EVOLUTION_FORMS[formId].label}</option>`).join('')}
         </select>
         <select class="type-search" data-we-tier aria-label="Filter by tier">

@@ -2,6 +2,7 @@
 
 const SAVE_KEY = 'sprite-hollow.save.v2';
 const MAX_LEVEL = 1000;
+const TRAVEL_COINS = 10;
 
 const CUSTOM_CLOTH_STYLES = {
   cape: { name: 'Cape', icon: '🦸' },
@@ -80,7 +81,7 @@ function freshState() {
     sprites: [],
     activeId: null,
     theme: { ui: 'prism', scene: 'grove', sound: true, motion: true, haptics: true, voice: true, voiceType: 'female', language: 'en', captions: true },
-    world: { climate: 'temperate' },
+    world: { climate: 'temperate', weather: null },
     wardrobe: [],
     customClothes: [],
     customScenes: [],
@@ -117,7 +118,7 @@ function freshState() {
       merges: 0, hatches: 0, earned: 0, spent: 0, bestGame: 0, bestStreak: 0,
       checkins: 0, twins: 0, specials: 0, evolves: 0, gifts: 0, wild: 0, tucks: 0, shinies: 0, candyMorphs: 0,
       walks: 0, walkDistance: 0, bestWalk: 0, walkGifts: 0, sports: 0, sportGifts: 0,
-      arcadeCoins: 0, arcadeGifts: 0, arcadeMonthGifts: 0, careGifts: 0, quests: 0, duels: 0,
+      arcadeCoins: 0, arcadeGifts: 0, arcadeMonthGifts: 0, careGifts: 0, quests: 0, duels: 0, travels: 0,
       rubs: 0, throws: 0, catches: 0, tasksClaimed: 0, rebirths: 0,
       dailyEggs: 0, holidayGifts: 0, weekendGifts: 0,
     },
@@ -248,7 +249,10 @@ function loadState() {
       snacks: { ...(parsed.inventory?.snacks || {}) },
       foods: { ...(parsed.inventory?.foods || {}) },
     };
-    merged.world = { climate: CLIMATES[parsed.world?.climate] ? parsed.world.climate : 'temperate' };
+    merged.world = {
+      climate: CLIMATES[parsed.world?.climate] ? parsed.world.climate : 'temperate',
+      weather: WEATHERS[parsed.world?.weather] ? parsed.world.weather : null,
+    };
     merged.homes = {};
     Object.entries(parsed.homes && typeof parsed.homes === 'object' ? parsed.homes : {}).forEach(([spriteId, sceneKey]) => {
       if (SCENES[sceneKey]) merged.homes[spriteId] = sceneKey;
@@ -2487,16 +2491,25 @@ const Actions = {
   },
 
   setTheme(patch) {
+    const previousScene = state.theme && state.theme.scene;
+    let travelled = false;
     state.theme = { ...state.theme, ...patch };
     if (patch.scene) {
       if (!SCENES[patch.scene]) state.theme.scene = 'grove';
       else {
+        travelled = previousScene !== patch.scene;
         state.unlockedScenes = Array.from(new Set([...(state.unlockedScenes || []), patch.scene]));
         recordBiomeVisit(patch.scene);
         if (typeof biomeQuestNote === 'function') biomeQuestNote('travel');
       }
     }
+    if (travelled) {
+      state.stats.travels = (Number(state.stats.travels) || 0) + 1;
+      addCoinsRaw(TRAVEL_COINS);
+    }
     commit('theme');
+    if (travelled) return { ok: true, coins: TRAVEL_COINS, travels: state.stats.travels, scene: state.theme.scene };
+    return undefined;
   },
 
   setHome(spriteId, sceneKey) {
@@ -2673,8 +2686,8 @@ const Actions = {
     if (!door) return { ok: false, reason: 'missing' };
     state.vaultDoors = Array.isArray(state.vaultDoors) ? state.vaultDoors.slice() : [];
     if (state.vaultDoors.includes(door.id)) return { ok: false, reason: 'opened' };
-    const wins = typeof guardianVaultWins === 'function' ? guardianVaultWins() : 0;
-    if (wins < door.wins) return { ok: false, reason: 'wins', need: door.wins - wins };
+    const travels = typeof guardianVaultTravels === 'function' ? guardianVaultTravels() : 0;
+    if (travels < door.travels) return { ok: false, reason: 'travels', need: door.travels - travels };
     state.vaultDoors.push(door.id);
     const sprite = typeof unlockSecretRaw === 'function' ? unlockSecretRaw(door.secret) : null;
     if (door.coins) addCoinsRaw(door.coins);
@@ -2800,6 +2813,13 @@ const Actions = {
     if (!CLIMATES[key]) return;
     state.world = { ...(state.world || {}), climate: key };
     commit('world', { climate: key });
+  },
+
+  setWeather(key) {
+    const weather = key && WEATHERS[key] ? key : null;
+    state.world = { ...(state.world || {}), weather };
+    commit('world', { weather });
+    return { ok: true, weather };
   },
 
   buyGear(key) {

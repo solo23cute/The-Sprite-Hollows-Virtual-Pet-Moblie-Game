@@ -55,8 +55,17 @@ function homesLiving() {
     .sort((a, b) => {
       if (a.id === state.activeId) return -1;
       if (b.id === state.activeId) return 1;
+      if (!!a.atHome !== !!b.atHome) return a.atHome ? -1 : 1;
       return (a.born || 0) - (b.born || 0);
     });
+}
+
+function homesAtHome() {
+  return homesLiving().filter((s) => s.atHome);
+}
+
+function homesAway() {
+  return homesLiving().filter((s) => !s.atHome);
 }
 
 function homesRetired() {
@@ -104,7 +113,13 @@ function homeWindowHTML(s) {
     : `<button class="home-visit" type="button" data-home-visit="${s.id}">Visit ${esc(scene.habitat || 'biome')}</button>`;
   const care = isEgg ? '' : homeCareHTML(s);
   const kind = isEgg ? 'egg' : s.retired ? 'retired' : 'living';
-  return `<article class="home-window ${isEgg ? 'is-egg' : ''} ${s.retired ? 'is-retired' : ''} ${s.id === state.activeId ? 'active' : ''}" data-home-card="${s.id}" data-home-kind="${kind}" style="--home-a:${tint.b1};--home-b:${tint.b2}">
+  const tier = typeof spriteRarity === 'function' ? spriteRarity(s) : null;
+  const tierChip = tier ? `<span class="home-tier" style="--tier:${tier.color}">${tier.name}</span>` : '';
+  const status = isEgg ? '' : s.retired ? 'Retired' : s.atHome ? 'At home' : 'Out in the Hollow';
+  const toggle = isEgg || s.retired
+    ? ''
+    : `<button class="home-visit home-toggle" type="button" data-home-toggle="${s.id}">${s.atHome ? 'Back to the Hollow' : 'Send home'}</button>`;
+  return `<article class="home-window ${isEgg ? 'is-egg' : ''} ${s.retired ? 'is-retired' : ''} ${!isEgg && !s.atHome ? 'is-away' : ''} ${s.id === state.activeId ? 'active' : ''}" data-home-card="${s.id}" data-home-kind="${kind}" style="--home-a:${tint.b1};--home-b:${tint.b2}">
     <div class="home-pane scene-${key}" style="background:linear-gradient(180deg, ${tint.b2} 0%, ${tint.b1} 56%, ${tint.b2} 100%)">
       <div class="scene-decor">${buildSceneDecor(key)}</div>
       <span class="home-window-shine"></span>
@@ -113,12 +128,13 @@ function homeWindowHTML(s) {
       <button class="home-change" type="button" data-home-change="${s.id}"${custom ? ' data-custom="1"' : ''} title="Change ${esc(displayName(s))}’s biome" aria-label="Change ${esc(displayName(s))}’s biome">${scene.emoji}</button>
     </div>
     <div class="home-plate">
-      <b>${esc(displayName(s))} <span class="gender-mark" style="color:${genderOf(s).color}" title="${esc(genderOf(s).name)}">${genderOf(s).symbol}</span></b>
+      <b><span class="home-name">${esc(displayName(s))}</span> <span class="gender-mark" style="color:${genderOf(s).color}" title="${esc(genderOf(s).name)}">${genderOf(s).symbol}</span> ${tierChip}</b>
       <span class="home-biome">${scene.emoji} ${esc(scene.name)}</span>
-      <span class="home-sub">${sub}</span>
+      <span class="home-sub">${sub}${status ? ` · ${status}` : ''}</span>
       ${bonus}
       ${care}
       ${action}
+      ${toggle}
     </div>
   </article>`;
 }
@@ -211,7 +227,7 @@ function homesSection(title, note, list) {
     <div class="homes-grid">${list.map(homeWindowHTML).join('')}</div>`;
 }
 
-function homesBody() {
+function homesBody(filter = 'all') {
   const living = homesLiving();
   const retired = homesRetired();
   const returning = homesReturning();
@@ -223,20 +239,45 @@ function homesBody() {
       <p class="small muted">Hatch a sprite and its own room appears here, ready in the biome it belongs to.</p>
     </div>`;
   }
-  const biomes = new Set([...living, ...retired, ...returning].map(homeSceneFor));
+  const all = [...living, ...retired, ...returning];
+  const biomes = new Map();
+  all.forEach((s) => {
+    const key = homeSceneFor(s);
+    const scene = SCENES[key] || SCENES.grove;
+    const entry = biomes.get(key) || { key, scene, count: 0 };
+    entry.count += 1;
+    biomes.set(key, entry);
+  });
+  const available = [...biomes.values()].sort((a, b) => a.scene.name.localeCompare(b.scene.name));
+  const chosen = filter !== 'all' && biomes.has(filter) ? filter : 'all';
+  const inView = (s) => chosen === 'all' || homeSceneFor(s) === chosen;
+  const viewLiving = living.filter(inView);
+  const viewRetired = retired.filter(inView);
+  const viewReturning = returning.filter(inView);
+  const viewTotal = viewLiving.length + viewRetired.length + viewReturning.length;
+  const atHome = living.filter((s) => s.atHome).length;
+  const away = living.length - atHome;
   const otherEggs = homesOtherEggs();
   const chips = [
     `🪟 ${total} window${total === 1 ? '' : 's'}`,
-    living.length ? `🏡 ${living.length} at home` : '',
+    `🏡 ${atHome} at home`,
+    `🐾 ${away} in the Hollow`,
     retired.length ? `🌿 ${retired.length} retired` : '',
     returning.length ? `🥚 ${returning.length} returning` : '',
-    `🌍 ${biomes.size} biome${biomes.size === 1 ? '' : 's'}`,
+    `🌍 ${available.length} biome${available.length === 1 ? '' : 's'}`,
   ].filter(Boolean).map((label) => `<span class="chip">${label}</span>`).join('');
+  const filterBar = `<div class="home-filter" role="group" aria-label="Filter homes by biome">
+    <button class="home-filter-btn ${chosen === 'all' ? 'on' : ''}" type="button" data-home-filter="all">All · ${total}</button>
+    ${available.map(({ key, scene, count }) => `<button class="home-filter-btn ${chosen === key ? 'on' : ''}" type="button" data-home-filter="${key}">${scene.emoji} ${esc(scene.name)} · ${count}</button>`).join('')}
+  </div>`;
   return `<div class="homes-intro">${chips}</div>
-    ${homesSection('Living rooms', `${living.length} sprites at home`, living)}
-    ${homesSection('Retirement home', `${retired.length} resting on past glories`, retired)}
-    ${homesSection('Returning', `${returning.length} back in an egg, with their old life still in them`, returning)}
-    <p class="tiny muted homes-foot">Tap a window to open that sprite${returning.length ? ', or to warm a returning egg' : ''}. Tap the biome badge in a window’s corner to move them somewhere else — each room is theirs alone.${otherEggs.length ? ` ${otherEggs.length} other egg${otherEggs.length === 1 ? '' : 's'} still warming in the Nest will get a window once hatched.` : ''}</p>`;
+    ${filterBar}
+    ${viewTotal ? '' : '<div class="card empty-state" style="padding:14px"><p class="small muted">No windows in this biome yet.</p></div>'}
+    ${homesSection('At home', `${viewLiving.filter((s) => s.atHome).length} resting in their own biome`, viewLiving.filter((s) => s.atHome))}
+    ${homesSection('Out in the Hollow', `${viewLiving.filter((s) => !s.atHome).length} exploring together`, viewLiving.filter((s) => !s.atHome))}
+    ${homesSection('Retirement home', `${viewRetired.length} resting on past glories`, viewRetired)}
+    ${homesSection('Returning', `${viewReturning.length} back in an egg, with their old life still in them`, viewReturning)}
+    <p class="tiny muted homes-foot">Tap a window to open that sprite${returning.length ? ', or to warm a returning egg' : ''}. Tap the biome badge in a window’s corner to move them somewhere else. Sprites at home stay out of the Hollow; sprites out in the Hollow share the scene together.${otherEggs.length ? ` ${otherEggs.length} other egg${otherEggs.length === 1 ? '' : 's'} still warming in the Nest will get a window once hatched.` : ''}</p>`;
 }
 
 function openHomeScenePicker(spriteId, onDone) {
@@ -282,22 +323,48 @@ function openHomeScenePicker(spriteId, onDone) {
 
 function openHomesSheet() {
   const total = homesLiving().length + homesRetired().length + homesReturning().length;
+  let homeFilter = 'all';
   const { close } = openSheet({
     title: '🪟 Sprite Homes',
     sub: total
-      ? `${total} window${total === 1 ? '' : 's'} — everyone keeps their own room and biome while the main Hollow stays shared, including retired elders and sprites that came back as eggs.`
+      ? `${total} window${total === 1 ? '' : 's'} — sprites at home keep their own room and biome, while everyone not at home shares the Hollow.`
       : 'Every sprite gets its own room and biome here.',
-    body: `<button class="btn btn-soft btn-block" data-homes-senthome style="margin-bottom:10px">🏠 Sent Home rooms</button>
+    body: `<button class="btn btn-soft btn-block" data-homes-senthome style="margin-bottom:10px">🏠 Home</button>
       <div data-homes-body>${homesBody()}</div>`,
     onMount: (root) => {
       const repaint = () => {
         const body = root.querySelector('[data-homes-body]');
-        if (body) body.innerHTML = homesBody();
+        if (body) body.innerHTML = homesBody(homeFilter);
       };
       root.querySelector('[data-homes-senthome]')?.addEventListener('click', () => { close(); App.go('senthome'); });
       // The sheet element stops propagation, so delegate from it, not the overlay.
       const sheetEl = root.querySelector('.sheet') || root;
       sheetEl.addEventListener('click', (e) => {
+        const filter = e.target.closest('[data-home-filter]');
+        if (filter) {
+          e.stopPropagation();
+          homeFilter = filter.dataset.homeFilter;
+          Sfx.click();
+          repaint();
+          return;
+        }
+        const toggle = e.target.closest('[data-home-toggle]');
+        if (toggle) {
+          e.stopPropagation();
+          const sprite = findSprite(toggle.dataset.homeToggle);
+          if (!sprite) return;
+          if (sprite.atHome) {
+            const res = Actions.callBack(sprite.id);
+            if (res.ok) toast(`${res.coins ? `+${res.coins} coins, and ` : ''}${displayName(sprite)} is back in the Hollow.`, '🐾');
+          } else {
+            Actions.sendHome(sprite.id);
+            toast(`${displayName(sprite)} is home in ${SCENES[homeSceneFor(sprite)]?.name || 'their biome'}.`, '🏡');
+          }
+          Sfx.click();
+          repaint();
+          if (App.tab === 'hollow') App.refresh();
+          return;
+        }
         const change = e.target.closest('[data-home-change]');
         if (change) {
           e.stopPropagation();
@@ -330,10 +397,11 @@ function openHomesSheet() {
             toast(`${scene.name} has not opened yet.`, '🔒');
             return;
           }
-          Actions.setTheme({ scene: key });
+          /* A home visit is one sprite, one environment at a time. The main
+             Hollow is only for sprites that are not at home. */
           close();
-          App.go('hollow');
-          toast(`${scene.emoji} ${scene.name} · ${displayName(sprite)}’s home biome.`, '🪟');
+          setTimeout(() => openOneOnOne(sprite.id, null), 40);
+          toast(`${scene.emoji} ${scene.name} · visiting ${displayName(sprite)} at home.`, '🪟');
           return;
         }
         const card = e.target.closest('[data-home-card]');

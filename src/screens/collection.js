@@ -162,7 +162,7 @@ function openSpriteDetail(id) {
   const readyDiet = diet.filter((d) => d.points >= d.need);
   const evo = stageEvolutionInfo(s);
   const bondRank = bondRankFor(s.bond || 0);
-  const formForDiet = (key) => Object.values(EVOLUTION_FORMS).find((f) => f.diet === key);
+  const formsForDiet = (key) => Object.values(EVOLUTION_FORMS).filter((f) => f.diet === key);
   const evolutionLabel = (f) => f.id === 'titan' ? (TITAN_NAMES[s.element] || 'Titan') : `${el.name} ${f.label}`;
   const body = `
     <div class="detail-hero"><div class="glow" style="background:radial-gradient(circle, ${el.primary}66, transparent 65%)"></div>
@@ -244,8 +244,7 @@ function openSpriteDetail(id) {
             <span style="flex:1;min-width:0"><div class="between" style="margin-bottom:4px"><span class="tiny">${d.label}</span><b class="tiny">${d.points}/${d.need}</b></div><div class="bar" style="height:6px"><i style="width:${Math.min(100, (d.points / d.need) * 100)}%;background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div></span>
           </div>`).join('')}</div>
           ${s.level >= EVOLUTION_LEVEL && readyDiet.length ? readyDiet.map((d) => {
-            const f = formForDiet(d.key);
-            return f ? `<button class="btn btn-gold btn-block" data-evolve="${f.id}" style="margin-top:7px">${f.icon} Evolve into ${evolutionLabel(f)}</button>` : '';
+            return formsForDiet(d.key).map((f) => `<button class="btn btn-gold btn-block" data-evolve="${f.id}" style="margin-top:7px">${f.icon} Evolve into ${evolutionLabel(f)}</button>`).join('');
           }).join('') : s.level < EVOLUTION_LEVEL ? `<div class="tiny muted" style="margin-top:8px">Reach level ${EVOLUTION_LEVEL} to take a path. Keep feeding to prepare.</div>` : `<div class="tiny muted" style="margin-top:8px">Fill any affinity bar to 12 to unlock its evolution.</div>`}
         `}
       </div>
@@ -347,10 +346,11 @@ function openEvolutionForecast(id) {
   }).join('');
   const dietRows = diet.map((d) => {
     const ready = s.level >= EVOLUTION_LEVEL && d.points >= d.need && !form;
-    const f = forms.find((item) => item.diet === d.key);
+    const options = forms.filter((item) => item.diet === d.key);
+    const labels = options.map((item) => item.label).join(' / ');
     return `<div class="evo-diet ${ready ? 'ready' : ''}">
       <span class="evo-next-icon">${d.icon}</span>
-      <span style="flex:1;min-width:0"><span class="between"><b>${esc(d.label)}</b><span class="chip">${d.points}/${d.need}</span></span><span class="tiny muted">${f ? esc(f.label) : 'Diet path'} · ${ready ? 'Ready to evolve' : `Reach level ${EVOLUTION_LEVEL} and ${d.need} points`}</span><div class="bar" style="height:6px;margin-top:5px"><i style="width:${Math.min(100, (d.points / d.need) * 100)}%"></i></div></span>
+      <span style="flex:1;min-width:0"><span class="between"><b>${esc(d.label)}</b><span class="chip">${d.points}/${d.need}</span></span><span class="tiny muted">${labels ? esc(labels) : 'Diet path'} · ${ready ? 'Ready to evolve' : `Reach level ${EVOLUTION_LEVEL} and ${d.need} points`}</span><div class="bar" style="height:6px;margin-top:5px"><i style="width:${Math.min(100, (d.points / d.need) * 100)}%"></i></div></span>
     </div>`;
   }).join('');
   openSheet({

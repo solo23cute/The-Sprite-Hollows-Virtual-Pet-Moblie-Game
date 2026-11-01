@@ -8,38 +8,38 @@ const HOUSE_PLAY_COOLDOWN = 45 * 1000;
 /* Room upgrades: permanent buys that change how Sent Home works. */
 const HOME_UPGRADES = {
   sunroom: {
-    id: 'sunroom', name: 'Sunroom Bed', icon: '🛏️', price: 800,
+    id: 'sunroom', name: 'Sunroom Bed', icon: '🛏️', price: 0,
     blurb: 'A proper bed by the window. Recovery and coin earning speed up for everyone at home.',
     cap: 160, recovery: 1.25, coins: 1.2,
   },
   pantry: {
-    id: 'pantry', name: 'Hearth Pantry', icon: '🧺', price: 1600,
+    id: 'pantry', name: 'Hearth Pantry', icon: '🧺', price: 0,
     blurb: 'A stocked pantry: sent-home sprites eat better, recover faster, and bank more coins.',
     cap: 220, recovery: 1.45, coins: 1.4,
   },
   playroom: {
-    id: 'playroom', name: 'Playroom Rug', icon: '🧶', price: 1200,
+    id: 'playroom', name: 'Playroom Rug', icon: '🧶', price: 0,
     blurb: 'A soft rug and a toy basket. Shared-house hangouts pay more bond, joy, and coins.',
     recovery: 1.1, coins: 1.1, hangout: 1.4,
   },
   spareRoom: {
-    id: 'spareRoom', name: 'Spare Bedroom', icon: '🚪', price: 2400,
+    id: 'spareRoom', name: 'Spare Bedroom', icon: '🚪', price: 0,
     blurb: 'A third bed in every shared house, so three sprites can build one family bond.',
     slots: 3,
   },
   /* Tier two: bigger effects and visible decor in every room. */
   disco: {
-    id: 'disco', name: 'Mirror Ball', icon: '🪩', price: 3200, requires: 'playroom',
+    id: 'disco', name: 'Mirror Ball', icon: '🪩', price: 0, requires: 'playroom',
     blurb: 'A mirror ball over the rug. Hangouts pay much more bond, and every room throws a little light.',
     hangout: 1.5, coins: 1.1,
   },
   aquarium: {
-    id: 'aquarium', name: 'Glow Aquarium', icon: '🐠', price: 4200, requires: 'sunroom',
-    blurb: 'A glowing tank beside the bed. Sent-home sprites recover faster and bank more coins.',
+    id: 'aquarium', name: 'Glow Aquarium', icon: '🐠', price: 0, requires: 'sunroom',
+    blurb: 'A glowing tank beside the bed. Sprites at home recover faster and bank more coins.',
     cap: 90, recovery: 1.3,
   },
   garden: {
-    id: 'garden', name: 'Rooftop Garden', icon: '🌿', price: 5000, requires: 'pantry',
+    id: 'garden', name: 'Rooftop Garden', icon: '🌿', price: 0, requires: 'pantry',
     blurb: 'A little green rooftop. Home coins arrive faster and the cap rises again.',
     cap: 140, coins: 1.5,
   },
@@ -226,7 +226,7 @@ function houseCard(house) {
       <div class="between tiny"><span>${tier.icon} ${tier.name}</span><span>${bond} / ${HOUSE_BOND_MAX}</span></div>
       <div class="bar"><i style="width:${pct}%"></i></div>
     </div>
-    <div class="tiny muted">${house.members.length} / ${houseMaxMembers()} beds filled${houseMaxMembers() > 2 ? ' · family house' : ' · upgrade for a third bed'}</div>
+    <div class="tiny muted">${house.members.length} / ${houseMaxMembers()} beds filled${houseMaxMembers() > 2 ? ' · family house' : ' · free Spare Bedroom for a third bed'}</div>
     <div class="sh-house-actions">
       <button class="btn btn-primary btn-sm" data-sh-hangout="${house.id}">🎮 Hang out together</button>
       <button class="btn btn-gold btn-sm" data-sh-bond="${house.id}" ${ready ? '' : 'disabled'}>${ready ? 'Snuggle together' : 'They are all snuggled out'}</button>
@@ -242,7 +242,8 @@ function homeUpgradeCards() {
     const tier = up.requires ? 2 : 1;
     const req = up.requires ? HOME_UPGRADES[up.requires] : null;
     const reqMet = !req || homeUpgradeOwned(req.id);
-    const can = state.coins >= up.price && reqMet;
+    const free = !up.price;
+    const can = reqMet && (free || state.coins >= up.price);
     const effect = [
       up.cap ? `+${up.cap} coin cap` : '',
       up.recovery ? `×${up.recovery} recovery` : '',
@@ -252,11 +253,11 @@ function homeUpgradeCards() {
     ].filter(Boolean).join(' · ');
     return `<article class="sh-upgrade ${owned ? 'owned' : ''} ${tier === 2 ? 'tier2' : ''}">
       <span class="sh-upgrade-icon">${up.icon}</span>
-      <span class="sh-upgrade-copy"><b>${esc(up.name)}</b><span class="tiny muted">${esc(up.blurb)}</span><span class="sh-upgrade-effect">${effect}${tier === 2 ? ' · adds decor' : ''}</span></span>
+      <span class="sh-upgrade-copy"><b>${esc(up.name)}</b><span class="tiny muted">${esc(up.blurb)}</span><span class="sh-upgrade-effect">${free ? 'Free · ' : ''}${effect}${tier === 2 ? ' · adds decor' : ''}</span></span>
       ${owned
         ? '<span class="chip">✓ Owned</span>'
         : reqMet
-          ? `<button class="btn ${can ? 'btn-gold' : 'btn-ghost'} btn-sm" data-sh-buy="${up.id}" ${can ? '' : 'disabled'}>🪙 ${up.price.toLocaleString()}</button>`
+          ? `<button class="btn ${can ? 'btn-gold' : 'btn-ghost'} btn-sm" data-sh-buy="${up.id}" ${can ? '' : 'disabled'}>${free ? 'Free' : `🪙 ${up.price.toLocaleString()}`}</button>`
           : `<span class="chip locked">Needs ${esc(req.name)}</span>`}
     </article>`;
   }).join('');
@@ -531,12 +532,12 @@ function sentHomeBody() {
   }
 
   return `<div class="sh-intro">${chips}</div>
-    <div class="sh-section-head"><h2>🛠️ Room upgrades</h2><span>${homeCoinCap()} coin cap · ${houseMaxMembers()} beds per house</span><button class="btn btn-soft btn-sm" data-sh-decorate>🛋️ Decorate</button></div>
+    <div class="sh-section-head"><h2>🛠️ Room upgrades</h2><span>${homeCoinCap()} coin cap · ${houseMaxMembers()} beds per house · all upgrades free</span><button class="btn btn-soft btn-sm" data-sh-decorate>🛋️ Decorate</button></div>
     <div class="sh-upgrades">${homeUpgradeCards()}</div>
     <div class="sh-section-head"><h2>🏠 At home</h2><span>${home.length ? 'Relaxing, eating, and earning coins' : 'Nobody is home right now'}</span></div>
     <div class="sh-grid">${home.length ? home.map(sentHomeCard).join('') : '<div class="card empty-state" style="grid-column:1/-1"><div style="font-size:30px">🌙</div><p class="small muted" style="margin:8px 0 0">Send a sprite home from the list below and they will start recovering right away.</p></div>'}</div>
     ${houses.length ? `<div class="sh-section-head"><h2>💞 Shared houses</h2><span>${houses.length} household${houses.length === 1 ? '' : 's'} building a bond</span></div>
-      <div class="sh-house-grid">${houses.map(houseCard).join('')}</div>` : `<div class="card sh-bond-hint"><b>💞 Shared houses</b><p class="small muted" style="margin:4px 0 0;line-height:1.55">Send two sprites home, then tap <b>Share house</b> on one of them. Housemates build a bond every minute, hang out together, and grow closer while you are away. The <b>Spare Bedroom</b> upgrade opens a third bed in every house.</p></div>`}
+      <div class="sh-house-grid">${houses.map(houseCard).join('')}</div>` : `<div class="card sh-bond-hint"><b>💞 Shared houses</b><p class="small muted" style="margin:4px 0 0;line-height:1.55">Send two sprites home, then tap <b>Share house</b> on one of them. Housemates build a bond every minute, hang out together, and grow closer while you are away. The free <b>Spare Bedroom</b> upgrade opens a third bed in every house.</p></div>`}
     <div class="sh-section-head"><h2>🐾 In the Hollow</h2><span>${away.length} sprite${away.length === 1 ? '' : 's'} out and about</span></div>
     <div class="sh-list">
       ${away.length ? away.map((s) => `<div class="sh-row">
@@ -548,13 +549,13 @@ function sentHomeBody() {
         <button class="btn btn-primary btn-sm" data-sh-send="${s.id}">Send home</button>
       </div>`).join('') : '<p class="tiny muted" style="text-align:center">Everyone is home. The Hollow is quiet.</p>'}
     </div>
-    <p class="tiny muted sh-foot">Sent-home sprites relax, eat, recover all four needs, sleep long, and earn up to ${homeCoinCap()} coins while you are away. Collect their coins any time, or bring them back to the Hollow to play.</p>`;
+    <p class="tiny muted sh-foot">Sprites at home relax, eat, recover all four needs, sleep long, and earn up to ${homeCoinCap()} coins while you are away. Collect their coins any time, or bring them back to the Hollow to play.</p>`;
 }
 
 function sentHomeScreen(root) {
   root.innerHTML = `
     <div class="screen-head">
-      <div><div class="eyebrow">Their own room</div><h1>Sent Home</h1><p>Set a sprite down at home to rest, eat, and earn. Visit for one-on-one time.</p></div>
+      <div><div class="eyebrow">Their own room</div><h1>Homes</h1><p>Set a sprite down at home to rest, eat, and earn. Visit for one-on-one time.</p></div>
       <button class="icon-btn" data-sh-goto-hollow aria-label="Back to the Hollow">${icon('hollow')}</button>
     </div>
     <div data-sh-body>${sentHomeBody()}</div>`;
@@ -570,7 +571,7 @@ function sentHomeScreen(root) {
       const res = Actions.sendHome(send.dataset.shSend);
       if (res.ok) {
         Sfx.pop();
-        toast('Sent home. They will rest, eat, and earn coins until you call them back.', '🏠');
+        toast('They are home now. They will rest, eat, and earn coins until you call them back.', '🏠');
       } else {
         toast('They are already home.', '🏠');
       }
@@ -791,7 +792,7 @@ function openOneOnOne(spriteId, repaint) {
             if (res.ok) toast(`${res.coins ? `+${res.coins} coins, and ` : ''}back in the Hollow.`, '🐾');
           } else {
             Actions.sendHome(spriteId);
-            toast('Sent home for a long rest.', '🏠');
+            toast('They are home for a long rest.', '🏠');
           }
           close();
           if (repaint) repaint();
@@ -819,7 +820,7 @@ function openShareHousePicker(spriteId, repaint) {
   openSheet({
     title: '🏠 Share a house',
     sub: candidates.length
-      ? `Pick who shares ${esc(displayName(s))}’s room. Housemates build a bond every minute, even while you are away.${houseMaxMembers() > 2 ? ' The Spare Bedroom upgrade allows a third housemate.' : ' Upgrade to the Spare Bedroom to add a third housemate.'}`
+      ? `Pick who shares ${esc(displayName(s))}’s room. Housemates build a bond every minute, even while you are away.${houseMaxMembers() > 2 ? ' The free Spare Bedroom upgrade allows a third housemate.' : ' The free Spare Bedroom upgrade adds a third housemate.'}`
       : 'A shared house needs at least two sprites sent home.',
     body: rows
       ? `<div class="sh-share-list">${rows}</div>`
@@ -845,7 +846,7 @@ function openShareHousePicker(spriteId, repaint) {
 
 function openSentHomeSheet() {
   openSheet({
-    title: '🏠 Sent Home',
+    title: '🏠 Homes',
     sub: 'Every sprite can go home to relax, eat, recover, sleep long, and earn coins — or share a house and grow a bond.',
     body: `<div data-sh-sheet-body>${sentHomeBody()}</div>`,
     onMount: (overlay, close) => {
@@ -857,8 +858,25 @@ function openSentHomeSheet() {
         if (send) {
           event.stopPropagation();
           Actions.sendHome(send.dataset.shSend);
-          toast('Sent home for a long rest.', '🏠');
+          toast('They are home for a long rest.', '🏠');
           repaint();
+          return;
+        }
+        const collect = event.target.closest('[data-sh-collect]');
+        if (collect) {
+          event.stopPropagation();
+          const res = Actions.collectHome(collect.dataset.shCollect);
+          if (res.ok && res.coins) {
+            Sfx.coin();
+            toast(`+${res.coins.toLocaleString()} coins collected from home.`, '🪙');
+          }
+          repaint();
+          return;
+        }
+        const care = event.target.closest('[data-sh-care]');
+        if (care) {
+          event.stopPropagation();
+          sentHomeCare(care.dataset.shId, care.dataset.shCare, repaint);
           return;
         }
         const one = event.target.closest('[data-sh-one]');
@@ -866,6 +884,32 @@ function openSentHomeSheet() {
           event.stopPropagation();
           close();
           setTimeout(() => openOneOnOne(one.dataset.shOne, null), 40);
+          return;
+        }
+        const share = event.target.closest('[data-sh-share]');
+        if (share) {
+          event.stopPropagation();
+          close();
+          setTimeout(() => openShareHousePicker(share.dataset.shShare, null), 40);
+          return;
+        }
+        const bond = event.target.closest('[data-sh-bond]');
+        if (bond) {
+          event.stopPropagation();
+          const res = Actions.bondHouse(bond.dataset.shBond);
+          if (res.ok) {
+            Sfx.win();
+            toast(`${res.names} snuggle up. House bond +${res.bond}${res.coins ? ` · +${res.coins} coins` : ''}.`, '💞');
+          }
+          repaint();
+          return;
+        }
+        const leave = event.target.closest('[data-sh-leave]');
+        if (leave) {
+          event.stopPropagation();
+          const res = Actions.leaveHouse(leave.dataset.shLeave);
+          if (res.ok) toast('The house is split. Both sprites keep their own rooms.', '🏠');
+          repaint();
           return;
         }
         const buy = event.target.closest('[data-sh-buy]');

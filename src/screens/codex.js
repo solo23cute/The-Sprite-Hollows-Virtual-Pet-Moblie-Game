@@ -54,7 +54,7 @@ function codexScreen(root) {
       </button>
       <button class="type-feature bond-feature" data-open-evolution>
         <span class="tf-icon">🧬</span>
-        <span class="tf-copy"><b>World Evolution Atlas</b><span>${ELEMENT_KEYS.length.toLocaleString()} types × ${STAGE_ORDER.length} forms · ${BIOME_KEYS.length} biomes · Vault free</span></span>
+        <span class="tf-copy"><b>World Evolution Atlas</b><span>${ELEMENT_KEYS.length.toLocaleString()} types × ${EVOLUTION_FORM_KEYS.length} forms · ${BIOME_KEYS.length} biomes · Vault free</span></span>
         <span class="tf-arrow">›</span>
       </button>
     </div>

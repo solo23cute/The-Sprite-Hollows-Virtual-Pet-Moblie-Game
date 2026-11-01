@@ -256,7 +256,7 @@ function openBreedingCodex(filterKey) {
       <p class="tiny muted" data-breed-pairs-empty hidden>No named hybrid matches that search.</p>
       <button class="btn btn-soft btn-block" data-breed-pairs-more hidden style="margin-top:10px"></button>
       <h3>🧬 All type evolutions</h3>
-      <p>Every type has four possible permanent forms. The free atlas adds the full world map: <b>${ELEMENT_KEYS.length.toLocaleString()} types × 4 forms</b>, all ${BIOME_KEYS.length} type biomes, every Hollow habitat, parent genes, signature personality, and every Secret Vault species.</p>
+      <p>Every type has ${EVOLUTION_FORM_KEYS.length} possible permanent forms. The free atlas adds the full world map: <b>${ELEMENT_KEYS.length.toLocaleString()} types × ${EVOLUTION_FORM_KEYS.length} forms</b>, all ${BIOME_KEYS.length} type biomes, every Hollow habitat, parent genes, signature personality, and every Secret Vault species.</p>
       ${worldEvolutionFormSummaryHTML()}
       <button class="btn btn-primary btn-block" data-world-evo-open style="margin-top:10px">🧬 Open the free World Evolution Atlas</button>
       <p class="tiny muted" style="text-align:center;margin-top:6px">Vault genes and evolution recipes are free to read. Vault ownership is separate.</p>
@@ -364,7 +364,7 @@ function breedingGuideBody() {
     <h3>Signature combos</h3>
     <p><b>${comboPairs.length}</b> pairs also have a named combo with its own power, such as ${comboPairs.slice(0, 3).map((p) => esc(p.combo.name)).join(', ')}. Combo odds rise with every merge you complete.</p>
     <h3>World evolution atlas</h3>
-    <p>The free atlas covers every species and all four forms, including all <b>${SECRET_SPECIES.length} Secret Vault species</b>. Use it to check a type's biome, gene, parent family, signature habit, personality, finish, and diet recipe before you merge.</p>
+    <p>The free atlas covers every species and all ${EVOLUTION_FORM_KEYS.length} forms, including all <b>${SECRET_SPECIES.length} Secret Vault species</b>. Use it to check a type's biome, gene, parent family, signature habit, personality, finish, and diet recipe before you merge.</p>
     ${worldEvolutionFormSummaryHTML()}
     <button class="btn btn-primary btn-block" data-world-evo-open style="margin-top:10px">🧬 Open the free World Evolution Atlas</button>
     <button class="btn btn-soft btn-block" data-breeding-open style="margin-top:8px">Open the breeding codex</button>`;

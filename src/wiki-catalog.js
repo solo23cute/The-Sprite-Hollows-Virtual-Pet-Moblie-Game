@@ -33,6 +33,7 @@ function catalogGameGenreBody() {
       <button class="wiki-link" data-wiki-guide="pokedex"><b>🔴 Pokédex · ${POKEDEX_SPECIES.length}</b><span>Every base Pokémon across all 18 types.</span></button>
       <button class="wiki-link" data-wiki-guide="fortnite"><b>🎮 Fortnite current &amp; legacy · ${FORTNITE_TOTAL}</b><span>${FORTNITE_SPECIES.length} current pass sprites and ${FORTNITE_LEGACY_TOTAL} past-season headliners.</span></button>
       <button class="wiki-link" data-wiki-guide="wwe"><b>🏆 WWE superstars · ${WWE_TOTAL}</b><span>Legends, current superstars, and the women’s division.</span></button>
+      <button class="wiki-link" data-wiki-guide="gta"><b>🚗 GTA districts · ${typeof GTA_TOTAL === 'number' ? GTA_TOTAL : 'GTA'}</b><span>Every mainline game, crew, and district with its own biome home.</span></button>
     </div>`;
 }
 

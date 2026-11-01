@@ -40,8 +40,8 @@ function biomeQuestCard(sceneKey) {
     <p class="quest-step">${esc(info.step.text)}${here ? ' <span class="tiny muted">(you are here)</span>' : ''}</p>
     <div class="bar"><i style="width:${pct}%"></i></div>
     <div class="quest-foot">
-      <span class="tiny muted">${biomeQuestRewardText(info.step)}${finale ? ` · ⚔️ ${esc(guardianName)}` : ''}</span>
-      ${here ? '' : `<button class="btn btn-ghost btn-sm" data-quest-travel="${sceneKey}">Travel</button>`}
+      <span class="tiny muted">${biomeQuestRewardText(info.step)}${finale ? ` · ⚔️ ${esc(guardianName)} · free boss` : ''}</span>
+      ${here ? '' : `<button class="btn btn-ghost btn-sm" data-quest-travel="${sceneKey}">Travel · +${TRAVEL_COINS} 🪙</button>`}
       ${action}
     </div>
   </article>`;
@@ -86,8 +86,8 @@ function questTrackHtml() {
 function openDistrictQuests() {
   openSheet({
     title: '🗺️ District quests',
-    sub: 'Seven GTA districts and six exotic biomes, each with a three-step line. The last step is settled face to face.',
-    body: `<p class="quest-intro">Travel to a district, play its games, and look after a sprite on location. Every step pays coins, XP, and bond — and the finale pits you against that biome’s guardian.</p>
+    sub: 'Seven GTA districts and six exotic biomes, each with a three-step line. Free entry, free travel, free finale.',
+    body: `<p class="quest-intro">Travel to a district, play its games, and look after a sprite on location. Travel is free and pays ${TRAVEL_COINS} coins; every step pays coins, XP, and bond — and the finale pits you against that biome’s guardian at no cost.</p>
       <button class="btn btn-soft btn-block" data-quest-gallery style="margin-bottom:8px">⚔️ Guardian gallery · every biome, unlimited bouts</button>
       <div class="quest-grid" data-quest-grid>${BIOME_QUEST_KEYS.map(biomeQuestCard).join('')}</div>`,
     onMount: (overlay) => {
@@ -105,17 +105,27 @@ function openDistrictQuests() {
 const DUEL_WINDOW_SECONDS = 20;
 
 function guardianForScene(sceneKey, index = 0) {
+  const scene = SCENES[sceneKey];
+  if (!scene) return null;
+  /* The named guardian always answers first; the wider roster is for the
+     gallery and for "another guardian" after that. */
+  if (scene.guardian && ELEMENTS[scene.guardian]) return scene.guardian;
   if (typeof guardianPick === 'function') {
     const picked = guardianPick(sceneKey, index);
     if (picked) return picked;
   }
-  const scene = SCENES[sceneKey];
-  if (!scene) return null;
-  let key = scene.guardian || (scene.species || [])[0] || null;
+  let key = (scene.species || [])[0] || null;
   if (!key && scene.gtaBiome && typeof ELEMENT_KEYS !== 'undefined') {
     key = ELEMENT_KEYS.find((k) => ELEMENTS[k] && ELEMENTS[k].gtaHome === sceneKey) || null;
   }
   return key && ELEMENTS[key] ? key : null;
+}
+
+function guardianTierChip(key) {
+  if (typeof typeEggRarity !== 'function' || typeof TYPE_EGG_RARITIES === 'undefined') return '';
+  const tier = TYPE_EGG_RARITIES[typeEggRarity(key)];
+  if (!tier) return '';
+  return `<span class="chip guardian-tier" style="--tier:${tier.color}">${tier.name}</span>`;
 }
 
 function guardianSample(key, stage = 'elder') {
@@ -153,17 +163,17 @@ function guardianBiomeIndex() {
 
 function guardianVaultHtml() {
   if (typeof GUARDIAN_VAULT_DOORS === 'undefined') return '';
-  const wins = typeof guardianVaultWins === 'function' ? guardianVaultWins() : 0;
+  const travels = typeof guardianVaultTravels === 'function' ? guardianVaultTravels() : 0;
   const openCount = GUARDIAN_VAULT_DOORS.filter((door) => guardianVaultOpened(door.id)).length;
-  return `<div class="guardian-split">Secret vault doors · ${openCount}/${GUARDIAN_VAULT_DOORS.length} opened · ${wins} duel wins</div>
+  return `<div class="guardian-split">Secret vault doors · ${openCount}/${GUARDIAN_VAULT_DOORS.length} opened · ${travels} travels · free</div>
     <div class="vault-doors">
       ${GUARDIAN_VAULT_DOORS.map((door) => {
         const opened = guardianVaultOpened(door.id);
-        const ready = wins >= door.wins;
+        const ready = travels >= door.travels;
         return `<div class="vault-door ${opened ? 'opened' : ready ? 'ready' : ''}">
           <span class="vd-icon">${opened ? '📖' : door.icon}</span>
-          <span class="vd-copy"><b>${esc(door.name)}</b><span class="tiny muted">${opened ? 'Opened · sprite collected' : `${door.wins} duel wins · 🪙 ${door.coins}`}</span></span>
-          ${opened ? '<span class="chip">✓</span>' : `<button class="btn btn-gold btn-sm" data-vault-door="${door.id}" ${ready ? '' : 'disabled'}>${ready ? 'Open' : `${wins}/${door.wins}`}</button>`}
+          <span class="vd-copy"><b>${esc(door.name)}</b><span class="tiny muted">${opened ? 'Opened · sprite collected' : `${door.travels} travels · 🪙 ${door.coins}`}</span></span>
+          ${opened ? '<span class="chip">✓</span>' : `<button class="btn btn-gold btn-sm" data-vault-door="${door.id}" ${ready ? '' : 'disabled'}>${ready ? 'Open free' : `${travels}/${door.travels}`}</button>`}
         </div>`;
       }).join('')}
     </div>`;
@@ -179,6 +189,7 @@ function guardianCustomHtml() {
     return `<button class="guardian-card custom" data-guardian-duel="${key}">
       <span class="gc-art">${spriteSVG(guardianSample(key), { expr: 'happy' })}</span>
       <b>${esc(ELEMENTS[key].name)}</b>
+      ${guardianTierChip(key)}
       <span class="tiny muted">${bested ? `bested ×${bested}` : 'yours to call'}</span>
     </button>`;
   }).join('');
@@ -187,37 +198,41 @@ function guardianCustomHtml() {
     ${next ? `<p class="tiny muted" style="margin:6px 0 2px">Next: <b>${esc(next.name)}</b> at ${next.wins} duel wins (${Math.max(0, next.wins - wins)} to go).</p>` : '<p class="tiny muted" style="margin:6px 0 2px">Every custom guardian has joined you.</p>'}`;
 }
 
-function guardianBiomeView(sceneKey) {
+function guardianBiomeView(sceneKey, limit = 24) {
   const scene = SCENES[sceneKey];
   if (!scene) return guardianBiomeIndex();
   const pool = guardianPoolForScene(sceneKey);
-  const sampleKeys = pool.slice(0, 24);
+  const visible = Math.max(1, Math.min(pool.length, Number(limit) || 24));
+  const sampleKeys = pool.slice(0, visible);
   const rows = sampleKeys.map((key) => {
     const bested = Math.max(0, Number(state.guardiansBeaten && state.guardiansBeaten[key]) || 0);
     return `<button class="guardian-card" data-guardian-duel="${key}">
       <span class="gc-art">${spriteSVG(guardianSample(key), { expr: 'happy' })}</span>
       <b>${esc(ELEMENTS[key].name)}</b>
+      ${guardianTierChip(key)}
       <span class="tiny muted">${bested ? `bested ×${bested}` : 'unchallenged'}</span>
     </button>`;
   }).join('');
   const rest = pool.length - sampleKeys.length;
   return `<button class="btn btn-ghost btn-sm" data-guardian-back style="margin-bottom:8px">← All environments</button>
     <div class="between" style="margin-bottom:6px"><b>${scene.emoji} ${esc(scene.name)}</b><span class="chip">${pool.length.toLocaleString()} guardians</span></div>
-    <p class="tiny muted" style="margin:0 0 8px;line-height:1.5">Practice bouts here are unlimited: win or lose, you can call the next guardian. Wins lift bond and joy.</p>
+    <p class="tiny muted" style="margin:0 0 8px;line-height:1.5">Practice bouts here are free and unlimited: win or lose, you can call the next guardian. Wins lift bond and joy.</p>
+    <button class="btn btn-gold btn-block" data-guardian-random style="margin-bottom:8px">🎲 Random guardian · free</button>
     <div class="guardian-grid">${rows}</div>
-    ${rest > 0 ? `<p class="tiny muted" style="margin-top:8px">…and ${rest.toLocaleString()} more guardians in this environment. Every one of them answers the call.</p>` : ''}`;
+    ${rest > 0 ? `<button class="btn btn-soft btn-block" data-guardian-more style="margin-top:8px">Show ${Math.min(24, rest)} more · ${rest.toLocaleString()} remaining</button>` : '<p class="tiny muted" style="margin-top:8px">Every guardian in this environment is available.</p>'}`;
 }
 
 function openGuardianGallery(sceneKey = null) {
   let view = sceneKey && SCENES[sceneKey] ? sceneKey : null;
+  let shown = 24;
   openSheet({
     title: '⚔️ Guardian gallery',
-    sub: 'Every biome guards a roster. Face as many as you like, anywhere.',
+    sub: 'Every biome guards a roster. Free, unlimited bouts — no coins, no energy.',
     body: '<div data-guardian-gallery></div>',
     onMount: (overlay, close) => {
       const root = overlay.querySelector('.sheet') || overlay;
       const box = overlay.querySelector('[data-guardian-gallery]');
-      const paint = () => { if (box) box.innerHTML = view ? guardianBiomeView(view) : guardianBiomeIndex(); };
+      const paint = () => { if (box) box.innerHTML = view ? guardianBiomeView(view, shown) : guardianBiomeIndex(); };
       root.addEventListener('click', (event) => {
         const door = event.target.closest('[data-vault-door]');
         if (door) {
@@ -229,7 +244,7 @@ function openGuardianGallery(sceneKey = null) {
             toast(`Vault opened · ${res.secret || 'a secret sprite'} + ${res.coins} coins`, '🔐');
           } else {
             Sfx.error();
-            toast(res.reason === 'opened' ? 'That door is already open.' : `Best ${res.need} more guardian${res.need === 1 ? '' : 's'} first.`, '🔐');
+            toast(res.reason === 'opened' ? 'That door is already open.' : `Travel ${res.need} more time${res.need === 1 ? '' : 's'} to open this door.`, '🔐');
           }
           paint();
           return;
@@ -238,6 +253,7 @@ function openGuardianGallery(sceneKey = null) {
         if (biome) {
           event.preventDefault();
           view = biome.dataset.guardianBiome;
+          shown = 24;
           Sfx.click();
           paint();
           return;
@@ -245,15 +261,37 @@ function openGuardianGallery(sceneKey = null) {
         if (event.target.closest('[data-guardian-back]')) {
           event.preventDefault();
           view = null;
+          shown = 24;
           Sfx.click();
           paint();
+          return;
+        }
+        const more = event.target.closest('[data-guardian-more]');
+        if (more) {
+          event.preventDefault();
+          shown += 24;
+          Sfx.click();
+          paint();
+          return;
+        }
+        const random = event.target.closest('[data-guardian-random]');
+        if (random) {
+          event.preventDefault();
+          const pool = view ? guardianPoolForScene(view) : [];
+          if (!pool.length) return;
+          const guardianKey = pool[Math.floor(Math.random() * pool.length)];
+          const scene = view;
+          close();
+          setTimeout(() => openGuardianDuel(scene, null, { guardianKey, practice: true }), 40);
           return;
         }
         const duel = event.target.closest('[data-guardian-duel]');
         if (duel) {
           event.preventDefault();
           const guardianKey = duel.dataset.guardianDuel;
-          const scene = view;
+          /* Custom guardians are not tied to one biome. In the index view they
+             fight in the player's current scene instead of a null scene. */
+          const scene = view || (state.theme && SCENES[state.theme.scene] ? state.theme.scene : 'grove');
           close();
           setTimeout(() => openGuardianDuel(scene, null, { guardianKey, practice: true }), 40);
         }
@@ -276,7 +314,10 @@ function openGuardianDuel(sceneKey, onWin, opts = {}) {
   if (!guardianKey) { toast('No guardian answers here yet.', '⚔️'); return null; }
   const guardian = ELEMENTS[guardianKey];
   const tint = sceneTint(sceneKey);
-  const mine = activeSprite();
+  const active = activeSprite();
+  const mine = active && active.stage !== 'egg' && !active.atHome && !active.retired
+    ? active
+    : (typeof hollowSprites === 'function' ? hollowSprites()[0] : active);
   const greeting = (Array.isArray(guardian.greeting) ? guardian.greeting[0] : guardian.greeting) || 'The guardian steps forward.';
   const lines = [
     'The ground answers them.',
@@ -294,7 +335,7 @@ function openGuardianDuel(sceneKey, onWin, opts = {}) {
   openSheet({
     title: `⚔️ ${esc(guardian.name)}`,
     sub: `${practice ? 'Practice bout' : 'Quest finale'} · free · guardian of ${scene.emoji} ${esc(scene.name)}${def && !practice ? ` · ${esc(def.title)}` : ''}`,
-    body: `<div class="duel-stage" style="background:linear-gradient(180deg, ${tint.b2}, ${tint.b1})">
+    body: `<div class="guardian-duel-stage" style="background:linear-gradient(180deg, ${tint.b2}, ${tint.b1})">
         <div class="scene-decor">${buildSceneDecor(sceneKey)}</div>
         <span class="duel-guardian">${spriteSVG(guardianSample(guardianKey, 'ancient'), { expr: 'happy' })}<b>${esc(guardian.name)}</b></span>
         ${mine ? `<span class="duel-challenger">${spriteSVG(mine, { expr: 'happy' })}<b>${esc(displayName(mine))}</b></span>` : ''}
@@ -337,6 +378,15 @@ function openGuardianDuel(sceneKey, onWin, opts = {}) {
         if (strikeBtn) strikeBtn.disabled = true;
         if (practice) {
           const res = Actions.guardianWin(sceneKey, guardianKey);
+          if (!res || !res.ok) {
+            if (lineEl) lineEl.textContent = 'That guardian cannot answer right now.';
+            if (resultEl) {
+              resultEl.hidden = false;
+              resultEl.innerHTML = '<b>The bout fizzled.</b><span>Close the gallery and try again.</span>';
+            }
+            Sfx.error();
+            return;
+          }
           if (lineEl) lineEl.textContent = `${guardian.name} yields. A good bout.`;
           if (resultEl) {
             resultEl.hidden = false;
@@ -408,10 +458,13 @@ function wireBiomeQuests(root) {
     if (travel) {
       event.preventDefault();
       const key = travel.dataset.questTravel;
-      Actions.setTheme({ scene: key });
+      const trip = Actions.setTheme({ scene: key });
       Sfx.click();
-      paint();
-      toast(`${SCENES[key].emoji} ${SCENES[key].name} · quest line active.`, '🗺️');
+      toast(`${SCENES[key].emoji} ${SCENES[key].name} · quest line active${trip && trip.coins ? ` · +${trip.coins} coins` : ''}.`, '🗺️');
+      /* Travel should actually land in the destination, not leave the player
+         staring at the old screen with a new scene selected behind it. */
+      if (trip) App.go('hollow');
+      else paint();
       return;
     }
     const duel = event.target.closest('[data-quest-duel]');

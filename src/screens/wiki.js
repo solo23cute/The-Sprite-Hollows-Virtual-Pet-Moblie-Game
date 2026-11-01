@@ -292,6 +292,7 @@ const WIKI_GUIDES = [
           <button class="wiki-link" data-wiki-guide="pokedex"><b>🔴 Pokédex · ${POKEDEX_SPECIES.length}</b><span>Every base Pokémon species across all 18 types.</span></button>
           <button class="wiki-link" data-wiki-guide="fortnite"><b>🎮 Fortnite current &amp; legacy · ${FORTNITE_TOTAL}</b><span>${FORTNITE_SPECIES.length} current pass sprites plus ${FORTNITE_LEGACY_TOTAL} past-season headliners.</span></button>
           <button class="wiki-link" data-wiki-guide="wwe"><b>🏆 WWE superstars · ${WWE_TOTAL}</b><span>Legends, current superstars, and the women’s division.</span></button>
+          <button class="wiki-link" data-wiki-guide="gta"><b>🚗 Grand Theft Auto districts · ${typeof GTA_TOTAL === 'number' ? GTA_TOTAL : 'GTA'}</b><span>Every GTA group and its own biome home.</span></button>
           <button class="wiki-link" data-wiki-guide="spritevault"><b>🎨 Fortnite Sprite field guide</b><span>All base sprites and every finish variant.</span></button>
         </div>
         <p class="wiki-footnote">${gameCount} game signatures linked above · generated from the same live legend rosters as the species files</p>`;
@@ -316,6 +317,7 @@ const WIKI_GUIDES = [
           ${card('legends', '🌍', 'Crossover legends', LEGEND_TOTAL, 'Games, cartoons, survival, and horror across nine family rosters.')}
           ${card('pokedex', '🔴', 'Pokédex', POKEDEX_SPECIES.length, 'Every base Pokémon species across all 18 types.')}
           ${card('fortnite', '🎮', 'Fortnite current & legacy', FORTNITE_TOTAL, `${FORTNITE_SPECIES.length} current pass sprites plus ${FORTNITE_LEGACY_TOTAL} past-season headliners.`)}
+          ${card('gta', '🚗', 'Grand Theft Auto districts', typeof GTA_TOTAL === 'number' ? GTA_TOTAL : 0, 'Every mainline game, crew, and district with its own biome home.')}
           ${card('wwe', '🏆', 'WWE superstars', WWE_TOTAL, 'Legends, current superstars, and the women’s division in one ring.')}
           ${card('ponies', '🦄', 'My Little Pony', PONY_TOTAL, 'Mane Six, Cutie Mark Crusaders, royalty, Ponyville, sweethearts, and villains with check-in/task bonuses.')}
           ${card('tvlegends', '📺', 'TV Legends', TV_LEGACY_TOTAL, 'Prestige, sitcom, sci-fi, fantasy, and animated television across five eras.')}
@@ -365,6 +367,12 @@ const WIKI_GUIDES = [
       <p>The Hollow chip shows the active sprite's current bonus. A green “thriving here” message in the Studio means the selected sprite is earning the full habitat rate. Switch habitats freely — there is no cooldown or cost.</p>
       <h3>Finding a home</h3>
       <p>Every Nest species has at least one habitat, and the 18 type biomes give every Pokémon a home by its standard type. Secret sprites keep their own hidden homes. A few species appear in more than one scene because they fit multiple themes — for example, Keke can thrive in both Sugar Kitchen and the Dream Conservatory.</p>
+      <p>GTA signatures wake up in their own districts, and Hollow exotics keep signature stages. Use <b>Homes</b> to filter one biome at a time, or <b>Studio → Biome Atlas</b> to travel to any of them.</p>
+      <div class="wiki-hybrid-list">
+        <button class="wiki-link" data-wiki-guide="gta"><b>🚗 GTA districts · ${typeof GTA_TOTAL === 'number' ? GTA_TOTAL : 'GTA'}</b><span>Liberty City, Vice Beach, San Andreas, Los Santos, London, Chinatown, and Anywhere City.</span></button>
+        <button class="wiki-link" data-wiki-guide="homes"><b>🪟 Homes &amp; Hollow · biome windows</b><span>How at-home rooms and the shared Hollow roster work.</span></button>
+        <button class="wiki-link" data-wiki-guide="hollowexotics"><b>✦ Hollow exotics · ${HOLLOW_EXOTIC_SPECIES.length}</b><span>Signature stages and collection-reward homes.</span></button>
+      </div>
       <h3>All 18 type biomes</h3>
       <div class="wiki-hybrid-list">${BIOME_KEYS.map((type) => `<button class="wiki-link" data-biome-travel="${TYPE_BIOMES[type].key}"><b>${TYPE_BIOMES[type].emoji} ${esc(TYPE_BIOMES[type].name)}</b><span>${esc(TYPE_BIOMES[type].habitat)} · ${TYPE_BIOMES[type].speciesCount.toLocaleString()} species · guardian ${esc(ELEMENTS[TYPE_BIOMES[type].guardian].name)}</span></button>`).join('')}</div>`,
   },
@@ -398,7 +406,7 @@ const WIKI_GUIDES = [
     id: 'worldevolution',
     icon: '🧬',
     title: 'World evolution atlas',
-    summary: 'Every type × four forms, all 18 biomes and Hollow scenes, parents, genes, personalities, and Vault paths — free.',
+    summary: `Every type × ${EVOLUTION_FORM_KEYS.length} forms, all 18 biomes and Hollow scenes, parents, genes, personalities, and Vault paths — free.`,
     body: worldEvolutionWikiBody,
   },
   {
@@ -731,14 +739,14 @@ const WIKI_GUIDES = [
     id: 'growth',
     icon: '🌟',
     title: 'Growth, Titans & evolution',
-    summary: 'Levels, stages, diet affinities, and the four evolution forms.',
+    summary: `Levels, stages, diet affinities, and the ${EVOLUTION_FORM_KEYS.length} evolution forms.`,
     body: () => `<p class="wiki-lede">Sprites level up by doing things with you. Levels unlock new life stages and, eventually, a Titan name.</p>
       <h3>Stages</h3>
       <p><b>${['Egg', ...STAGE_ORDER.map((stage) => STAGE_LABELS[stage])].join(' → ')}</b> at levels 1 / ${STAGE_ORDER.map((stage) => STAGE_LEVEL[stage]).slice(1).join(' / ')}. Every level pays 12 coins and raises joy and bond. Elders are bigger, get a sparkle aura, and carry the species' Titan name.</p>
       <h3>Fast XP</h3>
       <p>The best XP comes from matching the sprite's habitat, then playing games, feeding, and sleeping. Petting is small but repeatable. Gene powers, finishes, combos, generation, and habitat bonuses all multiply the final amount.</p>
       <h3>Diet evolution</h3>
-      <p>Feeding builds four diet affinities, shown on every sprite's detail sheet: <b>Hearty, Sweet, Eerie, and Wild</b>. At level 10, a sprite with 12 points in a path can evolve into a <b>Dragon</b>, <b>Fairy</b>, <b>Ghoul</b>, or elemental <b>Titan</b> form. The evolution is permanent and adds its own silhouette and power.</p>`,
+      <p>Feeding builds four diet affinities, shown on every sprite's detail sheet: <b>Hearty, Sweet, Eerie, and Wild</b>. At level 10, a sprite with 12 points in a path can evolve into one of ${EVOLUTION_FORM_KEYS.length} permanent forms, two for each diet path. Each evolution adds its own silhouette and power.</p>`,
   },
   {
     id: 'care',
@@ -869,10 +877,10 @@ function openWikiGuide(id) {
       sheet.querySelectorAll('[data-biome-travel]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const key = btn.dataset.biomeTravel;
-          Actions.setTheme({ scene: key });
+          const trip = Actions.setTheme({ scene: key });
           close();
-          App.refresh();
-          toast(`${SCENES[key].emoji} ${SCENES[key].name} · type biome active.`, '🧭');
+          App.go('hollow');
+          toast(`${SCENES[key].emoji} ${SCENES[key].name} · type biome active${trip && trip.coins ? ` · +${trip.coins} coins` : ''}.`, '🧭');
         });
       });
       sheet.querySelectorAll('[data-world-food]').forEach((btn) => {
@@ -1013,10 +1021,10 @@ function openWikiArticle(key) {
       sheet.querySelectorAll('[data-biome-travel]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const key = btn.dataset.biomeTravel;
-          Actions.setTheme({ scene: key });
+          const trip = Actions.setTheme({ scene: key });
           close();
-          App.refresh();
-          toast(`${SCENES[key].emoji} ${SCENES[key].name} · type biome active.`, '🧭');
+          App.go('hollow');
+          toast(`${SCENES[key].emoji} ${SCENES[key].name} · type biome active${trip && trip.coins ? ` · +${trip.coins} coins` : ''}.`, '🧭');
         });
       });
       sheet.querySelectorAll('[data-wiki-breed]').forEach((btn) => {
