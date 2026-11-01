@@ -104,7 +104,7 @@ function openStudioSheet(opts = {}) {
     <button class="btn btn-ghost btn-block" data-reset style="color:var(--bad);border-color:color-mix(in srgb, var(--bad) 35%, transparent)">
       ${icon('trash')} Start a brand-new Hollow
     </button>
-    <p class="tiny muted" style="text-align:center;margin-top:8px">This erases every sprite, coin and streak on this device.</p>
+    <p class="tiny muted" style="text-align:center;margin-top:8px">This sends every sprite, egg and streak back to the start. Your coins stay with you.</p>
     <p class="tiny muted" style="text-align:center;margin-top:16px">Sprite Hollow v${APP_VERSION} · offline save on this device</p>
   `;
 
@@ -506,7 +506,8 @@ function openStudioSheet(opts = {}) {
         setTimeout(() => startTour({ fromStudio: true }), 180);
       });
       root.querySelector('[data-reset]').addEventListener('click', async () => {
-        const yes = await confirmModal('Start over?', 'Every sprite, egg, coin and streak on this device will be erased. This cannot be undone.', 'Erase my Hollow', { danger: true });
+        const banked = Math.max(0, Math.floor(Number(state.coins) || 0));
+        const yes = await confirmModal('Start over?', `Every sprite, egg, unlock, streak and journal entry will be erased, and you will pick a new starter egg. Your ${banked.toLocaleString()} coins stay in your pocket. This cannot be undone.`, `Restart with ${banked.toLocaleString()} coins`, { danger: true });
         if (yes) Actions.reset();
       });
 
