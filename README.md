@@ -1,3 +1,15 @@
+## 4.1.2 Import a saved Hollow on the first screen (current release)
+
+- **Restore before you hatch.** The first-run intro now carries a **💾 Restore a saved Hollow** button, so a Hollow can be brought back from a rescue code or a file before a starter egg is picked - the case that matters after a reinstall. It opens the same confirm-guarded sheet as Studio's backup screen, which explains how many sprites, eggs and coins the code holds before anything is written.
+- **Accepts what the rescue tool produces.** `SH-save-1:` codes, deflated `SH-save-2:` codes, and raw JSON (the direct output of `tools/rescue-save.py`) all import, so a save pulled off an older install can be carried in without conversion. A successful restore sets `state.started` and reloads straight into the game, skipping the intro.
+- Package: `versionName 4.1.2` / `versionCode 71`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34, signed with the same key as 3.19.0 through 4.1.1 (SHA-256 `799ec735323db8c9cbc362c66ab27633aeb79531ace3fe9a8ae87739a61be9b4`), v2 + v3 with v1 off. Version 4.1.2 installs over 3.19.0, 3.20.0 and 4.1.1 and keeps the saved Hollow; the 3.18.0 wall described below is unchanged.
+
+### Downloads
+
+- **Android 7.0 and up:** `SpriteHollow-4.1.2-v71-release.apk` - 722,338 bytes, release-signed (v2 + v3, v1 off), `versionName 4.1.2` / `versionCode 71`. SHA-256 `45dd299381d3c298645cc00c47a7825e455555827324aa8aa0f3f97bef74c4bb`.
+- Debug build: `SpriteHollow-4.1.2-v71.apk` - 718,242 bytes, debug-signed with the local build key. SHA-256 `a0936c2689a9d460d714e1a80324630d93d799787705e55303ee77b77e94e55a`.
+- The generic names `SpriteHollow-release.apk` and `SpriteHollow.apk` now serve this 4.1.2 build (release SHA-256 `45dd299381d3c298645cc00c47a7825e455555827324aa8aa0f3f97bef74c4bb`), so the plain downloads always give the newest release.
+
 ## 4.1.1 Save backup codes, renumbered (current release)
 
 - **Version 4.1.1** ships the 3.20.0 feature set under a new version name: Studio's **💾 Save backup & restore** (copy code, download a `.txt`, or paste/choose a file to bring a Hollow back), plus everything from 3.19.0 - free colours, free decor, free boss bouts, earned custom guardians, guardian vaults and the four event sprites.
@@ -18,7 +30,7 @@
 
 - **Android 7.0 and up:** `SpriteHollow-4.1.1-v70-release.apk` - 722,338 bytes, release-signed (v2 + v3, `--v1-signing-enabled false`), `versionName 4.1.1` / `versionCode 70`. SHA-256 `6f85a661b391e06006aeb3812f7f0f7a3224cccf1715f86e8256a710636f0449`.
 - Debug build: `SpriteHollow-4.1.1-v70.apk` - 718,242 bytes, debug-signed with the local build key. SHA-256 `dbb87902421ec261a713c9380e3aef8614b88f5f5941bc5accaf8853676b7e62`.
-- The stable name `SpriteHollow-release.apk` now serves this same 4.1.1 build (SHA-256 `6f85a661b391e06006aeb3812f7f0f7a3224cccf1715f86e8256a710636f0449`), so the generic download is no longer the old 3.9.0 file.
+- The generic download names (`SpriteHollow-release.apk`, `SpriteHollow.apk`) follow the newest release; the 4.1.1 files above stay in place under their versioned names.
 
 ## 3.20.0 Save backup codes
 
