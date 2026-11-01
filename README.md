@@ -16,9 +16,9 @@
 
 ### Downloads
 
-- **Android 7.0 and up:** `SpriteHollow-4.1.1-v70-release.apk` - 734,825 bytes, release-signed (v2 + v3, `--v1-signing-enabled false`), `versionName 4.1.1` / `versionCode 70`. SHA-256 `8956647d3db0d6b9c5960fabae99f2e21d0e91c196ad045807bb2223f92026cc`.
-- Debug build: `SpriteHollow-4.1.1-v70.apk` - 730,729 bytes, debug-signed with the local build key. SHA-256 `c55765773295c6cda0bf25bdab1127fd7b959dfab5205c1d60c70c3a775e63db`.
-- The stable name `SpriteHollow-release.apk` now serves this same 4.1.1 build (SHA-256 `8956647d3db0d6b9c5960fabae99f2e21d0e91c196ad045807bb2223f92026cc`), so the generic download is no longer the old 3.9.0 file.
+- **Android 7.0 and up:** `SpriteHollow-4.1.1-v70-release.apk` - 722,338 bytes, release-signed (v2 + v3, `--v1-signing-enabled false`), `versionName 4.1.1` / `versionCode 70`. SHA-256 `6f85a661b391e06006aeb3812f7f0f7a3224cccf1715f86e8256a710636f0449`.
+- Debug build: `SpriteHollow-4.1.1-v70.apk` - 718,242 bytes, debug-signed with the local build key. SHA-256 `dbb87902421ec261a713c9380e3aef8614b88f5f5941bc5accaf8853676b7e62`.
+- The stable name `SpriteHollow-release.apk` now serves this same 4.1.1 build (SHA-256 `6f85a661b391e06006aeb3812f7f0f7a3224cccf1715f86e8256a710636f0449`), so the generic download is no longer the old 3.9.0 file.
 
 ## 3.20.0 Save backup codes
 
@@ -30,8 +30,8 @@
 
 ### Downloads
 
-- **Android 7.0 and up:** `SpriteHollow-3.20.0-v69-release.apk` - 734,825 bytes, release-signed, `versionName 3.20.0` / `versionCode 69`, minSdk 24, targetSdk 34. SHA-256 `255bad0ba86204900cdff40ec5ee978a20bdeb8421ceed4fa7a0feb8d26b13ff`.
-- Debug build: `SpriteHollow-3.20.0-v69.apk` - 730,729 bytes, SHA-256 `53eb453eaaca7c22252fc115ca5c41c34273e7e74486484239beaed7b3ce783a`.
+- **Android 7.0 and up:** `SpriteHollow-3.20.0-v69-release.apk` - 722,338 bytes, release-signed, `versionName 3.20.0` / `versionCode 69`, minSdk 24, targetSdk 34. SHA-256 `255bad0ba86204900cdff40ec5ee978a20bdeb8421ceed4fa7a0feb8d26b13ff`.
+- Debug build: `SpriteHollow-3.20.0-v69.apk` - 718,242 bytes, SHA-256 `53eb453eaaca7c22252fc115ca5c41c34273e7e74486484239beaed7b3ce783a`.
 - Both are signed with the **same key as 3.19.0**, so 3.20.0 installs straight over it and keeps the saved Hollow. That key is kept at `android/release.keystore` (password in `android/release-key.properties`, both gitignored, certificate SHA-256 `799ec735323db8c9cbc362c66ab27633aeb79531ace3fe9a8ae87739a61be9b4`) and every later build reuses it, so the upgrade chain from here is unbroken. Back that file up - Android needs the same key for every future update.
 
 ## 3.19.0 Free colours, free decor, earned guardians, and guardian vaults
@@ -400,9 +400,9 @@ Any static file server works. The game saves to `localStorage` after every actio
 
 ## Android APK
 
-**Download:** [`SpriteHollow-4.1.1-v70-release.apk`](SpriteHollow-4.1.1-v70-release.apk) — 706 KB, release-signed with the project release key, fully offline, `versionName 4.1.1` / `versionCode 70`. SHA-256 `8956647d3db0d6b9c5960fabae99f2e21d0e91c196ad045807bb2223f92026cc`. It installs in place over 3.19.0 and 3.20.0; a debug-signed [`SpriteHollow-4.1.1-v70.apk`](SpriteHollow-4.1.1-v70.apk) (714 KB, SHA-256 `c55765773295c6cda0bf25bdab1127fd7b959dfab5205c1d60c70c3a775e63db`) is kept for sideloading onto clean devices.
+**Download:** [`SpriteHollow-4.1.1-v70-release.apk`](SpriteHollow-4.1.1-v70-release.apk) — 706 KB, release-signed with the project release key, fully offline, `versionName 4.1.1` / `versionCode 70`. SHA-256 `6f85a661b391e06006aeb3812f7f0f7a3224cccf1715f86e8256a710636f0449`. It installs in place over 3.19.0 and 3.20.0; a debug-signed [`SpriteHollow-4.1.1-v70.apk`](SpriteHollow-4.1.1-v70.apk) (714 KB, SHA-256 `dbb87902421ec261a713c9380e3aef8614b88f5f5941bc5accaf8853676b7e62`) is kept for sideloading onto clean devices.
 
-**Release build (4.1.1):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 706 KB, signed with the project release key. SHA-256 `8956647d3db0d6b9c5960fabae99f2e21d0e91c196ad045807bb2223f92026cc`.
+**Release build (4.1.1):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 706 KB, signed with the project release key. SHA-256 `6f85a661b391e06006aeb3812f7f0f7a3224cccf1715f86e8256a710636f0449`.
 
 - Minimum Android 7.0 (API 24); targets Android 14 (API 34).
 - Install: open the APK on the phone and allow installation from this source, or use `adb install -r SpriteHollow.apk`.
