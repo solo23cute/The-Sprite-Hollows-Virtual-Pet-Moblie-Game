@@ -8,8 +8,8 @@
 - Version: `versionName 4.1.5` / `versionCode 76`
 - Minimum Android: 7.0 (API 24)
 - Target Android: 14 (API 34)
-- Size: 738,797 bytes
-- SHA-256: `b4f6cbc1350179bbc7eb741b212356eec476524c113f44d7edec0f13c8ca21c4`
+- Size: 734,701 bytes
+- SHA-256: `3d63c7d9916a5d932e271bed1d6c103daea01809e73658bc1735c81ad2b3651e`
 - Rebuilt from source and re-signed with the existing 4.1.3 lineage.
 - v2, v3, and v3.1 signatures verify.
 
@@ -20,6 +20,7 @@
 - **Duels with sprites at home:** Hollow Duel and guardian duels fall back to the active at-home sprite when no sprite is out in the Hollow.
 - **Mini-game menus:** the game overlay scrolls and respects short viewport heights, the board can shrink correctly, and touch handling works on game boards and the duel picker.
 - **Cache busting:** quest, arcade, and layout assets use fresh cache keys so an upgrade does not keep the broken cached files.
+- **Save recovery:** the first-run restore button, save-import flow, and rescue tooling from `main` are included.
 
 ### Upgrade notes
 

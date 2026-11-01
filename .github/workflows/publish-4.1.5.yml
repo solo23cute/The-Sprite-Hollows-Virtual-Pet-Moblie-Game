@@ -22,6 +22,7 @@ jobs:
           APK: SpriteHollow-4.1.5-v76-release.apk
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file .github/release-4.1.5.md
             gh release upload "$TAG" "$APK" --clobber
           else
             gh release create "$TAG" "$APK" \
