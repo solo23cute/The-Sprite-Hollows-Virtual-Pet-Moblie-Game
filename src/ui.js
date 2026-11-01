@@ -254,5 +254,5 @@ function moodChip(sprite) {
 
 function stageLabel(sprite) {
   if (!sprite) return '';
-  return { egg: 'Egg', baby: 'Baby', juvenile: 'Juvenile', sprite: 'Sprite', elder: 'Elder' }[sprite.stage] || 'Baby';
+  return { egg: 'Egg', baby: 'Baby', juvenile: 'Juvenile', sprite: 'Sprite', elder: 'Elder', ancient: 'Ancient', sensei: 'Sensei' }[sprite.stage] || 'Baby';
 }

@@ -110,11 +110,15 @@ function freshState() {
       walks: 0, walkDistance: 0, bestWalk: 0, walkGifts: 0, sports: 0, sportGifts: 0,
       arcadeCoins: 0, arcadeGifts: 0, arcadeMonthGifts: 0, careGifts: 0,
       rubs: 0, throws: 0, catches: 0, tasksClaimed: 0, rebirths: 0,
+      dailyEggs: 0, holidayGifts: 0, weekendGifts: 0,
     },
     seen: { intro: false, tour: false },
     secretUnlocks: [],
     codeRedeems: {},
     biomesVisited: [],
+    eggGift: null,
+    holidayGift: null,
+    weekendGift: null,
     lastTick: Date.now(),
   };
 }
@@ -209,6 +213,23 @@ function loadState() {
     merged.codeRedeems = parsed.codeRedeems && typeof parsed.codeRedeems === 'object' ? parsed.codeRedeems : {};
     merged.biomesVisited = Array.from(new Set((Array.isArray(parsed.biomesVisited) ? parsed.biomesVisited : [])
       .filter((k) => isTypeBiomeScene(k))));
+    merged.eggGift = parsed.eggGift && typeof parsed.eggGift === 'object' && parsed.eggGift.date
+      ? { date: String(parsed.eggGift.date), key: ELEMENTS[parsed.eggGift.key] ? parsed.eggGift.key : null }
+      : null;
+    merged.holidayGift = parsed.holidayGift && typeof parsed.holidayGift === 'object' && parsed.holidayGift.date
+      ? {
+        date: String(parsed.holidayGift.date),
+        holiday: HOLIDAYS[parsed.holidayGift.holiday] ? parsed.holidayGift.holiday : null,
+        key: ELEMENTS[parsed.holidayGift.key] ? parsed.holidayGift.key : null,
+      }
+      : null;
+    merged.weekendGift = parsed.weekendGift && typeof parsed.weekendGift === 'object' && parsed.weekendGift.week
+      ? {
+        week: String(parsed.weekendGift.week),
+        event: typeof WEEKEND_ADMIN_EVENTS !== 'undefined' && WEEKEND_ADMIN_EVENTS.some((e) => e.key === parsed.weekendGift.event) ? parsed.weekendGift.event : null,
+        key: ELEMENTS[parsed.weekendGift.key] ? parsed.weekendGift.key : null,
+      }
+      : null;
     merged.inventory = {
       snacks: { ...(parsed.inventory?.snacks || {}) },
       foods: { ...(parsed.inventory?.foods || {}) },
@@ -385,6 +406,8 @@ function spriteRarityBonus(s) {
   return s ? rarityCoinBonus(s.element, s.rarityBoost) : 0;
 }
 function stageForLevel(level) {
+  if (level >= 100) return 'sensei';
+  if (level >= 45) return 'ancient';
   if (level >= 20) return 'elder';
   if (level >= 10) return 'sprite';
   if (level >= 5) return 'juvenile';
@@ -393,9 +416,9 @@ function stageForLevel(level) {
 function xpNeeded(level) {
   return 50 + level * 18;
 }
-const STAGE_ORDER = ['baby', 'juvenile', 'sprite', 'elder'];
-const STAGE_LABELS = { baby: 'Baby', juvenile: 'Juvenile', sprite: 'Sprite', elder: 'Elder' };
-const STAGE_LEVEL = { baby: 1, juvenile: 5, sprite: 10, elder: 20 };
+const STAGE_ORDER = ['baby', 'juvenile', 'sprite', 'elder', 'ancient', 'sensei'];
+const STAGE_LABELS = { baby: 'Baby', juvenile: 'Juvenile', sprite: 'Sprite', elder: 'Elder', ancient: 'Ancient', sensei: 'Sensei' };
+const STAGE_LEVEL = { baby: 1, juvenile: 5, sprite: 10, elder: 20, ancient: 45, sensei: 100 };
 const GROWTH_MILESTONES = [5, 10, 20, 100, 250, 500, 1000];
 function stageEvolutionInfo(s) {
   if (!s || s.stage === 'egg') return { egg: true, current: 'egg', next: null, nextLabel: 'Egg', required: 1, levelsLeft: 0, ready: false, final: false, progress: 0 };
@@ -958,7 +981,9 @@ function addXpRaw(s, amount) {
   }
   const breed = BREEDS[s.breed] || {};
   const habitat = habitatFor(s);
-  const total = amount * weeklyEventXpMult() * (breed.xpMod || 1) * (1 + (s.gen || 0) * 0.05) * (spriteEffects(s).xp || 1) * (1 + habitat.bonus);
+  const holidayXp = typeof holidayXpMult === 'function' ? holidayXpMult() : 1;
+  const weekendXp = typeof weekendAdminXpMult === 'function' ? weekendAdminXpMult() : 1;
+  const total = amount * weeklyEventXpMult() * holidayXp * weekendXp * (breed.xpMod || 1) * (1 + (s.gen || 0) * 0.05) * (spriteEffects(s).xp || 1) * (1 + habitat.bonus);
   s.xp += total;
   let ups = 0;
   while (s.level < MAX_LEVEL && s.xp >= xpNeeded(s.level)) {
@@ -984,10 +1009,12 @@ function addXpRaw(s, amount) {
     s.needs.joy = clamp(s.needs.joy + 8);
     s.bond = clamp(s.bond + 3);
     const nextStage = stageForLevel(s.level);
+    const prevStage = s.stage;
     if (nextStage !== s.stage) {
       s.stage = nextStage;
-      const names = { juvenile: 'Juvenile', sprite: 'Sprite', elder: 'Elder' };
+      const names = STAGE_LABELS;
       toast(`${displayName(s)} grew into a ${names[nextStage]}!`, '🌟');
+      if (typeof announceStageEvolution === 'function') announceStageEvolution(s, prevStage, nextStage);
       Sfx.level();
     } else {
       toast(`${displayName(s)} reached level ${s.level}`, '⭐');
@@ -1260,9 +1287,9 @@ function rollEgg(tierId, opts = {}) {
   });
 }
 
-const TRAIL_STAGE_ORDER = ['baby', 'juvenile', 'sprite', 'elder'];
-const TRAIL_STAGE_LABELS = { baby: 'Baby', juvenile: 'Juvenile', sprite: 'Sprite', elder: 'Elder' };
-const TRAIL_STAGE_LEVEL = { juvenile: 5, sprite: 10, elder: 20 };
+const TRAIL_STAGE_ORDER = STAGE_ORDER;
+const TRAIL_STAGE_LABELS = STAGE_LABELS;
+const TRAIL_STAGE_LEVEL = { juvenile: 5, sprite: 10, elder: 20, ancient: 45, sensei: 100 };
 
 /* Every finished trail resolves one visible reward: a type-tier rise, a stage
    evolution, or a generous coin bonus. Higher trails roll the rare outcomes more often. */
@@ -1281,6 +1308,7 @@ function rollTrailBonus(s, info, payout) {
     const toStage = TRAIL_STAGE_ORDER[stageIndex + 1];
     s.stage = toStage;
     s.level = Math.max(s.level, TRAIL_STAGE_LEVEL[toStage] || s.level);
+    if (typeof announceStageEvolution === 'function') announceStageEvolution(s, fromStage, toStage);
     return { kind: 'evolve', from: TRAIL_STAGE_LABELS[fromStage] || fromStage, to: TRAIL_STAGE_LABELS[toStage] || toStage, stage: toStage };
   }
   if (canTier && roll < evolveChance + tierChance) {
@@ -1326,7 +1354,7 @@ const Actions = {
 
   retire(id) {
     const s = findSprite(id);
-    if (!s || s.stage !== 'elder') return { ok: false, reason: 'elder' };
+    if (!s || STAGE_ORDER.indexOf(s.stage) < STAGE_ORDER.indexOf('elder')) return { ok: false, reason: 'elder' };
     s.retired = true;
     unlockSecret('elderkeeper');
     s.retiredAt = Date.now();
@@ -2172,6 +2200,63 @@ const Actions = {
     return { ok: true, coins, newFood, bundle };
   },
 
+  claimWeekendGift() {
+    if (typeof weekendAdminActive !== 'function' || !weekendAdminActive()) return { ok: false, reason: 'weekend' };
+    const event = weekendAdminEvent();
+    const week = weekendAdminDateKey();
+    if (weekendAdminClaimed()) return { ok: false, reason: 'claimed', event };
+    const pool = weekendAdminEggPool();
+    const key = pool.includes(event.egg) ? event.egg : (pool.length ? pick(pool) : dailyEggFeatured());
+    const egg = rollEgg('wild', { element: key, eggLabel: `${ELEMENTS[key].name} Event Egg` });
+    egg.hatch = 40;
+    state.sprites.push(egg);
+    const coins = Math.round((event.coins || 300) * (1 + Math.min(0.5, (state.stats.weekendGifts || 0) * 0.02)));
+    addCoinsRaw(coins);
+    state.weekendGift = { week, event: event.key, key };
+    state.stats.weekendGifts = (state.stats.weekendGifts || 0) + 1;
+    Sfx.win();
+    commit('weekendGift', { event: event.key, element: key, coins });
+    return { ok: true, event, egg, element: key, coins, week };
+  },
+
+  claimDailyEgg(elementKey) {
+    const today = dayKey();
+    if (state.eggGift?.date === today) return { ok: false, reason: 'claimed' };
+    const pool = dailyEggPool();
+    const key = pool.includes(elementKey) ? elementKey : dailyEggFeatured();
+    const egg = rollEgg('wild', { element: key, eggLabel: `${ELEMENTS[key].name} Gift Egg` });
+    egg.hatch = 40;
+    state.sprites.push(egg);
+    state.eggGift = { date: today, key };
+    state.stats.dailyEggs = (state.stats.dailyEggs || 0) + 1;
+    Sfx.hatch();
+    commit('dailyEgg', { element: key, spriteId: egg.id });
+    return { ok: true, egg, element: key };
+  },
+
+  claimHolidayGift() {
+    const holiday = typeof activeHoliday === 'function' ? activeHoliday() : null;
+    if (!holiday) return { ok: false, reason: 'event' };
+    const today = dayKey();
+    if (state.holidayGift?.date === today && state.holidayGift.holiday === holiday.key) {
+      return { ok: false, reason: 'claimed', holiday };
+    }
+    const pool = holidayEggPool(holiday);
+    const key = pool.length ? pick(pool) : dailyEggFeatured();
+    const egg = rollEgg('wild', { element: key, eggLabel: `${ELEMENTS[key].name} ${holiday.name} Egg` });
+    egg.hatch = 40;
+    state.sprites.push(egg);
+    const coins = Math.round(80 * (holiday.coinMult || 1)) + 40;
+    addCoinsRaw(coins);
+    const snack = pick(SNACK_KEYS);
+    addSnackRaw(snack, 1);
+    state.holidayGift = { date: today, holiday: holiday.key, key };
+    state.stats.holidayGifts = (state.stats.holidayGifts || 0) + 1;
+    Sfx.win();
+    commit('holidayGift', { holiday: holiday.key, element: key, coins });
+    return { ok: true, holiday, egg, element: key, coins, snack };
+  },
+
   claimGift() {
     if (!giftReady()) return { ok: false, reason: 'waiting' };
     const gift = state.gift;
@@ -2223,6 +2308,7 @@ const Actions = {
     state.stats.evolves = (state.stats.evolves || 0) + 1;
     Sfx.level();
     toast(`${displayName(s)} evolved into ${formName(s)}!`, form.icon);
+    if (typeof celebrateFormEvolution === 'function') setTimeout(() => celebrateFormEvolution(s, form), 320);
     commit('evolve', { spriteId: s.id, form: form.id });
     return { ok: true, form, sprite: s };
   },

@@ -1,5 +1,26 @@
 /* Type Biome Atlas and the Secret Vault. */
 
+function extraBiomeCards(activeScene) {
+  if (typeof EXTRA_BIOME_KEYS === 'undefined') return '';
+  return EXTRA_BIOME_KEYS.map((key) => {
+    const scene = SCENES[key];
+    if (!scene) return '';
+    const tint = sceneTint(key);
+    const sampleKey = (scene.species || [])[0] || 'bloom';
+    const sample = {
+      id: `extra-${key}`, element: sampleKey, breed: 'puff', stage: 'sprite',
+      palette: 'native', pattern: 'plain', accessory: 'none', name: scene.name, level: 3, size: 'standard',
+    };
+    return `<button class="biome-card ${activeScene === key ? 'on' : ''}" data-biome-travel="${key}" style="--biome:${tint.b1};--biome-deep:${tint.b2}">
+      <span class="biome-card-top"><span class="biome-icon">${scene.emoji}</span><span>${esc(scene.habitat)}</span></span>
+      <span class="biome-card-art">${spriteSVG(sample, { expr: 'happy' })}</span>
+      <b>${esc(scene.name)}</b>
+      <span class="biome-card-meta">${(scene.species || []).length.toLocaleString()} species · +${Math.round((scene.bonus || 0.46) * 100)}% XP</span>
+      <span class="biome-card-guardian">Biome habitat</span>
+    </button>`;
+  }).join('');
+}
+
 function openBiomeAtlas() {
   const visited = new Set(state.biomesVisited || []);
   const activeScene = state.theme.scene;
@@ -44,6 +65,8 @@ function openBiomeAtlas() {
         <span class="chip">1,025 Pokémon sorted by type</span>
       </div>
       <div class="biome-grid">${cards}</div>
+      <div class="section-title" style="margin-top:14px"><h2>Biome habitats</h2><span>${typeof EXTRA_BIOME_KEYS !== 'undefined' ? EXTRA_BIOME_KEYS.length : 0} more built-in scenes</span></div>
+      <div class="biome-grid">${extraBiomeCards(activeScene)}</div>
       <div class="section-title" style="margin-top:14px"><h2>Hollow exotics</h2><span>${SPECIAL_EXOTIC_SPECIES.length} signatures</span></div>
       ${specialCards}
       <div class="card" style="padding:12px;margin-top:12px;font-size:11px;line-height:1.6;color:var(--muted)">
@@ -55,11 +78,12 @@ function openBiomeAtlas() {
         btn.addEventListener('click', () => {
           const key = btn.dataset.biomeTravel;
           const type = key.replace('biome-', '');
-          const biome = TYPE_BIOMES[type];
+          const biome = TYPE_BIOMES[type] || null;
           Actions.setTheme({ scene: key });
           close();
           App.refresh();
-          toast(`${SCENES[key].emoji} ${biome.name} · ${biome.speciesCount.toLocaleString()} species thriving.`, '🧭');
+          const travelled = SCENES[key];
+          toast(`${travelled.emoji} ${travelled.name} · ${(travelled.species || []).length.toLocaleString()} species thriving.`, '🧭');
           Sfx.click();
         });
       });

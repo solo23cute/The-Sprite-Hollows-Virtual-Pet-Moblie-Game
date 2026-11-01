@@ -734,7 +734,7 @@ const WIKI_GUIDES = [
     summary: 'Levels, stages, diet affinities, and the four evolution forms.',
     body: () => `<p class="wiki-lede">Sprites level up by doing things with you. Levels unlock new life stages and, eventually, a Titan name.</p>
       <h3>Stages</h3>
-      <p><b>Egg → Baby → Juvenile → Sprite → Elder</b> at levels 1 / 5 / 10 / 20. Every level pays 12 coins and raises joy and bond. Elders are bigger, get a sparkle aura, and carry the species' Titan name.</p>
+      <p><b>${['Egg', ...STAGE_ORDER.map((stage) => STAGE_LABELS[stage])].join(' → ')}</b> at levels 1 / ${STAGE_ORDER.map((stage) => STAGE_LEVEL[stage]).slice(1).join(' / ')}. Every level pays 12 coins and raises joy and bond. Elders are bigger, get a sparkle aura, and carry the species' Titan name.</p>
       <h3>Fast XP</h3>
       <p>The best XP comes from matching the sprite's habitat, then playing games, feeding, and sleeping. Petting is small but repeatable. Gene powers, finishes, combos, generation, and habitat bonuses all multiply the final amount.</p>
       <h3>Diet evolution</h3>
@@ -953,7 +953,7 @@ function openWikiArticle(key) {
         <span><b>${esc(power.name)}</b><br><span>${esc(power.desc)}</span></span>
       </div>
       <h3>Growth</h3>
-      <p>Hatches from a <b>${esc(el.name)} Egg</b> and grows through <b>Egg → Baby → Juvenile → Sprite → Elder</b> at levels 1 / 5 / 10 / 20. The level cap is <b>${MAX_LEVEL.toLocaleString()}</b>, and the next stage is previewed on every owned sprite. Its elder Titan name is <b>${esc(TITAN_NAMES[key])}</b>.</p>
+      <p>Hatches from a <b>${esc(el.name)} Egg</b> and grows through <b>${['Egg', ...STAGE_ORDER.map((stage) => STAGE_LABELS[stage])].join(' → ')}</b> at levels 1 / ${STAGE_ORDER.map((stage) => STAGE_LEVEL[stage]).slice(1).join(' / ')}. The level cap is <b>${MAX_LEVEL.toLocaleString()}</b>, and the next stage is previewed on every owned sprite. Its elder Titan name is <b>${esc(TITAN_NAMES[key])}</b>.</p>
       <button class="btn btn-soft btn-block" data-wiki-action="bonds" style="margin-top:9px">💞 Bond Codex &amp; evolution path</button>
       <h3>Genetics & hybrids</h3>
       ${hybrids.length
@@ -1070,6 +1070,9 @@ function wikiScreen(root) {
       <span class="rl-copy"><b>Roster browser · ${PONY_TOTAL + CARE_BEAR_TOTAL + TV_LEGACY_TOTAL + KH_TOTAL + NETFLIX_TOTAL}</b><span>Filter ponies, Care Bears, TV shows, Netflix shows, and Keyblade worlds by group, with owned progress.</span></span>
       <span class="rl-arrow">›</span>
     </button>
+    <div class="section-title" style="margin-top:12px"><h2>Collection waves</h2><span data-wiki-waves-count></span></div>
+    <div class="card" style="padding:10px;display:grid;gap:7px" data-wiki-waves></div>
+    <p class="tiny muted" style="text-align:center;margin:6px 4px 0">Counts are read live from the game data, so every new sprite wave appears here automatically.</p>
     <div class="type-tools" style="margin-top:10px">
       <input class="type-search" type="search" data-wiki-search placeholder="Search species, traits, or guides…" aria-label="Search the Sprite Wiki" autocomplete="off">
     </div>
@@ -1108,6 +1111,10 @@ function wikiScreen(root) {
   const count = root.querySelector('[data-wiki-count]');
   const search = root.querySelector('[data-wiki-search]');
   const feature = root.querySelector('[data-wiki-feature]');
+  const waveBox = root.querySelector('[data-wiki-waves]');
+  const waveCount = root.querySelector('[data-wiki-waves-count]');
+  if (waveBox) waveBox.innerHTML = collectionWaveRowsHTML();
+  if (waveCount) waveCount.textContent = `${collectionWaves().length} waves · ${collectionWaveTotal().toLocaleString()} sprites`;
 
   const bind = (node) => {
     node.querySelectorAll('[data-wiki-guide]').forEach((btn) => {
@@ -1154,7 +1161,8 @@ function wikiScreen(root) {
     const prismatic = el.alwaysShiny ? 'prismatic always shiny multiverse' : '';
     const exotic = isExoticSpecies(key) ? 'exotic signature' : '';
     const apex = RARITY_APEX_KEYS.join(' ');
-    return `${el.name} ${key} ${el.trait} ${el.blurb} ${publisher} ${role} ${disney} ${careBears} ${fortniteLegacy} ${wwe} ${pony} ${tv} ${netflix} ${realm} ${kingdomHearts} ${legend} ${catalog} ${parentTypes} ${world} ${genre} ${prismatic} ${exotic} ${apex} bond codex evolution ${GENE_POWERS[key]?.name || ''} ${wikiHabitats(key).map((k) => SCENES[k].name).join(' ')}`.toLowerCase();
+    const special = el.ahs ? 'American Horror Story AHS horror anthology' : el.fairy ? 'fairy pixie hollow tinker bell disney fairies neverland dust periwinkle bell winter fairy snow frost tooth fairy' : el.neverland ? 'peter pan neverland wendy lost boys pirate hook mermaid crocodile' : el.adultswim ? 'adult swim cartoon network late night rick and morty aqua teen boondocks samurai jack metalocalypse smiling friends' : el.babyloons ? 'baby looney tunes nursery bugs bunny daffy tweety sylvester lola taz porky foghorn pepe toddler' : el.admin ? 'admin event staff weekend' : el.eventOnly ? 'special event weekend sprite' : '';
+    return `${el.name} ${key} ${el.trait} ${el.blurb} ${publisher} ${role} ${disney} ${careBears} ${fortniteLegacy} ${wwe} ${pony} ${tv} ${netflix} ${realm} ${kingdomHearts} ${legend} ${catalog} ${parentTypes} ${world} ${genre} ${prismatic} ${exotic} ${apex} ${special} bond codex evolution ${GENE_POWERS[key]?.name || ''} ${wikiHabitats(key).map((k) => SCENES[k].name).join(' ')}`.toLowerCase();
   }
 
   function paint() {

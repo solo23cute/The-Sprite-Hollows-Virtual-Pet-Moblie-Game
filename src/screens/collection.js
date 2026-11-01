@@ -206,7 +206,7 @@ function openSpriteDetail(id) {
         <div class="between"><div class="tiny muted" style="font-weight:800;letter-spacing:.08em">NEXT EVOLUTION</div><span class="chip">${evo.final ? `Lv ${MAX_LEVEL.toLocaleString()} cap` : `Lv ${evo.required}`}</span></div>
         <div class="evo-next-main">
           <span class="evo-next-icon">${evo.final ? '🏆' : evo.ready ? '🌟' : '🌱'}</span>
-          <div><b>${evo.final ? 'Elder is the final stage' : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}</b><p>${evo.final ? `The four stages are complete. Keep growing toward level ${MAX_LEVEL.toLocaleString()}.` : evo.ready ? `${esc(displayName(s))} is ready to become a ${evo.nextLabel}.` : `${evo.levelsLeft} level${evo.levelsLeft === 1 ? '' : 's'} and ${Math.max(0, Math.ceil(xpNeeded(s.level) - (s.xp || 0))).toLocaleString()} XP to ${evo.nextLabel}.`}</p></div>
+          <div><b>${evo.final ? `${STAGE_LABELS[STAGE_ORDER[STAGE_ORDER.length - 1]]} is the final stage` : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}</b><p>${evo.final ? `Every age tier is complete. Keep growing toward level ${MAX_LEVEL.toLocaleString()}.` : evo.ready ? `${esc(displayName(s))} is ready to become a ${evo.nextLabel}.` : `${evo.levelsLeft} level${evo.levelsLeft === 1 ? '' : 's'} and ${Math.max(0, Math.ceil(xpNeeded(s.level) - (s.xp || 0))).toLocaleString()} XP to ${evo.nextLabel}.`}</p></div>
         </div>
         <div class="bar" style="height:8px;margin-top:9px"><i style="width:${Math.round(evo.progress * 100)}%;background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
         <div class="between tiny muted" style="margin-top:6px"><span>${bondRank.icon} ${esc(bondRank.name)} · ${Math.round(s.bond)} bond</span><span>${Math.round(evo.progress * 100)}%</span></div>
@@ -251,7 +251,7 @@ function openSpriteDetail(id) {
       ${s.stage !== 'egg' ? `<div class="card" style="padding:12px;margin-top:10px;font-size:11.5px;line-height:1.6;color:var(--muted)">🍬 <b style="color:var(--text)">Candy sugar ${s.sugar || 0}/3.</b> Feeding candy treats builds sugar. At 3, this sprite transforms into a random candy species.</div>` : ''}
       <div class="detail-actions">
         <button class="btn ${isActive ? 'btn-ghost' : 'btn-primary'}" data-set-active ${isActive || s.retired ? 'disabled' : ''}>${s.retired ? 'Retired' : isActive ? 'Currently active' : 'Set active'}</button>
-        ${s.stage === 'elder' ? `<button class="btn btn-soft" data-retire>${s.retired ? 'Bring back' : 'Retire'}</button>` : ''}
+        ${STAGE_ORDER.indexOf(s.stage) >= STAGE_ORDER.indexOf('elder') ? `<button class="btn btn-soft" data-retire>${s.retired ? 'Bring back' : 'Retire'}</button>` : ''}
         ${s.stage !== 'egg' && s.level >= MAX_LEVEL ? `<button class="btn btn-gold" data-rebirth>🌱 Rebirth (${foodCount('rebirthmeal')})</button>` : ''}
         <button class="btn btn-soft" data-talk>${icon('chat')} Talk</button>
         <button class="btn" data-style>${icon('palette')} Style</button>
@@ -357,7 +357,7 @@ function openEvolutionForecast(id) {
     sub: `${displayName(s)} · ${evo.final ? 'Elder' : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}`,
     body: `<div class="card evolution-next-card">
         <div class="between"><span class="tiny muted" style="font-weight:800;letter-spacing:.08em">NEXT STAGE</span><span class="chip">Level ${s.level}${s.level >= MAX_LEVEL ? ' · MAX' : ''}</span></div>
-        <div class="evo-next-main"><span class="evo-next-icon">${evo.final ? '🏆' : evo.ready ? '🌟' : '🌱'}</span><div><b>${evo.final ? 'Elder is the final stage' : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}</b><p>${evo.final ? `All four stages are complete. The long road runs to level ${MAX_LEVEL.toLocaleString()}.` : evo.ready ? `Ready now: ${esc(displayName(s))} can become a ${evo.nextLabel}.` : `Needs ${evo.levelsLeft} more level${evo.levelsLeft === 1 ? '' : 's'} (level ${evo.required}) to reach ${evo.nextLabel}.`}</p></div></div>
+        <div class="evo-next-main"><span class="evo-next-icon">${evo.final ? '🏆' : evo.ready ? '🌟' : '🌱'}</span><div><b>${evo.final ? `${STAGE_LABELS[STAGE_ORDER[STAGE_ORDER.length - 1]]} is the final stage` : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}</b><p>${evo.final ? `Every age tier is complete. The long road runs to level ${MAX_LEVEL.toLocaleString()}.` : evo.ready ? `Ready now: ${esc(displayName(s))} can become a ${evo.nextLabel}.` : `Needs ${evo.levelsLeft} more level${evo.levelsLeft === 1 ? '' : 's'} (level ${evo.required}) to reach ${evo.nextLabel}.`}</p></div></div>
         <div class="bar" style="height:8px;margin-top:9px"><i style="width:${Math.round(evo.progress * 100)}%;background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
       </div>
       <h3>Life stages</h3>

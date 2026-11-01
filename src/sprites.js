@@ -50,7 +50,7 @@ function bodyPath(breed) {
   }
 }
 
-const STAGE_SCALE = { baby: 0.78, juvenile: 0.9, sprite: 1, elder: 1.07 };
+const STAGE_SCALE = { baby: 0.78, juvenile: 0.9, sprite: 1, elder: 1.07, ancient: 1.13, sensei: 1.19 };
 
 function eyeMarkup(expr, baby, delay) {
   const rx = baby ? 7.4 : 6.5;
@@ -2041,7 +2041,7 @@ function spriteSVG(sprite, opts = {}) {
   const accessory = accessoryMarkup(sprite.accessory || 'none', c);
   const body = bodyPath(sprite.breed);
 
-  const sparkle = stage === 'elder'
+  const sparkle = ['elder', 'ancient', 'sensei'].includes(stage)
     ? `<g fill="${c.light}" opacity=".9">
         <path d="M26 29l1.3 3.6L31 34l-3.7 1.4L26 39l-1.3-3.6L21 34l3.7-1.4z"/>
         <path d="M96 68l1 2.8 2.8 1-2.8 1L96 76l-1-2.8-2.8-1 2.8-1z"/>
@@ -2056,7 +2056,7 @@ function spriteSVG(sprite, opts = {}) {
       </linearGradient>
       <clipPath id="${clipId}"><path d="${body}"/></clipPath>
     </defs>
-    <ellipse cx="60" cy="104" rx="${stage === 'elder' ? 31 : 25}" ry="5" fill="#000" opacity=".22"/>
+    <ellipse cx="60" cy="104" rx="${['elder', 'ancient', 'sensei'].includes(stage) ? 31 : 25}" ry="5" fill="#000" opacity=".22"/>
     <g transform="translate(60 70) scale(${scale}) translate(-60 -70)">
       ${isSleeping ? `<g transform="rotate(-6 60 70)">` : '<g>'}
       ${formMarkup(sprite, c, 'back')}

@@ -49,9 +49,14 @@ function codexScreen(root) {
       </button>
       <button class="type-feature bond-feature" data-open-evolution>
         <span class="tf-icon">🧬</span>
-        <span class="tf-copy"><b>World Evolution Atlas</b><span>${ELEMENT_KEYS.length.toLocaleString()} types × 4 forms · ${BIOME_KEYS.length} biomes · Vault free</span></span>
+        <span class="tf-copy"><b>World Evolution Atlas</b><span>${ELEMENT_KEYS.length.toLocaleString()} types × ${STAGE_ORDER.length} forms · ${BIOME_KEYS.length} biomes · Vault free</span></span>
         <span class="tf-arrow">›</span>
       </button>
+    </div>
+    <div class="card" style="padding:11px;margin-top:10px">
+      <div class="between"><b style="font-size:12px">Collection waves</b><span class="chip">${collectionWaves().length} live</span></div>
+      <div class="wiki-hybrid-list" style="margin-top:7px">${collectionWaveChipsHTML()}</div>
+      <p class="tiny muted" style="margin:7px 0 0;line-height:1.5">These counts rebuild from live data, so every new sprite wave shows up here the moment it loads.</p>
     </div>
     <div class="type-tools" style="margin-top:2px">
       <input class="type-search" type="search" data-codex-search placeholder="Search types…" aria-label="Search sprite types" autocomplete="off">

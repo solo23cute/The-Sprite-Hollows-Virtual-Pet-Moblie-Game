@@ -12,7 +12,8 @@ function buildSceneDecor(scene) {
       ${motes}`;
   }
   if (sceneMeta?.biome) {
-    const palette = PDX_TYPES[sceneMeta.type];
+    const tint = sceneTint(scene);
+    const palette = PDX_TYPES[sceneMeta.type] || { light: tint.b3, primary: tint.b1, deep: tint.b2 };
     const motes = Array.from({ length: 12 }, () => `<span class="biome-mote" style="left:${rand(4, 96)}%;top:${rand(18, 78)}%;animation-delay:${rand(0, 5)}s;color:${palette.light}">${sceneMeta.emoji}</span>`).join('');
     return `<span class="sun" style="background:radial-gradient(circle, ${palette.light}, ${palette.primary} 62%, transparent 72%);box-shadow:0 0 54px ${palette.primary}77"></span>
       <span class="hill h1" style="background:${palette.deep};opacity:.7"></span><span class="hill h2" style="background:${palette.primary};opacity:.45"></span><span class="ground" style="background:${palette.deep}"></span>
@@ -98,7 +99,7 @@ function buildWeatherFx(key) {
 }
 
 function spriteSize(stage, size = 'standard') {
-  const base = { baby: 132, juvenile: 146, sprite: 160, elder: 174 }[stage] || 132;
+  const base = { baby: 132, juvenile: 146, sprite: 160, elder: 174, ancient: 184, sensei: 192 }[stage] || 132;
   return Math.round(base * (SIZES[size]?.scale || 1));
 }
 
@@ -189,6 +190,10 @@ function hollowScreen(root) {
   root.querySelector('[data-bedroom]')?.addEventListener('click', () => { Sfx.click(); openBedroomSheet(); });
 
   const stageEl = root.querySelector('[data-stage]');
+  if (stageEl && sceneUsesTint(state.theme.scene) && !SCENES[state.theme.scene]?.custom) {
+    const tint = sceneTint(state.theme.scene);
+    stageEl.style.background = `linear-gradient(180deg, ${tint.b2} 0%, ${tint.b1} 58%, ${tint.b2} 100%)`;
+  }
   const decorEl = root.querySelector('[data-decor]');
   const actorsEl = root.querySelector('[data-actors]');
   const whisperEl = root.querySelector('[data-whisper]');
@@ -371,6 +376,10 @@ function hollowScreen(root) {
     stageEl.style.background = scene?.custom
       ? `linear-gradient(180deg, ${scene.sky} 0%, ${scene.sky} 55%, ${scene.ground} 56%, ${scene.ground} 100%)`
       : '';
+    if (scene && !scene.custom && sceneUsesTint(state.theme.scene)) {
+      const tint = sceneTint(state.theme.scene);
+      stageEl.style.background = `linear-gradient(180deg, ${tint.b2} 0%, ${tint.b1} 58%, ${tint.b2} 100%)`;
+    }
     const sky = root.querySelector('[data-sky]');
     if (sky) sky.textContent = phase.key === 'night' ? '🌙' : phase.key === 'day' ? '☀️' : phase.key === 'dawn' ? '🌅' : '🌇';
     const worldChip = root.querySelector('[data-world]');
