@@ -89,10 +89,14 @@ if [ ! -f "$KEYSTORE" ]; then
 fi
 
 echo "==> Signing"
-SIGN_FLAGS=()
+# v1 (JAR) signing is off unless asked for: minSdk 24 means every supported
+# device understands v2, and the release profile has always been v2 + v3 only.
+# Without these explicit flags apksigner silently enables v1.
 if [ "$SIGN_V1" = "true" ]; then
   # Android 5-6 (below API 24) only understands JAR signing.
-  SIGN_FLAGS+=(--v1-signing-enabled true --v2-signing-enabled true)
+  SIGN_FLAGS=(--v1-signing-enabled true --v2-signing-enabled true)
+else
+  SIGN_FLAGS=(--v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true)
 fi
 "$JAVA_BIN/java$EXE" -jar "$BT/lib/apksigner.jar" sign \
   --ks "$KEYSTORE" --ks-pass "pass:$KEYPASS" --key-pass "pass:$KEYPASS" \
