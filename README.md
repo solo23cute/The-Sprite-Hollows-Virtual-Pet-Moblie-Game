@@ -10,6 +10,13 @@
 - **Android build:** `SpriteHollow-3.19.0-v68.apk` — 726,560 bytes, `versionName 3.19.0` / `versionCode 68`, minSdk 24, targetSdk 34, debug-signed with the local build key. SHA-256 `bb5b432cd91f0773f1190eecd51ea87d8724be3fdbbfd116a3f9b2e140d8d63c`. `android/build.sh` now also packages `styles-hollow-home.css`, which earlier builds omitted.
 - Verified: `node --check` across every JS file, all 115 scripts loading in page order, and a 35-check feature harness covering colours, themes, free decor, custom guardians, vault doors, event sprites, and the quest/hangout regressions.
 
+### Downloads
+
+- **Android 7.0 and up:** `SpriteHollow-3.19.0-v68-release.apk` - 718,169 bytes, release-signed (v2 + v3, `--v1-signing-enabled false`, minSdk 24, targetSdk 34), `versionName 3.19.0` / `versionCode 68`. SHA-256 `7f286d50550eb6054e70fe34f0d8c4125ced9425c6168484dcbdf1f5418c4d2b`.
+- Debug build kept alongside it: `SpriteHollow-3.19.0-v68.apk` - debug-signed with the local build key, SHA-256 `bb5b432cd91f0773f1190eecd51ea87d8724be3fdbbfd116a3f9b2e140d8d63c`.
+
+**Signing note:** `android/release.keystore` and `android/release-key.properties` are gitignored and were absent from the checkout that built 3.19.0, so this release APK is signed with a freshly generated 4096-bit key stored at those same paths (certificate SHA-256 `799ec735323db8c9cbc362c66ab27633aeb79531ace3fe9a8ae87739a61be9b4`). It installs cleanly on any device and upgrades in place over later builds signed with this key, but Android refuses it over an installed 3.13.0-3.18.0 release build, which carries the archived key; installing there needs an uninstall first, and that clears the app's saved Hollow. To keep the old upgrade chain, restore the archived signing files to those paths (see *Restoring the signing material*) and re-sign.
+
 ## 3.18.0 Gender Codex, and a fresh pair of APKs
 
 - New **⚥ Gender Codex** tile on the Codex screen, with live counts right in its subtitle (`2 ♀ · 1 ♂ · 1 ⚲ in your Hollow`).
