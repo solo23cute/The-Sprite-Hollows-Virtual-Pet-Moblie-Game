@@ -8,10 +8,17 @@
 - Version: `versionName 4.1.5` / `versionCode 76`
 - Minimum Android: 7.0 (API 24)
 - Target Android: 14 (API 34)
-- Size: 734,701 bytes
-- SHA-256: `3d63c7d9916a5d932e271bed1d6c103daea01809e73658bc1735c81ad2b3651e`
+- Size: 762,859 bytes
+- SHA-256: `36541ccf432ca5c983041a0ff95ebc27704259d60828723862205b68892cf8cc`
 - Rebuilt from source and re-signed with the existing 4.1.3 lineage.
 - v2, v3, and v3.1 signatures verify.
+
+### Added
+
+- **26 Hacker variants**, one for every favorite sprite, with neon visors, circuit traces, and code-bracket overlays.
+- **26 Secret Hacker variants**, included automatically through the existing Secret snapshot.
+- Hacker eggs are **Epic**: 160 coins, or 105 with the usual discount.
+- The complete **Base** and **Trick-or-Treat** rosters remain included, including Mega Man and Trick or Treat X-Ray.
 
 ### Fixed
 
@@ -33,7 +40,8 @@ It is **not compatible with 3.20.0 / 4.1.2 v71** because their original private 
 - All source JavaScript parses.
 - APK ZIP integrity and 4-byte alignment pass.
 - Package metadata reports 4.1.5 / 76.
-- The rebuilt APK contains the same entries and identical web assets as the verified 4.1.5 artifact.
+- The rebuilt APK has the same entry list, dex, manifest, resources, and web assets as the verified hotfix9 build.
+- Every packaged web asset matches the current source tree.
 - APK signatures use the same `107d75b5…` (API 24–32) and `6466cb8f…` (API 33+) certificates as 4.1.4.
 
 A physical Android install test is still pending; this cloud workspace has no connected phone.
