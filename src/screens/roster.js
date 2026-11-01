@@ -100,6 +100,20 @@ function rosterTabs() {
       search: (el) => [el.name, el.khWorld, el.trait, el.blurb, KH_GROUPS[el.khGroup]?.label].join(' '),
     },
     {
+      id: 'gta',
+      label: 'GTA',
+      icon: '🚗',
+      total: GTA_TOTAL,
+      noun: 'characters',
+      singular: 'character',
+      filterNoun: 'game',
+      allLabel: 'All GTA games',
+      hint: 'Search GTA characters, games, genes…',
+      filters: rosterOrderedFilters(GTA_GROUP_ORDER, GTA_BY_GROUP, GTA_GROUPS),
+      subtitle: (el) => `${el.gtaGame} · ${GTA_GROUPS[el.gtaGroup]?.label || 'GTA'}`,
+      search: (el) => [el.name, el.gtaGame, el.trait, el.blurb, GTA_GROUPS[el.gtaGroup]?.label, 'Grand Theft Auto'].join(' '),
+    },
+    {
       id: 'netflixanime',
       label: 'Netflix Anime',
       icon: '🍥',
@@ -153,7 +167,7 @@ function rosterScreen(root) {
     </div>
     <div class="roster-hero">
       <span class="rh-icon">🧭</span>
-      <span class="rh-copy"><b>${PONY_TOTAL + CARE_BEAR_TOTAL + TV_LEGACY_TOTAL + KH_TOTAL + NETFLIX_TOTAL} collectibles, six ways in.</b><span>Owned species are marked, and every card opens its full Wiki file. The Netflix wing adds 60 characters across 20 shows.</span></span>
+      <span class="rh-copy"><b>${PONY_TOTAL + CARE_BEAR_TOTAL + TV_LEGACY_TOTAL + KH_TOTAL + NETFLIX_TOTAL} collectibles, seven ways in.</b><span>Owned species are marked, and every card opens its full Wiki file. The Netflix wing adds 60 characters across 20 shows.</span></span>
     </div>
     <div class="roster-tabs" data-roster-tabs role="tablist" aria-label="Collections"></div>
     <div class="type-tools">

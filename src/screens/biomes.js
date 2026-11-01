@@ -21,6 +21,29 @@ function extraBiomeCards(activeScene) {
   }).join('');
 }
 
+function exoticBiomeCards(activeScene) {
+  if (typeof EXOTIC_BIOME_KEYS === 'undefined') return '';
+  return EXOTIC_BIOME_KEYS.map((key) => {
+    const scene = SCENES[key];
+    if (!scene) return '';
+    const tint = sceneTint(key);
+    const speciesKey = (scene.species || [])[0];
+    const meta = ELEMENTS[speciesKey] || {};
+    const sample = {
+      id: `exotic-${key}`, element: speciesKey, breed: 'puff', stage: 'elder',
+      palette: 'native', pattern: 'plain', accessory: 'none', name: meta.name || scene.name, level: 30, size: 'standard',
+    };
+    return `<button class="biome-card ${activeScene === key ? 'on' : ''}" data-biome-travel="${key}" style="--biome:${tint.b1};--biome-deep:${tint.b2}">
+      <span class="biome-card-top"><span class="biome-icon">${scene.emoji}</span><span>${esc(scene.habitat)}</span></span>
+      <span class="biome-card-art">${spriteSVG(sample, { expr: 'happy' })}</span>
+      <b>${esc(scene.name)}</b>
+      <span class="biome-card-meta">Hollow exotic · +${Math.round((scene.bonus || 0.55) * 100)}% XP</span>
+      <span class="biome-card-guardian">${esc(meta.name || 'Exotic')}’s own biome</span>
+      ${typeof biomeQuestBadge === 'function' ? biomeQuestBadge(key) : ''}
+    </button>`;
+  }).join('');
+}
+
 function openBiomeAtlas() {
   const visited = new Set(state.biomesVisited || []);
   const activeScene = state.theme.scene;
@@ -67,8 +90,13 @@ function openBiomeAtlas() {
       <div class="biome-grid">${cards}</div>
       <div class="section-title" style="margin-top:14px"><h2>Biome habitats</h2><span>${typeof EXTRA_BIOME_KEYS !== 'undefined' ? EXTRA_BIOME_KEYS.length : 0} more built-in scenes</span></div>
       <div class="biome-grid">${extraBiomeCards(activeScene)}</div>
+      <div class="section-title" style="margin-top:14px"><h2>Hollow exotic biomes</h2><span>${typeof EXOTIC_BIOME_KEYS !== 'undefined' ? EXOTIC_BIOME_KEYS.length : 0} signature environments</span></div>
+      <div class="biome-grid">${exoticBiomeCards(activeScene)}</div>
       <div class="section-title" style="margin-top:14px"><h2>Hollow exotics</h2><span>${SPECIAL_EXOTIC_SPECIES.length} signatures</span></div>
       ${specialCards}
+      <div class="section-title" style="margin-top:14px"><h2>🗺️ District quests</h2><span>${typeof BIOME_QUEST_KEYS !== 'undefined' ? BIOME_QUEST_KEYS.length : 0} three-step lines</span></div>
+      <p class="quest-intro">Every GTA district and every Hollow exotic biome has a short story line. Travel there, play its games, and look after a sprite on location — each step pays coins, XP, and bond.</p>
+      <div class="quest-grid" data-quest-grid>${typeof BIOME_QUEST_KEYS !== 'undefined' ? BIOME_QUEST_KEYS.map(biomeQuestCard).join('') : ''}</div>
       <div class="card" style="padding:12px;margin-top:12px;font-size:11px;line-height:1.6;color:var(--muted)">
         <b style="color:var(--text)">How biomes work</b><br>
         Choose any biome here or in Studio. Every species whose standard type matches the biome earns the full <b style="color:var(--gold)">+50% XP</b>; visitors still get +10%. Visit all 18 to awaken the <b style="color:var(--text)">Atlas Keeper</b>.
@@ -87,6 +115,7 @@ function openBiomeAtlas() {
           Sfx.click();
         });
       });
+      if (typeof wireBiomeQuests === 'function') wireBiomeQuests(sheet);
       sheet.querySelectorAll('[data-special-exotic]').forEach((btn) => {
         btn.addEventListener('click', () => {
           close();

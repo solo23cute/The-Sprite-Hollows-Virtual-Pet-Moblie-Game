@@ -1,6 +1,6 @@
 /* Arcade rewards: bonus gifts, monthly gift tiers, and the stage-up feast. */
 
-const ARCADE_GAME_KEYS = ['rune', 'zombie', 'duel'];
+const ARCADE_GAME_KEYS = ['rune', 'zombie', 'duel', 'beat', 'maze', 'tower'];
 const ARCADE_BONUS_STEP = 5000;
 const ARCADE_BONUS_FEAST_EVERY = 3;
 const STARPATH_FOOD_ID = 'starpath';

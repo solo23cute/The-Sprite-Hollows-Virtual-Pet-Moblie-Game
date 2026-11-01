@@ -12,6 +12,10 @@ function sportGiftIn() {
 
 function openSportGame(kind = 'hoop') {
   if (kind === 'goal') openGoalGame(kind);
+  else if (kind === 'tennis') openTennisGame(kind);
+  else if (kind === 'bowling') openBowlingGame(kind);
+  else if (kind === 'homerun') openHomerunGame(kind);
+  else if (kind === 'volley') openVolleyGame(kind);
   else openBasketballGame(kind);
 }
 
@@ -318,11 +322,20 @@ function showSportResult(shell, data) {
   const info = SPORT_GAMES[data.kind];
   const preview = gameCoinPayout(data.coins);
   const total = Math.max(1, Number(info.shots) || 1);
+  const labels = {
+    goal: ['Golden boots!', 'Nice footwork!', 'Final whistle'],
+    hoop: ['Sharpshooter!', 'Nice buckets!', 'Final buzzer'],
+    tennis: ['Match point!', 'Great rally!', 'Deuce and done'],
+    bowling: ['Perfect game!', 'Clean frames!', 'The lane won'],
+    homerun: ['Derby champion!', 'Big bats!', 'Pop-fly finish'],
+    volley: ['Rally master!', 'Great touches!', 'Sand between the toes'],
+  };
+  const [greatLabel, goodLabel, plainLabel] = labels[data.kind] || ['Great game!', 'Nice play!', 'Good run'];
   const heading = data.made >= Math.ceil(total * 0.7)
-    ? (data.kind === 'goal' ? 'Golden boots!' : 'Sharpshooter!')
+    ? greatLabel
     : data.made >= Math.ceil(total * 0.4)
-      ? (data.kind === 'goal' ? 'Nice footwork!' : 'Nice buckets!')
-      : (data.kind === 'goal' ? 'Final whistle' : 'Final buzzer');
+      ? goodLabel
+      : plainLabel;
   const unit = info.unit || 'basket';
   const result = document.createElement('div');
   result.className = 'game-result';

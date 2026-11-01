@@ -81,6 +81,11 @@ function playScreen(root) {
       <span class="chip">${icon('coin')} <span data-play-coins>${state.coins}</span></span>
     </div>
     <div data-play-pet></div>
+    <div class="card" style="padding:12px;margin-bottom:14px;display:flex;gap:10px;align-items:center;border-color:rgba(255,158,199,.3);background:linear-gradient(135deg,rgba(255,158,199,.08),rgba(139,123,255,.05))">
+      <span style="font-size:24px">🏠</span>
+      <span style="flex:1;min-width:0"><b style="font-size:12.5px">Sent Home</b><br><span class="tiny muted">Rest, eat, earn coins, and play one on one in their own room.</span></span>
+      <button class="btn btn-primary btn-sm" data-play-senthome>Open</button>
+    </div>
     <div class="game-group-label"><b>Trail walks</b><span>${walkTotal} walk${walkTotal === 1 ? '' : 's'} · trail gift in ${walkGiftWait}</span></div>
     <div class="game-cards">${walkKeys.map(cardFor).join('')}</div>
     <div class="game-group-label"><b>Sports</b><span>${sportTotal} played · sport gift in ${sportGiftWait}</span></div>
@@ -117,7 +122,7 @@ function playScreen(root) {
         <div class="arcade-gift-list">${monthGiftsHTML}</div>
       </div>
     </div>
-    <div class="game-group-label"><b>Arcade challenges</b><span>puzzle · zombie · fight</span></div>
+    <div class="game-group-label"><b>Arcade challenges</b><span>puzzle · zombie · fight · rhythm · maze · tower</span></div>
     <div class="game-cards">${arcadeKeys.map(cardFor).join('')}</div>
     <div class="game-group-label"><b>Hollow classics</b><span>${classicKeys.length} games</span></div>
     <div class="game-cards">${classicKeys.map(cardFor).join('')}</div>
@@ -157,6 +162,8 @@ function playScreen(root) {
   root.querySelectorAll('[data-game]').forEach((btn) => {
     btn.addEventListener('click', () => App.startGame(btn.dataset.game));
   });
+
+  root.querySelector('[data-play-senthome]')?.addEventListener('click', () => { Sfx.click(); App.go('senthome'); });
 
   root.querySelector('[data-arcade-claim]')?.addEventListener('click', (event) => {
     const res = Actions.claimArcadeBonus();

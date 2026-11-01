@@ -1160,6 +1160,16 @@ const PALETTES = {
   ocean: { name: 'Ocean', body: '#4fa8c9', light: '#c9f0ff', deep: '#1c4e63', accent: '#7affd8', belly: '#e6faff' },
   lavender: { name: 'Lavender Haze', body: '#b8a6e8', light: '#e9e2ff', deep: '#5a467a', accent: '#ffb3d1', belly: '#f6f1ff' },
   charcoal: { name: 'Charcoal', body: '#5a5668', light: '#b8b4c8', deep: '#22202c', accent: '#8be9ff', belly: '#e8e6f0' },
+  rosegold: { name: 'Rose Gold', body: '#e8a58f', light: '#ffe3d8', deep: '#8a4a3a', accent: '#ffd166', belly: '#fff1ea' },
+  mintchip: { name: 'Mint Chip', body: '#8fe0c0', light: '#e2fff4', deep: '#2f6b56', accent: '#ff9ec7', belly: '#f2fffa' },
+  bubblegum: { name: 'Bubblegum', body: '#ff9ec7', light: '#ffe6f2', deep: '#8a2f56', accent: '#8be9ff', belly: '#fff2f8' },
+  warmsand: { name: 'Warm Sand', body: '#e0c48f', light: '#fff3d6', deep: '#7a5a2a', accent: '#5ad6b8', belly: '#fffaf0' },
+  deepforest: { name: 'Deep Forest', body: '#5f9e6a', light: '#d6f2d9', deep: '#244a2c', accent: '#ffd166', belly: '#eefaf0' },
+  neonlime: { name: 'Neon Lime', body: '#b6ff5a', light: '#f0ffd6', deep: '#3a5a0a', accent: '#ff4fd8', belly: '#f8ffe8' },
+  galaxy: { name: 'Galaxy', body: '#7a6ad8', light: '#dcd6ff', deep: '#2a1f5a', accent: '#5ad6ff', belly: '#efeaff' },
+  frost: { name: 'Frost', body: '#c2e8f5', light: '#f0fbff', deep: '#4a7a8a', accent: '#b69cff', belly: '#faffff' },
+  coralreef: { name: 'Coral Reef', body: '#ff8f7a', light: '#ffe0d6', deep: '#8a3a2a', accent: '#5ad6b8', belly: '#fff0ea' },
+  goldleaf: { name: 'Goldleaf', body: '#e8c46a', light: '#fff6d6', deep: '#7a5a14', accent: '#8be9ff', belly: '#fffbee' },
 };
 const PALETTE_KEYS = Object.keys(PALETTES);
 

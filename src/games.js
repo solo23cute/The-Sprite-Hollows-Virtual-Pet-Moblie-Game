@@ -748,5 +748,8 @@ function openGame(kind) {
   else if (kind === 'rune') openRuneSlideGame();
   else if (kind === 'zombie') openZombieSiegeGame();
   else if (kind === 'duel') openHollowDuelGame();
+  else if (kind === 'beat') openBeatGame();
+  else if (kind === 'maze') openMazeGame();
+  else if (kind === 'tower') openTowerGame();
   else if (typeof openSeasonalGame === 'function') openSeasonalGame(kind);
 }

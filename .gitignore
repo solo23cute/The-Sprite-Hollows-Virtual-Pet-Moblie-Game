@@ -11,3 +11,7 @@ project.zip
 android/release-*.keystore
 android/release-lineage-*.bin
 android/legacy-*.keystore
+.tools/
+.preview.pid
+smoke.cjs
+verify9.cjs

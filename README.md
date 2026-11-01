@@ -1,3 +1,15 @@
+## 3.19.0 Free colours, free decor, earned guardians, and guardian vaults
+
+- **Ten new free colourways** for every sprite: Rose Gold, Mint Chip, Bubblegum, Warm Sand, Deep Forest, Neon Lime, Galaxy, Frost, Coral Reef, and Goldleaf, alongside the original fourteen. All are pickable in the Studio for no coins.
+- **Eight free room themes** — Honeywood, Mint Tea, Dusk Plum, Rose Quartz, Deep Ocean, Old Forest, Ember Night, and Paper & Ink — recolour the walls, floor, and glow of Sent Home cards, shared-house rooms, hangout stages, and the decorate preview.
+- **Eight free decor pieces** — pot plant, warm lamp, round rug, framed print, plush friend, wall banner, little mirror, and fairy lights. They are placed, moved, and hidden exactly like bought furniture and need no upgrade.
+- **Boss bouts are free**: guardian duels and quest finales cost no coins and no energy, with unlimited retries from the gallery or the finale card.
+- **Eight custom guardians** are earned at lifetime duel-win milestones (2, 4, 7, 11, 16, 22, 30, 40 wins): Warden Hart, Ember Maw, Tide Keeper, Thorn Warden, Star Regent, Hollow Maw, Gold Crown, and Aurora Wing. Each joins the roaming roster and can guard any biome.
+- **Eight guardian vault doors** open at 3/6/10/15/21/28/36/45 duel wins, each granting a hidden sprite plus 120–600 coins from the guardian gallery.
+- **Four new event sprites** — Festival Fox, Vault Moth, Hollow Hart, and Spark Lynx — with their own genes, habitats, and named hybrids.
+- **Android build:** `SpriteHollow-3.19.0-v68.apk` — 726,560 bytes, `versionName 3.19.0` / `versionCode 68`, minSdk 24, targetSdk 34, debug-signed with the local build key. SHA-256 `bb5b432cd91f0773f1190eecd51ea87d8724be3fdbbfd116a3f9b2e140d8d63c`. `android/build.sh` now also packages `styles-hollow-home.css`, which earlier builds omitted.
+- Verified: `node --check` across every JS file, all 115 scripts loading in page order, and a 35-check feature harness covering colours, themes, free decor, custom guardians, vault doors, event sprites, and the quest/hangout regressions.
+
 ## 3.18.0 Gender Codex, and a fresh pair of APKs
 
 - New **⚥ Gender Codex** tile on the Codex screen, with live counts right in its subtitle (`2 ♀ · 1 ♂ · 1 ⚲ in your Hollow`).

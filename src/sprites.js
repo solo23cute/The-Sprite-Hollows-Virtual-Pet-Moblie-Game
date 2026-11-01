@@ -123,6 +123,7 @@ function signatureFeature(el, c) {
     (typeof signatureTVLegacy === 'function' ? signatureTVLegacy(el, c) : '') ||
     (typeof signatureRealmWave === 'function' ? signatureRealmWave(el, c) : '') ||
     (typeof signatureKingdomHearts === 'function' ? signatureKingdomHearts(el, c) : '') ||
+    (typeof signatureGTA === 'function' ? signatureGTA(el, c) : '') ||
     (typeof signatureFortniteLegacy === 'function' ? signatureFortniteLegacy(el, c) : '') ||
     (typeof signatureWWE === 'function' ? signatureWWE(el, c) : '') ||
     (typeof signatureBiome === 'function' ? signatureBiome(el, c) : '') || signatureAnimal(el, c) || signatureCrossover(el, c) || signatureDC(el, c) || signatureWave(el, c) || (typeof signatureCareBear === 'function' ? signatureCareBear(el, c) : '') || (typeof signatureHero === 'function' ? signatureHero(el, c) : '') || signaturePokedex(el, c) || signatureFortnite(el, c) || signatureSeasonal(el, c) || (typeof signatureLegend === 'function' ? signatureLegend(el, c) : '') || (typeof signatureCatalog === 'function' ? signatureCatalog(el, c) : '') || signatureA(el, c) || signatureB(el, c);

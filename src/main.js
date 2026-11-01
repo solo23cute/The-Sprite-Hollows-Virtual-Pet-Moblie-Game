@@ -36,10 +36,15 @@ const App = {
       roster: rosterScreen,
       nest: nestScreen,
       play: playScreen,
+      senthome: sentHomeScreen,
       today: todayScreen,
     };
     const fn = screens[this.tab] || hollowScreen;
     this.cleanup = fn(screen) || null;
+    if (typeof startBiomeAmbience === 'function') {
+      if (this.tab === 'hollow') startBiomeAmbience(state.theme.scene);
+      else if (typeof stopBiomeAmbience === 'function') stopBiomeAmbience();
+    }
     document.querySelectorAll('.tab').forEach((t) => {
       t.classList.toggle('active', t.dataset.tab === (this.tab === 'wiki' || this.tab === 'roster' ? 'codex' : this.tab));
     });
@@ -125,6 +130,7 @@ function renderShell() {
         <button class="tab" data-tab="codex">${icon('types')}<span>${t('tab.codex')}</span></button>
         <button class="tab" data-tab="nest">${icon('nest')}<span>${t('tab.nest')}</span><span class="tab-badge" data-badge="nest" hidden></span></button>
         <button class="tab" data-tab="play">${icon('play')}<span>${t('tab.play')}</span></button>
+        <button class="tab" data-tab="senthome">${icon('hollow')}<span>Home</span></button>
         <button class="tab" data-tab="today">${icon('today')}<span>${t('tab.today')}</span><span class="tab-badge" data-badge="today" hidden></span></button>
         <button class="tab" data-settings-btn aria-label="Open settings">${icon('settings')}<span>${t('tab.settings')}</span></button>
       </nav>
@@ -277,15 +283,20 @@ function boot() {
     }
   });
 
-  if (!state.started) {
-    introScreen(document.getElementById('app'), startFromIntro);
-  } else {
-    renderShell();
-    App.mount();
-    setTimeout(() => Voice.welcome(), 900);
-    setTimeout(() => { if (!state.seen.tour) startTour(); }, 1200);
-  }
-  window.App = App;
+  const enterApp = () => {
+    if (!state.started) {
+      introScreen(document.getElementById('app'), startFromIntro);
+    } else {
+      renderShell();
+      App.mount();
+      setTimeout(() => Voice.welcome(), 900);
+      setTimeout(() => { if (!state.seen.tour) startTour(); }, 1200);
+    }
+    window.App = App;
+  };
+
+  if (typeof showBootLoading === 'function') showBootLoading(enterApp);
+  else enterApp();
 }
 
 boot();

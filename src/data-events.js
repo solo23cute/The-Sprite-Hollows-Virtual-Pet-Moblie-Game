@@ -33,6 +33,30 @@ const EVENT_SPECIES = {
     blurb: 'A shell marked like a sundial that only wakes for long, bright event days.',
     greeting: 'Take your time. The sun is not going anywhere.',
   },
+  festivalfox: {
+    name: 'Festival Fox', primary: '#ff9a3c', light: '#fff0d6', deep: '#6b3a00', accent: '#ffd166',
+    trait: 'Festive — has a paper lantern for every occasion and a spare for yours.', likes: 'Honeycomb Cake',
+    blurb: 'A bright-tailed fox who arrives with the lantern parades and leaves confetti in every doorway.',
+    greeting: 'The parade started without you. Unacceptable. Follow me.',
+  },
+  vaultmoth: {
+    name: 'Vault Moth', primary: '#b69cff', light: '#f0e9ff', deep: '#33204a', accent: '#ffd166',
+    trait: 'Curious — can smell an unopened door from three rooms away.', likes: 'Moon Cake',
+    blurb: 'A dusty-winged moth who flutters out of old vaults and insists on showing you what it found.',
+    greeting: 'A door! A door that has not been opened! Come on.',
+  },
+  hollowhart: {
+    name: 'Hollow Hart', primary: '#8fe07a', light: '#efffdc', deep: '#2f5a1a', accent: '#8be9ff',
+    trait: 'Rooted — grows a tiny flower wherever it sleeps.', likes: 'Trail Mix',
+    blurb: 'A gentle antlered event sprite that wanders in when the Hollow is at its greenest.',
+    greeting: 'The paths grew over while I was away. Shall we walk them?',
+  },
+  sparklynx: {
+    name: 'Spark Lynx', primary: '#5ad6ff', light: '#e6fbff', deep: '#123a4a', accent: '#ff4fd8',
+    trait: 'Charged — sheds static sparks when it is happy, which is often.', likes: 'Berry Fizz',
+    blurb: 'A neon-eared lynx that appears during festival weekends and lights up the whole room.',
+    greeting: 'Do not touch the ears. Actually — do. It is great.',
+  },
 };
 
 const ADMIN_SPECIES = {
@@ -78,6 +102,10 @@ const EVENT_GENES = {
   meteorpup: ['Meteor Trail', '☄️', 'XP +20% during any weekend event.', { xp: 1.2 }],
   auroraowl: ['Polar Light', '🌌', 'Gifts arrive 25% sooner.', { giftSpeed: 1.25 }],
   confettigoat: ['Celebration', '🎉', 'Coins +20% and joy +10%.', { coins: 1.2, joy: 1.1 }],
+  festivalfox: ['Lantern Parade', '🏮', 'Gifts arrive 20% sooner and +15% XP.', { giftSpeed: 1.2, xp: 1.15 }],
+  vaultmoth: ['Vault Sense', '🔐', 'Practice bouts pay +3 coins and +10% XP.', { gameCoins: 3, xp: 1.1 }],
+  hollowhart: ['Green Path', '🌿', 'Needs fade 15% slower and pets build 15% more bond.', { decay: 0.85, petBond: 1.15 }],
+  sparklynx: ['Static Purr', '⚡', 'Games pay +4 coins and joy +10%.', { gameCoins: 4, joy: 1.1 }],
   cometbunny: ['Comet Dash', '💫', 'Trail walks pay +25% coins.', { coins: 1.25 }],
   sundialturtle: ['Sundial', '☀️', 'Needs fade 20% slower.', { needSlow: 0.8 }],
   adminaura: ['Root Access', '🛠️', 'XP +25% and coins +25%.', { xp: 1.25, coins: 1.25 }],
@@ -90,6 +118,7 @@ const EVENT_GENES = {
 
 const EVENT_PRICES = {
   meteorpup: 240, auroraowl: 240, confettigoat: 230, cometbunny: 235, sundialturtle: 245,
+  festivalfox: 260, vaultmoth: 270, hollowhart: 250, sparklynx: 265,
   adminaura: 400, rootrabbit: 380, devdrake: 390, patchpup: 370, loglynx: 385, cachecat: 395,
 };
 
@@ -97,6 +126,8 @@ const EVENT_HOMES = {
   meteorpup: ['ember', 'starlit'], auroraowl: ['starlit', 'skyisles'],
   confettigoat: ['memecore', 'sugar'], cometbunny: ['starlit', 'sakura'],
   sundialturtle: ['grove', 'tide'],
+  festivalfox: ['sakura', 'memecore'], vaultmoth: ['cybergrid', 'starlit'],
+  hollowhart: ['grove', 'mycelium'], sparklynx: ['neon', 'cybergrid'],
   adminaura: ['cybergrid', 'starlit'], rootrabbit: ['cybergrid', 'mycelium'],
   devdrake: ['cybergrid', 'ember'], patchpup: ['grove', 'cybergrid'],
   loglynx: ['cybergrid', 'night'], cachecat: ['cybergrid', 'neon'],
@@ -111,6 +142,10 @@ const EVENT_HYBRIDS = {
   'loglynx+cachecat': 'Stack Cache',
   'meteorpup+adminaura': 'Deploy Night',
   'confettigoat+patchpup': 'Ship It Party',
+  'festivalfox+sparklynx': 'Parade Circuit',
+  'vaultmoth+hollowhart': 'Hidden Grove',
+  'festivalfox+hollowhart': 'Lantern Path',
+  'vaultmoth+sparklynx': 'Live Wire',
 };
 
 Object.entries({ ...EVENT_SPECIES, ...ADMIN_SPECIES }).forEach(([key, meta]) => {

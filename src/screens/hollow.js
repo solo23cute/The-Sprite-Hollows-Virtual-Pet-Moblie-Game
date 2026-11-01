@@ -19,6 +19,13 @@ function buildSceneDecor(scene) {
       <span class="hill h1" style="background:${palette.deep};opacity:.7"></span><span class="hill h2" style="background:${palette.primary};opacity:.45"></span><span class="ground" style="background:${palette.deep}"></span>
       ${motes}`;
   }
+  if (sceneMeta?.exoticBiome || sceneMeta?.gtaBiome || sceneMeta?.extraBiome) {
+    const tint = sceneTint(scene);
+    const motes = Array.from({ length: 12 }, () => `<span class="biome-mote" style="left:${rand(4, 96)}%;top:${rand(18, 78)}%;animation-delay:${rand(0, 5)}s;color:${tint.b3}">${sceneMeta.emoji}</span>`).join('');
+    return `<span class="sun" style="background:radial-gradient(circle, ${tint.b3}, ${tint.b1} 62%, transparent 72%);box-shadow:0 0 54px ${tint.b1}77"></span>
+      <span class="hill h1" style="background:${tint.b2};opacity:.75"></span><span class="hill h2" style="background:${tint.b1};opacity:.5"></span><span class="ground" style="background:${tint.b2}"></span>
+      ${motes}${typeof buildBiomeExtras === 'function' ? buildBiomeExtras(scene) : ''}`;
+  }
   if (scene === 'night' || scene === 'neon') {
     const stars = Array.from({ length: 16 }, () => el('star', `left:${rand(3, 97)}%;top:${rand(4, 48)}%;animation-delay:${rand(0, 4)}s;opacity:${rand(0.3, 0.9)}`)).join('');
     return `${el('sun')}${stars}<span class="hill h1"></span><span class="hill h2"></span><span class="ground"></span>
@@ -144,8 +151,11 @@ function hollowScreen(root) {
         <span class="chip" data-size-chip>${SIZES[s0.size]?.name || 'Standard'} ${formName(s0) ? `· ${esc(formName(s0))}` : ''}</span>
         <button class="chip bedroom-chip" type="button" data-bedroom>🛏️ Bedroom</button>
         <button class="chip homes-chip" type="button" data-homes title="Every sprite in its own biome window">🪟 Homes</button>
+        <button class="chip" type="button" data-senthome-link title="Send a sprite home to rest and earn">🏠 Sent Home</button>
+        <button class="chip guardians-chip" type="button" data-guardians-link title="Every biome has guardians — challenge as many as you like">⚔️ Guardians</button>
         <button class="chip gift-chip" data-gift-chip>🎁 Gift</button>
       </div>
+      ${typeof questTrackHtml === 'function' ? questTrackHtml() : ''}
       <div class="needs-strip" data-needs>
         ${['hunger', 'energy', 'joy', 'clean'].map((k) => `<div class="need"><div class="need-label"><span>${k === 'hunger' ? 'Food' : k === 'energy' ? 'Rest' : k === 'joy' ? 'Joy' : 'Clean'}</span><b data-need-val="${k}">0</b></div><div class="bar ${k}"><i data-need-bar="${k}" style="width:0%"></i></div></div>`).join('')}
       </div>
@@ -190,6 +200,9 @@ function hollowScreen(root) {
   root.querySelector('[data-warm]')?.addEventListener('click', () => { Sfx.click(); openStudioSheet(); });
   root.querySelector('[data-bedroom]')?.addEventListener('click', () => { Sfx.click(); openBedroomSheet(); });
   root.querySelector('[data-homes]')?.addEventListener('click', () => { Sfx.click(); openHomesSheet(); });
+  root.querySelector('[data-senthome-link]')?.addEventListener('click', () => { Sfx.click(); App.go('senthome'); });
+  root.querySelector('[data-quest-tracker]')?.addEventListener('click', () => { Sfx.click(); if (typeof openDistrictQuests === 'function') openDistrictQuests(); });
+  root.querySelector('[data-guardians-link]')?.addEventListener('click', () => { Sfx.click(); if (typeof openGuardianGallery === 'function') openGuardianGallery(); });
 
   const stageEl = root.querySelector('[data-stage]');
   if (stageEl && sceneUsesTint(state.theme.scene) && !SCENES[state.theme.scene]?.custom) {
@@ -372,8 +385,10 @@ function hollowScreen(root) {
     const phase = timePhase();
     const season = seasonOf();
     const wx = currentWeather();
+    const localWeather = typeof sceneWeatherKey === 'function' ? sceneWeatherKey(state.theme.scene) : null;
+    const wxKey = localWeather || wx.key;
     const climate = state.world?.climate || 'temperate';
-    stageEl.className = `stage scene-${state.theme.scene} phase-${phase.key} season-${season.key} weather-${wx.key}`;
+    stageEl.className = `stage scene-${state.theme.scene} phase-${phase.key} season-${season.key} weather-${wxKey}`;
     const scene = SCENES[state.theme.scene];
     stageEl.style.background = scene?.custom
       ? `linear-gradient(180deg, ${scene.sky} 0%, ${scene.sky} 55%, ${scene.ground} 56%, ${scene.ground} 100%)`
@@ -402,11 +417,11 @@ function hollowScreen(root) {
         warmChip.hidden = true;
       }
     }
-    const sig = `${season.key}:${wx.key}`;
+    const sig = `${season.key}:${wxKey}:${state.theme.scene}`;
     const weatherEl = root.querySelector('[data-weather-fx]');
     if (weatherEl && sig !== lastWorldSig) {
       lastWorldSig = sig;
-      weatherEl.innerHTML = buildWeatherFx(wx.key);
+      weatherEl.innerHTML = buildWeatherFx(wxKey);
     }
   }
 

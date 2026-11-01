@@ -16,6 +16,14 @@ function homeScenePool() {
    species list already holds it, so a fire sprite wakes up in the caldera. */
 function defaultHomeScene(s) {
   const element = s && s.element;
+  /* A Hollow exotic wakes up in its own signature biome before any type biome. */
+  if (element && typeof exoticBiomeFor === 'function') {
+    const exotic = exoticBiomeFor(element);
+    if (exotic) return exotic;
+  }
+  /* GTA sprites start in the district their game belongs to. */
+  const gtaHome = element && ELEMENTS[element] && ELEMENTS[element].gtaHome;
+  if (gtaHome && SCENES[gtaHome]) return gtaHome;
   if (element) {
     const type = Object.keys(TYPE_BIOMES || {}).find((key) => {
       const biome = TYPE_BIOMES[key];
@@ -279,12 +287,14 @@ function openHomesSheet() {
     sub: total
       ? `${total} window${total === 1 ? '' : 's'} — everyone keeps their own room and biome while the main Hollow stays shared, including retired elders and sprites that came back as eggs.`
       : 'Every sprite gets its own room and biome here.',
-    body: `<div data-homes-body>${homesBody()}</div>`,
+    body: `<button class="btn btn-soft btn-block" data-homes-senthome style="margin-bottom:10px">🏠 Sent Home rooms</button>
+      <div data-homes-body>${homesBody()}</div>`,
     onMount: (root) => {
       const repaint = () => {
         const body = root.querySelector('[data-homes-body]');
         if (body) body.innerHTML = homesBody();
       };
+      root.querySelector('[data-homes-senthome]')?.addEventListener('click', () => { close(); App.go('senthome'); });
       // The sheet element stops propagation, so delegate from it, not the overlay.
       const sheetEl = root.querySelector('.sheet') || root;
       sheetEl.addEventListener('click', (e) => {

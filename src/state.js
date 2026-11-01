@@ -101,6 +101,14 @@ function freshState() {
     inventory: { snacks: {}, foods: {} },
     unlockedScenes: SCENE_KEYS.filter((k) => SCENES[k].unlocked),
     homes: {},
+    houses: {},
+    homeUpgrades: {},
+    biomeQuests: {},
+    roomLayout: {},
+    roomTheme: 'honey',
+    customGuardians: [],
+    vaultDoors: [],
+    guardiansBeaten: {},
     gift: null,
     care: { tokens: 0, gifts: 0 },
     journal: [],
@@ -109,7 +117,7 @@ function freshState() {
       merges: 0, hatches: 0, earned: 0, spent: 0, bestGame: 0, bestStreak: 0,
       checkins: 0, twins: 0, specials: 0, evolves: 0, gifts: 0, wild: 0, tucks: 0, shinies: 0, candyMorphs: 0,
       walks: 0, walkDistance: 0, bestWalk: 0, walkGifts: 0, sports: 0, sportGifts: 0,
-      arcadeCoins: 0, arcadeGifts: 0, arcadeMonthGifts: 0, careGifts: 0,
+      arcadeCoins: 0, arcadeGifts: 0, arcadeMonthGifts: 0, careGifts: 0, quests: 0, duels: 0,
       rubs: 0, throws: 0, catches: 0, tasksClaimed: 0, rebirths: 0,
       dailyEggs: 0, holidayGifts: 0, weekendGifts: 0,
     },
@@ -185,6 +193,10 @@ function normalizeSprite(raw) {
     retiredAt: Number(s.retiredAt) || 0,
     eggLabel: s.eggLabel || null,
     rebirths: Math.max(0, Number(s.rebirths) || 0),
+    atHome: !!s.atHome,
+    homeSince: Number(s.homeSince) || 0,
+    homeCoins: Math.max(0, Number(s.homeCoins) || 0),
+    sharedHouse: typeof s.sharedHouse === 'string' && s.sharedHouse ? s.sharedHouse : null,
   };
 }
 
@@ -241,7 +253,59 @@ function loadState() {
     Object.entries(parsed.homes && typeof parsed.homes === 'object' ? parsed.homes : {}).forEach(([spriteId, sceneKey]) => {
       if (SCENES[sceneKey]) merged.homes[spriteId] = sceneKey;
     });
+    merged.houses = {};
+    Object.entries(parsed.houses && typeof parsed.houses === 'object' ? parsed.houses : {}).forEach(([houseId, house]) => {
+      if (!house || typeof house !== 'object') return;
+      const members = Array.isArray(house.members) ? house.members.filter((id) => typeof id === 'string') : [];
+      if (members.length < 2) return;
+      merged.houses[houseId] = {
+        id: houseId,
+        name: house.name ? String(house.name).slice(0, 48) : null,
+        scene: SCENES[house.scene] ? house.scene : null,
+        members: members.slice(0, 4),
+        bond: Math.max(0, Number(house.bond) || 0),
+        milestone: Math.max(100, Number(house.milestone) || 100),
+        lastBondAt: Number(house.lastBondAt) || 0,
+        lastPlayAt: Number(house.lastPlayAt) || 0,
+        formedAt: Number(house.formedAt) || Date.now(),
+      };
+    });
+    merged.homeUpgrades = {};
+    Object.entries(parsed.homeUpgrades && typeof parsed.homeUpgrades === 'object' ? parsed.homeUpgrades : {}).forEach(([id, on]) => {
+      if (on && /^[a-z][a-zA-Z0-9]{1,24}$/.test(id)) merged.homeUpgrades[id] = true;
+    });
+    merged.guardiansBeaten = {};
+    Object.entries(parsed.guardiansBeaten && typeof parsed.guardiansBeaten === 'object' ? parsed.guardiansBeaten : {}).forEach(([id, count]) => {
+      if (!ELEMENTS[id]) return;
+      merged.guardiansBeaten[id] = Math.max(0, Math.floor(Number(count) || 0));
+    });
+    merged.roomTheme = typeof HOME_ROOM_THEME_KEYS !== 'undefined' && HOME_ROOM_THEME_KEYS.includes(parsed.roomTheme) ? parsed.roomTheme : 'honey';
+    merged.customGuardians = Array.from(new Set((Array.isArray(parsed.customGuardians) ? parsed.customGuardians : [])
+      .filter((key) => typeof customGuardianDef === 'function' && customGuardianDef(key))));
+    merged.vaultDoors = Array.from(new Set((Array.isArray(parsed.vaultDoors) ? parsed.vaultDoors : [])
+      .filter((id) => typeof guardianVaultDoor === 'function' && guardianVaultDoor(id))));
+    if (typeof syncCustomGuardians === 'function') syncCustomGuardians(merged.customGuardians);
+    merged.roomLayout = {};
+    Object.entries(parsed.roomLayout && typeof parsed.roomLayout === 'object' ? parsed.roomLayout : {}).forEach(([id, raw]) => {
+      if (!raw || typeof raw !== 'object' || !/^[a-z][a-zA-Z0-9]{1,24}$/.test(id)) return;
+      merged.roomLayout[id] = {
+        spot: Math.max(0, Math.min(2, Math.floor(Number(raw.spot) || 0))),
+        hidden: !!raw.hidden,
+      };
+    });
     merged.wardrobe = Array.from(new Set((Array.isArray(parsed.wardrobe) ? parsed.wardrobe : []).filter((k) => ACCESSORIES[k]?.price)));
+    merged.biomeQuests = {};
+    Object.entries(parsed.biomeQuests && typeof parsed.biomeQuests === 'object' ? parsed.biomeQuests : {}).forEach(([sceneKey, raw]) => {
+      if (typeof BIOME_QUESTS === 'undefined' || !BIOME_QUESTS[sceneKey] || !raw || typeof raw !== 'object') return;
+      const total = BIOME_QUESTS[sceneKey].steps.length;
+      const step = Math.max(0, Math.min(total, Math.floor(Number(raw.step) || 0)));
+      merged.biomeQuests[sceneKey] = {
+        step,
+        progress: Math.max(0, Math.floor(Number(raw.progress) || 0)),
+        done: !!raw.done || step >= total,
+        beaten: !!raw.beaten,
+      };
+    });
     merged.foodUnlocks = Array.isArray(parsed.foodUnlocks) ? parsed.foodUnlocks.filter((k) => FOODS[k]?.monthly) : [];
     merged.checkin.monthCrateKey = parsed.checkin?.monthCrateKey || null;
     merged.weeklyEvents = {
@@ -897,6 +961,7 @@ function ensureQuests() {
   }
 }
 function bump(stat, n = 1) {
+  if (typeof biomeQuestNote === 'function' && (stat === 'games' || stat === 'pets' || stat === 'feeds' || stat === 'baths' || stat === 'rubs')) biomeQuestNote(stat === 'games' ? 'game' : 'care');
   ensureDaily();
   ensureQuests();
   state.daily.counters[stat] = (state.daily.counters[stat] || 0) + n;
@@ -2423,6 +2488,7 @@ const Actions = {
       else {
         state.unlockedScenes = Array.from(new Set([...(state.unlockedScenes || []), patch.scene]));
         recordBiomeVisit(patch.scene);
+        if (typeof biomeQuestNote === 'function') biomeQuestNote('travel');
       }
     }
     commit('theme');
@@ -2435,6 +2501,294 @@ const Actions = {
     if (sceneKey && SCENES[sceneKey]) state.homes[spriteId] = sceneKey;
     else delete state.homes[spriteId];
     commit('homes', { spriteId });
+  },
+
+  /* ---------- sent home & shared houses ---------- */
+  sendHome(id) {
+    const s = findSprite(id);
+    if (!s || s.stage === 'egg' || s.retired) return { ok: false, reason: 'missing' };
+    if (s.atHome) return { ok: false, reason: 'home' };
+    s.atHome = true;
+    s.homeSince = Date.now();
+    s.asleep = false;
+    s.sleepUntil = 0;
+    s.sleepStart = 0;
+    s.sleepCycles = 0;
+    if (state.activeId === id) {
+      const next = state.sprites.find((x) => x.id !== id && x.stage !== 'egg' && !x.retired && !x.atHome);
+      state.activeId = next ? next.id : null;
+    }
+    commit('sentHome', { spriteId: id });
+    return { ok: true };
+  },
+
+  callBack(id) {
+    const s = findSprite(id);
+    if (!s || s.stage === 'egg' || s.retired) return { ok: false, reason: 'missing' };
+    const coins = Math.max(0, Math.floor(Number(s.homeCoins) || 0));
+    s.atHome = false;
+    s.homeSince = 0;
+    s.homeCoins = 0;
+    if (coins) addCoinsRaw(coins);
+    if (!state.activeId || !findSprite(state.activeId)) state.activeId = s.id;
+    commit('sentHome', { spriteId: id, coins });
+    return { ok: true, coins };
+  },
+
+  collectHome(id) {
+    const s = findSprite(id);
+    if (!s) return { ok: false, reason: 'missing' };
+    const coins = Math.max(0, Math.floor(Number(s.homeCoins) || 0));
+    if (!coins) return { ok: false, reason: 'empty' };
+    s.homeCoins = 0;
+    addCoinsRaw(coins);
+    commit('sentHome', { spriteId: id, coins, collected: true });
+    return { ok: true, coins };
+  },
+
+  homeLongSleep(id) {
+    const s = findSprite(id);
+    if (!s || s.stage === 'egg') return { ok: false };
+    if (s.asleep) return { ok: false, reason: 'asleep' };
+    const start = Date.now();
+    s.asleep = true;
+    s.sleepStart = start;
+    s.sleepCycles = 6;
+    s.sleepUntil = start + 45 * 60 * 1000;
+    s.needs.joy = clamp(s.needs.joy + 4);
+    addBondRaw(s, 4);
+    addXpRaw(s, 6);
+    bump('naps');
+    state.stats.naps += 1;
+    Sfx.sleep();
+    commit('nap', { spriteId: id, long: true });
+    return { ok: true, cycles: 6 };
+  },
+
+  shareHouse(id, otherId) {
+    const a = findSprite(id);
+    const b = findSprite(otherId);
+    if (!a || !b || a.id === b.id || a.stage === 'egg' || b.stage === 'egg') return { ok: false, reason: 'sprite' };
+    state.houses = { ...(state.houses || {}) };
+    const existing = Object.values(state.houses).find((h) => (h.members || []).includes(a.id) && (h.members || []).includes(b.id));
+    if (existing) return { ok: false, reason: 'together' };
+    /* With the Spare Bedroom upgrade a house can hold a third member. */
+    const maxBeds = typeof houseMaxMembers === 'function' ? houseMaxMembers() : 2;
+    const currentHouse = Object.values(state.houses).find((h) => (h.members || []).includes(a.id));
+    if (currentHouse && (currentHouse.members || []).length < maxBeds) {
+      const bHouse = Object.values(state.houses).find((h) => h.id !== currentHouse.id && (h.members || []).includes(b.id));
+      if (bHouse) {
+        bHouse.members = (bHouse.members || []).filter((m) => m !== b.id);
+        if (bHouse.members.length < 2) delete state.houses[bHouse.id];
+        else bHouse.members.forEach((m) => { const member = findSprite(m); if (member) member.sharedHouse = bHouse.id; });
+      }
+      currentHouse.members = [...currentHouse.members, b.id];
+      currentHouse.name = currentHouse.members
+        .map((m) => { const member = findSprite(m); return member ? displayName(member) : ''; })
+        .filter(Boolean).join(' & ');
+      b.sharedHouse = currentHouse.id;
+      b.atHome = true;
+      b.homeSince = b.homeSince || Date.now();
+      b.asleep = false;
+      b.sleepUntil = 0;
+      addBondRaw(a, 2);
+      addBondRaw(b, 2);
+      commit('houseBond', { houseId: currentHouse.id });
+      return { ok: true, houseId: currentHouse.id, joined: true };
+    }
+    Object.keys(state.houses).forEach((key) => {
+      const house = state.houses[key];
+      if (!(house.members || []).includes(a.id) && !(house.members || []).includes(b.id)) return;
+      house.members = (house.members || []).filter((m) => m !== a.id && m !== b.id);
+      if (house.members.length < 2) delete state.houses[key];
+    });
+    const houseId = uid('house');
+    state.houses[houseId] = {
+      id: houseId,
+      name: `${displayName(a)} & ${displayName(b)}`,
+      scene: homeSceneFor(a),
+      members: [a.id, b.id],
+      bond: 0,
+      milestone: 100,
+      lastBondAt: 0,
+      formedAt: Date.now(),
+    };
+    [a, b].forEach((m) => {
+      m.sharedHouse = houseId;
+      m.atHome = true;
+      m.homeSince = m.homeSince || Date.now();
+      m.asleep = false;
+      m.sleepUntil = 0;
+      addBondRaw(m, 3);
+    });
+    commit('houseBond', { houseId });
+    return { ok: true, houseId };
+  },
+
+  leaveHouse(spriteId) {
+    state.houses = { ...(state.houses || {}) };
+    let removed = false;
+    Object.entries(state.houses).forEach(([key, house]) => {
+      if (!(house.members || []).includes(spriteId)) return;
+      house.members = house.members.filter((m) => m !== spriteId);
+      removed = true;
+      const left = findSprite(spriteId);
+      if (left) left.sharedHouse = null;
+      if (house.members.length < 2) delete state.houses[key];
+      else house.members.forEach((m) => { const member = findSprite(m); if (member) member.sharedHouse = key; });
+    });
+    if (!removed) return { ok: false, reason: 'missing' };
+    commit('houseBond', { spriteId });
+    return { ok: true };
+  },
+
+  buyHomeUpgrade(id) {
+    const up = typeof HOME_UPGRADES !== 'undefined' ? HOME_UPGRADES[id] : null;
+    if (!up) return { ok: false, reason: 'missing' };
+    state.homeUpgrades = { ...(state.homeUpgrades || {}) };
+    if (state.homeUpgrades[id]) return { ok: false, reason: 'owned' };
+    if (up.requires && !state.homeUpgrades[up.requires]) return { ok: false, reason: 'requires', missing: up.requires };
+    if (state.coins < up.price) return { ok: false, reason: 'coins', need: up.price - state.coins };
+    state.coins -= up.price;
+    state.stats.spent = (state.stats.spent || 0) + up.price;
+    state.homeUpgrades[id] = true;
+    commit('homeUpgrade', { id, price: up.price });
+    return { ok: true, upgrade: up };
+  },
+
+  setRoomTheme(id) {
+    if (typeof HOME_ROOM_THEME_KEYS === 'undefined' || !HOME_ROOM_THEME_KEYS.includes(id)) return { ok: false, reason: 'missing' };
+    state.roomTheme = id;
+    commit('roomTheme', { id });
+    return { ok: true, id };
+  },
+
+  openGuardianVault(doorId) {
+    const door = typeof guardianVaultDoor === 'function' ? guardianVaultDoor(doorId) : null;
+    if (!door) return { ok: false, reason: 'missing' };
+    state.vaultDoors = Array.isArray(state.vaultDoors) ? state.vaultDoors.slice() : [];
+    if (state.vaultDoors.includes(door.id)) return { ok: false, reason: 'opened' };
+    const wins = typeof guardianVaultWins === 'function' ? guardianVaultWins() : 0;
+    if (wins < door.wins) return { ok: false, reason: 'wins', need: door.wins - wins };
+    state.vaultDoors.push(door.id);
+    const sprite = typeof unlockSecretRaw === 'function' ? unlockSecretRaw(door.secret) : null;
+    if (door.coins) addCoinsRaw(door.coins);
+    commit('guardianVault', { id: door.id, coins: door.coins || 0 });
+    return { ok: true, coins: door.coins || 0, secret: sprite ? sprite.name : null, spriteId: sprite ? sprite.id : null };
+  },
+
+  guardianWin(sceneKey, guardianKey) {
+    if (typeof ELEMENTS === 'undefined' || !ELEMENTS[guardianKey]) return { ok: false, reason: 'guardian' };
+    const s = typeof activeSprite === 'function' ? activeSprite() : null;
+    if (s) {
+      s.needs.joy = clamp(s.needs.joy + 12);
+      addBondRaw(s, 3);
+      addXpRaw(s, 8);
+    }
+    state.guardiansBeaten = { ...(state.guardiansBeaten || {}) };
+    const total = (Number(state.guardiansBeaten[guardianKey]) || 0) + 1;
+    state.guardiansBeaten[guardianKey] = total;
+    state.stats.duels = (Number(state.stats.duels) || 0) + 1;
+    state.customGuardians = Array.isArray(state.customGuardians) ? state.customGuardians.slice() : [];
+    const wins = Object.values(state.guardiansBeaten).reduce((sum, n) => sum + (Number(n) || 0), 0);
+    const unlocked = [];
+    if (typeof customGuardianUnlocksFor === 'function') {
+      customGuardianUnlocksFor(wins).forEach((key) => {
+        if (state.customGuardians.includes(key)) return;
+        state.customGuardians.push(key);
+        unlocked.push(key);
+      });
+      if (unlocked.length && typeof syncCustomGuardians === 'function') syncCustomGuardians(state.customGuardians);
+    }
+    commit('guardian', { scene: sceneKey, guardian: guardianKey, total, unlocked: unlocked.length });
+    return { ok: true, bond: 3, joy: 12, xp: 8, total, unlocked };
+  },
+
+  setRoomPiece(id, patch = {}) {
+    if (typeof HOME_UPGRADES === 'undefined') return { ok: false, reason: 'missing' };
+    const free = typeof freeDecorPiece === 'function' ? freeDecorPiece(id) : null;
+    if (!HOME_UPGRADES[id] && !free) return { ok: false, reason: 'missing' };
+    state.roomLayout = { ...(state.roomLayout || {}) };
+    const cur = state.roomLayout[id] || {};
+    const next = {
+      spot: patch.spot != null ? Math.max(0, Math.min(2, Math.round(Number(patch.spot) || 0))) : Math.max(0, Math.min(2, Math.round(Number(cur.spot) || 0))),
+      hidden: patch.hidden != null ? !!patch.hidden : !!cur.hidden,
+    };
+    state.roomLayout[id] = next;
+    commit('roomLayout', { id, ...next });
+    return { ok: true, ...next };
+  },
+
+  housePlay(houseId, activity = 'chase', score = 0) {
+    const house = state.houses && state.houses[houseId];
+    if (!house) return { ok: false, reason: 'missing' };
+    const members = (house.members || []).map((id) => findSprite(id)).filter((m) => m && m.stage !== 'egg');
+    if (members.length < 2) return { ok: false, reason: 'members' };
+    if (Date.now() - (Number(house.lastPlayAt) || 0) < 45 * 1000) return { ok: false, reason: 'cooling' };
+    house.lastPlayAt = Date.now();
+    const mult = typeof homeHangoutMult === 'function' ? homeHangoutMult() : 1;
+    const hits = clamp(Math.round(Number(score) || 0), 0, 30);
+    const bondGain = Math.round((5 + hits) * mult);
+    const cap = typeof HOUSE_BOND_MAX === 'number' ? HOUSE_BOND_MAX : 600;
+    house.bond = Math.min(cap, (Number(house.bond) || 0) + bondGain);
+    members.forEach((m) => {
+      addBondRaw(m, 2.5 * mult);
+      addXpRaw(m, 4);
+      m.needs.joy = clamp(m.needs.joy + 10);
+    });
+    const coins = 8 + Math.floor(hits / 2);
+    addCoinsRaw(coins);
+    state.stats.games = (Number(state.stats.games) || 0) + 1;
+    commit('houseBond', { houseId, activity, score: hits });
+    return { ok: true, bond: bondGain, coins, joy: 10, score: hits, names: members.map((m) => displayName(m)).join(' & ') };
+  },
+
+  claimBiomeQuest(sceneKey, opts = {}) {
+    const def = typeof BIOME_QUESTS !== 'undefined' ? BIOME_QUESTS[sceneKey] : null;
+    if (!def) return { ok: false, reason: 'missing' };
+    const info = typeof biomeQuestStep === 'function' ? biomeQuestStep(sceneKey) : null;
+    if (!info) return { ok: false, reason: 'done' };
+    const q = biomeQuestState(sceneKey);
+    const have = Math.min(info.step.need, Math.max(0, Number(q.progress) || 0));
+    if (have < info.step.need) return { ok: false, reason: 'progress', need: info.step.need - have };
+    const finalStep = info.index >= def.steps.length - 1;
+    if (finalStep && !opts.won && !q.beaten) return { ok: false, reason: 'guardian' };
+    const reward = info.step.reward || {};
+    const coins = Math.max(0, Math.floor(Number(reward.coins) || 0));
+    const bonus = opts.won ? 150 : 0;
+    if (bonus) addCoinsRaw(bonus);
+    if (coins) addCoinsRaw(coins);
+    const target = (typeof activeSprite === 'function' ? activeSprite() : null)
+      || (typeof sentHomeSprites === 'function' ? sentHomeSprites()[0] : null);
+    if (target) {
+      if (reward.xp) addXpRaw(target, reward.xp);
+      if (reward.bond) addBondRaw(target, reward.bond);
+    }
+    const nextStep = info.index + 1;
+    const finished = nextStep >= def.steps.length;
+    state.biomeQuests = { ...(state.biomeQuests || {}) };
+    state.biomeQuests[sceneKey] = { step: finished ? def.steps.length : nextStep, progress: 0, done: finished, beaten: finalStep ? true : !!q.beaten };
+    if (finished) state.stats.quests = (Number(state.stats.quests) || 0) + 1;
+    commit('biomeQuest', { scene: sceneKey, finished, coins });
+    return { ok: true, coins, bonus, xp: reward.xp || 0, finished, title: def.title };
+  },
+
+  bondHouse(houseId) {
+    const house = state.houses && state.houses[houseId];
+    if (!house) return { ok: false, reason: 'missing' };
+    const members = (house.members || []).map((id) => findSprite(id)).filter(Boolean);
+    if (members.length < 2) return { ok: false, reason: 'members' };
+    if (Date.now() - (Number(house.lastBondAt) || 0) < 30 * 60 * 1000) return { ok: false, reason: 'cooling' };
+    house.lastBondAt = Date.now();
+    const cap = typeof HOUSE_BOND_MAX === 'number' ? HOUSE_BOND_MAX : 600;
+    house.bond = Math.min(cap, (Number(house.bond) || 0) + 8);
+    members.forEach((m) => {
+      addBondRaw(m, 3);
+      m.needs.joy = clamp(m.needs.joy + 6);
+    });
+    addCoinsRaw(6);
+    commit('houseBond', { houseId });
+    return { ok: true, bond: 8, coins: 6, names: members.map((m) => displayName(m)).join(' & ') };
   },
 
   setClimate(key) {
@@ -2543,6 +2897,21 @@ const Actions = {
   },
 };
 
+/* District quest progress: only counts inside the biome you are standing in,
+   and only for the step currently in front of you. */
+function biomeQuestNote(kind) {
+  if (typeof BIOME_QUESTS === 'undefined' || typeof biomeQuestStep !== 'function') return;
+  const sceneKey = state.theme && state.theme.scene;
+  const info = biomeQuestStep(sceneKey);
+  if (!info || info.step.kind !== kind) return;
+  const have = Math.min(info.step.need, Math.max(0, Number(info.q.progress) || 0));
+  if (have >= info.step.need) return;
+  state.biomeQuests = { ...(state.biomeQuests || {}) };
+  state.biomeQuests[sceneKey] = { step: info.q.step, progress: have + 1, done: !!info.q.done };
+  commit('biomeQuestProgress', { scene: sceneKey, kind, progress: have + 1, need: info.step.need });
+  if (have + 1 >= info.step.need) toast(`${BIOME_QUESTS[sceneKey].title}: step ready to claim.`, '🗺️');
+}
+
 /* ---------------- real-time simulation ---------------- */
 let lastAutosave = Date.now();
 function tick(force = false) {
@@ -2561,6 +2930,26 @@ function tick(force = false) {
   let woke = [];
   state.sprites.forEach((s) => {
     if (s.stage === 'egg' || s.retired) return;
+    if (s.atHome) {
+      /* A sprite sent home grazes, relaxes, recovers every need, sleeps long,
+         and tucks a few coins away while the keeper is busy. */
+      const boost = typeof homeRecoveryMult === 'function' ? homeRecoveryMult() : 1;
+      s.needs.hunger = clamp(s.needs.hunger + 3.4 * min * boost);
+      s.needs.energy = clamp(s.needs.energy + (s.asleep ? 4.5 : 2.2) * min * boost);
+      s.needs.joy = clamp(s.needs.joy + 2.8 * min * boost);
+      s.needs.clean = clamp(s.needs.clean + 1.4 * min * boost);
+      s.bond = clamp(s.bond + 0.06 * min);
+      const coinCap = typeof homeCoinCap === 'function' ? homeCoinCap() : 320;
+      const coinBoost = typeof homeCoinRateMult === 'function' ? homeCoinRateMult() : 1;
+      const rate = (sec / 42) * coinBoost * (1 + Math.min(3, (Number(s.level) || 1) * 0.01));
+      s.homeCoins = Math.min(coinCap, Math.max(0, Number(s.homeCoins) || 0) + rate);
+      if (s.asleep && t >= (s.sleepUntil || 0)) {
+        finishSleep(s);
+        woke.push(s.id);
+      }
+      changed = true;
+      return;
+    }
     const breed = BREEDS[s.breed] || {};
     const fx = spriteEffects(s);
     const wx = weatherEffects(s);
@@ -2584,6 +2973,24 @@ function tick(force = false) {
     if (avg < 30) s.bond = clamp(s.bond - 0.04 * min);
     changed = true;
   });
+  Object.values(state.houses || {}).forEach((house) => {
+    const members = (house.members || []).map((id) => findSprite(id)).filter((m) => m && m.stage !== 'egg' && !m.retired);
+    if (members.length < 2) return;
+    const homeTogether = members.filter((m) => m.atHome).length >= 2;
+    const gain = 0.02 * min * (homeTogether ? 1.6 : 1) * members.length;
+    const cap = typeof HOUSE_BOND_MAX === 'number' ? HOUSE_BOND_MAX : 600;
+    house.bond = Math.min(cap, (Number(house.bond) || 0) + gain);
+    members.forEach((m) => { m.bond = clamp(m.bond + 0.02 * min); });
+    const milestone = Math.max(100, Number(house.milestone) || 100);
+    if (house.bond >= milestone) {
+      house.milestone = milestone + 100;
+      members.forEach((m) => { addBondRaw(m, 3); addXpRaw(m, 5); });
+      addCoinsRaw(10);
+      const names = members.map((m) => displayName(m)).join(' & ');
+      toast(`${names} share a house bond! +10 coins · house bond ${Math.floor(house.bond)}.`, '💞');
+    }
+    changed = true;
+  });
   if (woke.length && sec < 180) {
     const s = findSprite(woke[0]);
     if (s) {
@@ -2599,4 +3006,5 @@ function tick(force = false) {
 
 function applyTheme() {
   setThemeVars(state.theme);
+  if (typeof refreshBiomeAmbience === 'function') refreshBiomeAmbience();
 }
