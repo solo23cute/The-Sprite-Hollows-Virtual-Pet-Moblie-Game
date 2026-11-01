@@ -10,3 +10,4 @@ __pycache__/
 project.zip
 android/release-*.keystore
 android/release-lineage-*.bin
+android/legacy-*.keystore

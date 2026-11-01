@@ -10,6 +10,11 @@ JAVA_BIN="${JAVA_BIN:-/c/Program Files/Android/Android Studio/jbr/bin}"
 BT="${ANDROID_BUILD_TOOLS:-$SDK/build-tools/34.0.0}"
 AJ="${ANDROID_JAR:-$SDK/platforms/android-35/android.jar}"
 OUT="${1:-$ROOT/SpriteHollow.apk}"
+MANIFEST="${MANIFEST:-$HERE/AndroidManifest.xml}"
+MIN_SDK="${MIN_SDK:-24}"
+VERSION_CODE="${VERSION_CODE:-64}"
+VERSION_NAME="${VERSION_NAME:-3.15.0}"
+SIGN_V1="${SIGN_V1:-false}"
 KEYSTORE="${KEYSTORE:-$HERE/debug.keystore}"
 KEYPASS="${KEYPASS:-spritehollow}"
 KS_ALIAS="${KS_ALIAS:-spritehollow}"
@@ -39,13 +44,13 @@ echo "==> Linking APK shell"
 "$BT/aapt2$EXE" link \
   -o "$HERE/build/app-unsigned.apk" \
   -I "$AJ" \
-  --manifest "$HERE/AndroidManifest.xml" \
+  --manifest "$MANIFEST" \
   -A "$HERE/assets" \
   --java "$HERE/build/gen" \
-  --min-sdk-version 24 \
+  --min-sdk-version "$MIN_SDK" \
   --target-sdk-version 34 \
-  --version-code 64 \
-  --version-name 3.15.0 \
+  --version-code "$VERSION_CODE" \
+  --version-name "$VERSION_NAME" \
   "$HERE/build/res.zip"
 
 echo "==> Compiling Java"
@@ -56,7 +61,7 @@ echo "==> Dexing"
 (
   cd "$HERE"
   "$JAVA_BIN/java$EXE" -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 \
-    --lib "$AJ" --release --min-api 24 --output build/dex \
+    --lib "$AJ" --release --min-api "$MIN_SDK" --output build/dex \
     $(find build/classes -name '*.class')
 )
 
@@ -84,9 +89,15 @@ if [ ! -f "$KEYSTORE" ]; then
 fi
 
 echo "==> Signing"
+SIGN_FLAGS=()
+if [ "$SIGN_V1" = "true" ]; then
+  # Android 5-6 (below API 24) only understands JAR signing.
+  SIGN_FLAGS+=(--v1-signing-enabled true --v2-signing-enabled true)
+fi
 "$JAVA_BIN/java$EXE" -jar "$BT/lib/apksigner.jar" sign \
   --ks "$KEYSTORE" --ks-pass "pass:$KEYPASS" --key-pass "pass:$KEYPASS" \
   --ks-key-alias "$KS_ALIAS" \
+  ${SIGN_FLAGS[@]+"${SIGN_FLAGS[@]}"} \
   --out "$OUT" "$HERE/build/app-aligned.apk"
 
 echo "==> Verifying"
