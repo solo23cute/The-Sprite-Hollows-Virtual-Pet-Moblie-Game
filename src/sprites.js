@@ -134,7 +134,7 @@ function signatureFeature(el, c) {
     (typeof signatureGTA === 'function' ? signatureGTA(el, c) : '') ||
     (typeof signatureFortniteLegacy === 'function' ? signatureFortniteLegacy(el, c) : '') ||
     (typeof signatureWWE === 'function' ? signatureWWE(el, c) : '') ||
-    (typeof signatureBiome === 'function' ? signatureBiome(el, c) : '') || signatureAnimal(el, c) || signatureCrossover(el, c) || signatureDC(el, c) || signatureWave(el, c) || (typeof signatureCareBear === 'function' ? signatureCareBear(el, c) : '') || (typeof signatureHero === 'function' ? signatureHero(el, c) : '') || signaturePokedex(el, c) || signatureFortnite(el, c) || signatureSeasonal(el, c) || (typeof signatureLegend === 'function' ? signatureLegend(el, c) : '') || (typeof signatureCatalog === 'function' ? signatureCatalog(el, c) : '') || signatureA(el, c) || signatureB(el, c);
+    (typeof signatureBiome === 'function' ? signatureBiome(el, c) : '') || signatureAnimal(el, c) || signatureCrossover(el, c) || signatureDC(el, c) || signatureWave(el, c) || (typeof signatureCareBear === 'function' ? signatureCareBear(el, c) : '') ||    (typeof signatureHero === 'function' ? signatureHero(el, c) : '') || signaturePokedex(el, c) || signatureFortnite(el, c) || signatureSeasonal(el, c) || (typeof signatureTrick === 'function' ? signatureTrick(el, c) : '') || (typeof signatureBase === 'function' ? signatureBase(el, c) : '') || (typeof signatureVariant === 'function' ? signatureVariant(el, c) : '') || (typeof signatureLegend === 'function' ? signatureLegend(el, c) : '') || (typeof signatureCatalog === 'function' ? signatureCatalog(el, c) : '') || signatureA(el, c) || signatureB(el, c);
 }
 
 function signatureA(el, c) {

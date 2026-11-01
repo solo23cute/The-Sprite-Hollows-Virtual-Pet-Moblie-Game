@@ -63,7 +63,7 @@ function bondWikiBody() {
     <h3>All six bond ranks</h3>
     <div class="bond-rank-table">${bondRankTable()}</div>
     <h3>Bond &amp; evolution</h3>
-    <p>Bond does not gate the four life stages. Stages follow level: <b>${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(', ')}</b>. The level cap is now <b>${MAX_LEVEL.toLocaleString()}</b>. At level ${EVOLUTION_LEVEL}, a full diet path also unlocks one of ${EVOLUTION_FORM_KEYS.length} permanent forms, two for each diet path.</p>
+    <p>Bond does not gate the six age stages. Stages follow level: <b>${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(', ')}</b>. The level cap is now <b>${MAX_LEVEL.toLocaleString()}</b>. At level ${EVOLUTION_LEVEL}, a full diet path also unlocks one of ${EVOLUTION_FORM_KEYS.length} permanent forms, two for each diet path.</p>
     ${bondEvolutionPath()}
     <h3>Diet evolutions</h3>
     <div class="bond-diet-list">${bondDietTable()}</div>
@@ -93,7 +93,7 @@ function openBondCodex(opts = {}) {
       <h3>All six bond ranks</h3>
       <div class="bond-rank-table">${bondRankTable(sprite)}</div>
       <h3>Evolution stages</h3>
-      ${sprite ? `<p class="tiny muted">${evo.final ? `${esc(displayName(sprite))} is an Elder. The four stages are complete; the long road now runs to level ${MAX_LEVEL.toLocaleString()}.` : `${esc(displayName(sprite))} reaches ${evo.nextLabel} at level ${evo.required} — ${evo.levelsLeft} level${evo.levelsLeft === 1 ? '' : 's'} to go.`}</p>` : '<p class="tiny muted">Pick an active sprite to see live stage progress.</p>'}
+      ${sprite ? `<p class="tiny muted">${evo.final ? `${esc(displayName(sprite))} is a ${STAGE_LABELS[sprite.stage]}. The six age stages are complete; the long road now runs to level ${MAX_LEVEL.toLocaleString()}.` : `${esc(displayName(sprite))} reaches ${evo.nextLabel} at level ${evo.required} — ${evo.levelsLeft} level${evo.levelsLeft === 1 ? '' : 's'} to go.`}</p>` : '<p class="tiny muted">Pick an active sprite to see live stage progress.</p>'}
       ${bondEvolutionPath(sprite)}
       <h3>Diet evolutions</h3>
       <p class="tiny muted">Feeding builds Hearty, Sweet, Eerie, and Wild. At level ${EVOLUTION_LEVEL}, a path with ${EVOLUTION_AFFINITY} points unlocks its permanent form.</p>

@@ -264,7 +264,24 @@ function bindGlobal() {
   }, 1000);
 }
 
+/* Some later data waves register a priced species after TYPE_EGG_SPECIES was
+   first built. Fill that roster from the live price table at boot so every
+   buyable species appears in the Nest, tier filters, and type-egg counts. */
+function ensureTypeEggRoster() {
+  if (typeof TYPE_EGG_SPECIES === 'undefined' || typeof TYPE_EGG_BASE_PRICE === 'undefined') return;
+  ELEMENT_KEYS.forEach((key) => {
+    if (!TYPE_EGG_BASE_PRICE[key] || TYPE_EGG_SPECIES.includes(key)) return;
+    if (key === MASTER_CHEAT_SPECIES) return;
+    if (typeof isSecretSpecies === 'function' && isSecretSpecies(key)) return;
+    TYPE_EGG_SPECIES.push(key);
+  });
+  const unique = [...new Set(TYPE_EGG_SPECIES)];
+  TYPE_EGG_SPECIES.length = 0;
+  TYPE_EGG_SPECIES.push(...unique);
+}
+
 function boot() {
+  ensureTypeEggRoster();
   Voice.init();
   applyTheme();
   ensureDaily();

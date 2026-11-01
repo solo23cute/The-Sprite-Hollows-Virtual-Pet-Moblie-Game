@@ -142,7 +142,7 @@ function signatureFortniteLegacy(el, c) {
       return `<g class="fn-legacy-signature">
         <path d="M36 31c4-14 12-22 24-22s20 8 24 22l-8-2H44Z" fill="${c.deep}" opacity=".8"/>
         <path d="M40 33h40" stroke="${c.accent}" stroke-width="2.2" stroke-linecap="round"/>
-        <path d="M50 44c3-3 6-4 10-4s7 1 10 4c-3 3-6 5-10 5s-7-2-10-5Z" fill="${c.primary}" opacity=".6"/>
+        <path d="M50 44c3-3 6-4 10-4s7 1 10 4c-3 3-6 5-10 5s-7-2-10-5Z" fill="${c.primary || c.body || c.accent || '#ffd166'}" opacity=".6"/>
         <path d="M94 62l10 4-7 7" fill="${c.accent}" opacity=".75"/>
       </g>`;
     case 'explorer':

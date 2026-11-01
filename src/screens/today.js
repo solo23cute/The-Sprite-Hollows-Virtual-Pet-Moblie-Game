@@ -37,7 +37,7 @@ function todayScreen(root) {
       <br><br><b style="color:var(--text)">Weekly events</b><br>
       Every day brings a different free event: Monday XP, Tuesday meals, Wednesday desserts, Thursday drinks, Friday missing Vault sprites, Saturday unclaimed crates, and Sunday a grand feast. Claim each event once per week.
       <br><br><b style="color:var(--text)">Growing up</b><br>
-      XP comes from petting, feeding, baths, chats, tasks and games. The age tiers are ${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(', ')} — crossing one opens an evolution screen. Sensei is the final tier and can retire at level 100. At level 10, diet affinity can evolve a sprite into one of ${EVOLUTION_FORM_KEYS.length} permanent forms.
+      XP comes from petting, feeding, baths, chats, tasks and games. The age tiers are ${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(', ')} — crossing one opens an evolution screen. Sensei is the final tier at level 1,000; retirement unlocks at Elder level 100. At level 10, diet affinity can evolve a sprite into one of ${EVOLUTION_FORM_KEYS.length} permanent forms.
     </div>`;
 
   const dateEl = root.querySelector('[data-today-date]');

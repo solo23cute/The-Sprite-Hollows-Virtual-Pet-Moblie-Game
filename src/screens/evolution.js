@@ -20,7 +20,7 @@ function stageBonusLine(stage) {
     sprite: 'Old enough to show their true colours and patterns.',
     elder: 'A steady elder: bigger art, calmer needs, and a wiser bond.',
     ancient: 'An ancient form: rarer sparkle and stronger presence.',
-    sensei: 'A Sensei — the final age tier. Sensei sprites can retire at level 100.',
+    sensei: 'A Sensei — the final age tier at level 1,000. Retirement unlocks at Elder level 100.',
   }[stage] || 'A new stage begins.';
 }
 

@@ -122,8 +122,10 @@
 .duel-brute { background: radial-gradient(circle at 50% 40%, rgba(201, 69, 92, .3), rgba(255, 255, 255, .03)); filter: drop-shadow(0 0 14px rgba(201, 69, 92, .25)); }
 .duel-vs { color: var(--gold); font-size: 11px; font-weight: 900; letter-spacing: .1em; }
 .duel-hearts { font-size: 13px; letter-spacing: 1px; }
-.duel-bar { display: block; width: 100%; height: 7px; border-radius: 99px; overflow: hidden; background: rgba(255, 255, 255, .1); }
-.duel-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #c9455c, #ff9a5a); transition: width .3s; }
+/* Scoped to the arcade fight: the guardian duel reuses .duel-bar as a
+   label + track wrapper, and must not inherit this 7px height. */
+.duel-stage .duel-bar { display: block; width: 100%; height: 7px; border-radius: 99px; overflow: hidden; background: rgba(255, 255, 255, .1); }
+.duel-stage .duel-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #c9455c, #ff9a5a); transition: width .3s; }
 .duel-meter { position: relative; height: 35px; margin: 3px 0; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .12); background: rgba(0, 0, 0, .22); overflow: hidden; }
 .duel-zone { position: absolute; left: 36%; width: 28%; top: 0; bottom: 0; background: rgba(126, 231, 135, .18); border-left: 1px dashed rgba(126, 231, 135, .7); border-right: 1px dashed rgba(126, 231, 135, .7); }
 .duel-zone::after { content: ""; position: absolute; left: 42%; width: 16%; top: 0; bottom: 0; background: rgba(255, 209, 102, .24); }
