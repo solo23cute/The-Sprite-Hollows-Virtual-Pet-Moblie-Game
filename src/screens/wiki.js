@@ -306,11 +306,17 @@ const WIKI_GUIDES = [
     body: () => {
       const gameCount = VIDEO_GAME_LEGEND_GROUPS.reduce((total, group) => total + LEGEND_BY_GROUP[group].length, 0);
       const seasonalCount = CANDY_SPECIES.length + HALLOWEEN_SPECIES.length + CHRISTMAS_SPECIES.length;
+      const baseCount = typeof BASE_ROSTER_KEYS !== 'undefined' ? BASE_ROSTER_KEYS.length : 0;
+      const trickCount = typeof TRICK_OR_TREAT_KEYS !== 'undefined' ? TRICK_OR_TREAT_KEYS.length : 0;
+      const variantCount = typeof VARIANT_KEYS !== 'undefined' ? VARIANT_KEYS.length : 0;
+      const hackerCount = typeof variantFamilyKeys === 'function' ? variantFamilyKeys('hacker').length : 0;
+      const formTotal = baseCount + trickCount + variantCount;
       const card = (id, icon, title, count, note) => `<button class="wiki-link" data-wiki-guide="${id}"><b>${icon} ${esc(title)} · ${count}</b><span>${esc(note)}</span></button>`;
       return `<p class="wiki-lede">Every recent sprite family now has a home in the Wiki. This index gathers <b>${ELEMENT_KEYS.length} species files</b> into their live waves, from the newest Hollow signatures to the complete video-game and FNAF roster.</p>
         <div class="wiki-hybrid-list">
           ${card('videogames', '🎮', 'Video games & FNAF', gameCount, 'All FNAF animatronics, Mario, Zelda, Spore, and Video game icons in one guide.')}
           ${card('hollowexotics', '✦', 'Hollow exotics', HOLLOW_EXOTIC_SPECIES.length, 'Four type-egg signatures plus Rift Champion and Grand Slam from collection milestones.')}
+          ${card('formsvariants', '✨', 'Base, costumes & variants', formTotal, `${baseCount} Base forms, ${trickCount} Trick-or-Treat costumes, ${hackerCount} Hacker forms, and ${variantCount.toLocaleString()} variant species.`)}
           ${card('heroes', '🦸', 'Heroes, villains & anti-heroes', HERO_SPECIES.length, 'Marvel, DC, and Beyond Marvel & DC signatures.')}
           ${card('disney', '🏰', 'Disney signature collection', DISNEY_TOTAL, 'Seven story families, including the classic Mickey, Simba, and Stitch.')}
           ${card('carebears', '🌈', 'Care Bears & Cousins', CARE_BEAR_TOTAL, 'Classic Care Bears, Cousins, and extended-family favourites, each with a Care Package gene.')}
@@ -394,7 +400,45 @@ const WIKI_GUIDES = [
       <p>Every species has one gene power. It is always active while that sprite lives in the Hollow, stacking with its breed habit, finish, combo, and evolution. A Fire sprite might add game coins; a Mother Earth adds slower need decay and a bigger XP gain.</p>
       <h3>Type eggs</h3>
       <p><b>Secret variants are purchasable Secret-tier forms.</b> Vault keepers remain Vault-only; their eggs do not appear in the Nest.</p>
+      <p>The Base, Trick-or-Treat, Hacker, and other variant families are normal type eggs. Use the <b>Base</b> filter or search their family name in Types; the Wiki's <b>Forms &amp; variants</b> guide keeps the live counts.</p>
       <p>Every non-Vault species can be bought directly as a type egg in the Nest. A Water Egg always hatches Water, a Demon Egg always hatches Demon. Prices are listed on each species card and in the field guide.</p>`,
+  },
+  {
+    id: 'formsvariants',
+    icon: '✨',
+    title: 'Base forms, costumes & variants',
+    summary: 'Base forms, Trick-or-Treat costumes, Hacker forms, and every variant family in one guide.',
+    body: () => {
+      const baseKeys = typeof BASE_ROSTER_KEYS !== 'undefined' ? BASE_ROSTER_KEYS : [];
+      const trickKeys = typeof TRICK_OR_TREAT_KEYS !== 'undefined' ? TRICK_OR_TREAT_KEYS : [];
+      const variants = typeof VARIANT_KEYS !== 'undefined' ? VARIANT_KEYS : [];
+      const hackerKeys = typeof variantFamilyKeys === 'function' ? variantFamilyKeys('hacker') : [];
+      const secretVariants = typeof SECRET_VARIANT_BASE_KEYS !== 'undefined' ? SECRET_VARIANT_BASE_KEYS : [];
+      const link = (key) => `<button class="wiki-link" data-wiki-type="${key}"><b>${esc(ELEMENTS[key].name)}</b><span>${esc(ELEMENTS[key].trait)}</span></button>`;
+      return `<p class="wiki-lede">The Type roster now has <b>${baseKeys.length} Base forms</b>, <b>${trickKeys.length} Trick-or-Treat costumes</b>, and <b>${variants.length.toLocaleString()} variant-tier species</b>, including <b>${hackerKeys.length} Hacker forms</b> and <b>${secretVariants.length.toLocaleString()} Secret variants</b>. Every one is a real type egg with its own gene, Titan, habitats, and Codex card.</p>
+        <h3>◻️ Base roster · ${baseKeys.length}</h3>
+        <p>The Base forms are the ordinary versions of the Fortune favourites. They keep the original colours, habits, and genes without the finish. Filter <b>◻️ Base</b> in Types or search <b>Base</b> in the Wiki.</p>
+        <div class="wiki-hybrid-list">${baseKeys.slice(0, 10).map(link).join('')}</div>
+        ${baseKeys.length > 10 ? `<p class="tiny muted">Showing 10 of ${baseKeys.length}. Search Types for the full Base roster.</p>` : ''}
+        <h3>🎃 Trick-or-Treat · ${trickKeys.length}</h3>
+        <p>Every costume is its own collectible species: a Halloween gene, a Titan name, habitat homes, and a permanent <b>+10% XP</b> bonus. The costume does not replace the original sprite.</p>
+        <div class="wiki-hybrid-list">${trickKeys.slice(0, 10).map(link).join('')}</div>
+        ${trickKeys.length > 10 ? `<p class="tiny muted">Showing 10 of ${trickKeys.length}. Search <b>Trick or Treat</b> for the rest of the porch parade.</p>` : ''}
+        <h3>💻 Hacker &amp; the variant tiers · ${hackerKeys.length} Hacker</h3>
+        <p>Hacker forms wear neon visors, circuit traces, and a trail of green code. They sit beside the Gummy, Cheat, Hunter, Gold, Galaxy, Gem, Holofoil, Cube, Quack, Fortune, and Secret families. Every variant is a full type egg, not a cosmetic overlay.</p>
+        <div class="wiki-hybrid-list">${hackerKeys.slice(0, 10).map(link).join('')}</div>
+        ${hackerKeys.length > 10 ? `<p class="tiny muted">Showing 10 of ${hackerKeys.length} Hacker forms. Search <b>Hacker</b> in Types for the whole family.</p>` : ''}
+        <h3>🔐 Secret variants · ${secretVariants.length.toLocaleString()}</h3>
+        <p>Secret variants are purchasable Secret-tier type eggs with a hidden violet shell. They are separate from the <b>${typeof SECRET_SPECIES !== 'undefined' ? SECRET_SPECIES.length : 0} Vault doors</b>; a Secret variant does not need a Vault unlock. The Vault remains the home of milestone, monthly, and relay keepers.</p>
+        <h3>One gender roll, every family</h3>
+        <p>Base, costume, Hacker, and Secret variant eggs all roll <b>♀ female</b>, <b>♂ male</b>, or <b>⚲ neutral</b> once, before hatching. The <b>Gender Codex</b> shows the live split in your Hollow and explains why gender never blocks a merge.</p>
+        <div class="wiki-hybrid-list">
+          <button class="wiki-link" data-wiki-guide="breeding"><b>🧬 Breeding codex</b><span>Every named hybrid, parent type, and possible-child preview.</span></button>
+          <button class="wiki-link" data-wiki-guide="worldevolution"><b>🧬 World Evolution Atlas</b><span>Every core type × form path, with variant counts in the same reference.</span></button>
+          <button class="wiki-link" data-wiki-guide="habitats"><b>🗺️ Biome Atlas &amp; habitats</b><span>How Base forms, costumes, and variants use the same homes and XP rules.</span></button>
+        </div>
+        <div class="wiki-footnote">${baseKeys.length} Base · ${trickKeys.length} costumes · ${hackerKeys.length} Hacker · ${variants.length.toLocaleString()} variants · ${secretVariants.length.toLocaleString()} Secret</div>`;
+    },
   },
   {
     id: 'bonds',
@@ -831,6 +875,17 @@ const WIKI_GUIDES = [
       <h3>Twelve games</h3>
       <p><b>Treat Catch, Pulse Match, Sprite Says, and Coin Dig</b> are always open. <b>Nectar Pop</b> unlocks at 4 check-ins, <b>Green Toss</b> at 6, <b>Moon Match</b> at 12, <b>Candy Crunch</b> at 14, and <b>Holiday Lights</b> at 20.</p>
       <p><b>Rune Slide, Zombie Siege, and Hollow Duel</b> are the three Arcade challenges. Rune Slide is a sliding puzzle with a visible order strip and green placement hints; you have two minutes to finish three boards. Zombie Siege is a three-lane horde defense, and Hollow Duel is a timed strike-and-guard fight. They are always open, and every game pays coins and XP to the active sprite, plus joy and bond, scaled by score.</p>
+      <h3>District quests &amp; Season Charge</h3>
+      <p>There are <b>${typeof BIOME_QUEST_KEYS !== 'undefined' ? BIOME_QUEST_KEYS.length : 13} three-step district lines</b>, one for every GTA district and Hollow exotic biome. Each one is now a single-action loop, so a full line fits into one short visit.</p>
+      <h3>How a line runs</h3>
+      <p><b>1. Travel.</b> Open the district from Today → District quests or the Biome Atlas and press Travel. The trip is free and pays ${TRAVEL_COINS} coins. Progress only counts while you are standing in that district.</p>
+      <p><b>2. Win one game.</b> Any completed game counts, whether it is a care-dock game, an Arcade challenge, a trail, or a sport. The step bar fills after one win.</p>
+      <p><b>3. One care action.</b> Feed, play, walk, rub, throw, catch, bathe, nap, or talk once. The step bar fills after one action, then the final step unlocks the guardian.</p>
+      <h3>The free guardian finale</h3>
+      <p>The finale is a free guardian duel with no coin or energy cost and unlimited retries. You have <b>40 seconds</b>; each Strike deals <b>22–30 damage</b>, so about four clean hits win. The guardian's return hits drain only 0–1 resolve, and a timeout simply offers another round. Winning pays the step reward plus a <b>150-coin guardian bonus</b>.</p>
+      <h3>Season Charge</h3>
+      <p>Every guardian win and every completed district adds <b>1 Season Charge</b>. At <b>3 charges</b>, a random event or Admin sprite egg is added to your Hollow automatically; it arrives <b>40% warmed</b> and is labelled as a Season Event Egg. The current charge, the next egg countdown, and the total event eggs earned are shown on the district sheet, the guardian gallery, and each guardian environment.</p>
+      <p>Practice bouts count too. Open <b>Guardian gallery → any environment</b> to fight unlimited guardians, earn Season Charge, and lift bond and joy. The district finale and practice wins share the same charge meter.</p>
       <h3>Arcade bonus &amp; month gifts</h3>
       <p>Every <b>5,000 coins</b> earned in the three Arcade challenges fills a bonus gift. Gifts contain coins, a pantry food, and a snack; every third one also includes a <b>Starpath Feast</b>. The monthly track has three tiers at <b>5,000 / 12,000 / 25,000 arcade coins</b>, resetting on the first of the month. Higher tiers include one or two Starpath Feasts.</p>
       <p>A <b>Starpath Feast</b> is a gift-only food that advances the active sprite to its next growth milestone: level 5, 10, 100, 250, 500, or 1,000. It cannot be bought in the market and is never consumed by a max-level sprite.</p>
@@ -983,6 +1038,7 @@ function openWikiArticle(key) {
       ${el.legendGroup ? `<button class="btn btn-soft btn-block" data-wiki-guide="legends" style="margin-top:9px">Open the crossover legends guide</button>` : ''}
       ${VIDEO_GAME_LEGEND_GROUPS.includes(el.legendGroup) ? `<button class="btn btn-soft btn-block" data-wiki-guide="videogames" style="margin-top:9px">Open the video games &amp; FNAF guide</button>` : ''}
       ${el.catalogGroup ? `<button class="btn btn-soft btn-block" data-wiki-guide="${catalogGuideForGroup(el.catalogGroup)}" style="margin-top:9px">Open the ${esc(CATALOG_GROUPS[el.catalogGroup].label)} guide</button>` : ''}
+      ${el.baseRoster || el.trickOrTreat || el.variantFamily ? `<button class="btn btn-soft btn-block" data-wiki-guide="formsvariants" style="margin-top:9px">Open the forms &amp; variants guide</button>` : ''}
       ${vaultSecret ? `<button class="btn btn-soft btn-block" data-wiki-vault style="margin-top:9px">Open the Secret Vault</button>` : ''}
       ${isExoticSpecies(key) ? `<button class="btn btn-soft btn-block" data-wiki-guide="hollowexotics" style="margin-top:9px">Open the Hollow exotics guide</button>` : ''}
       <h3>Care notes</h3>
@@ -1094,6 +1150,7 @@ function wikiScreen(root) {
       <button class="chip" data-wiki-guide="worldwave">🌏 Movies &amp; anime</button>
       <button class="chip" data-wiki-guide="bonds">💞 Bonds</button>
       <button class="chip" data-wiki-guide="worldevolution">🧬 World evolution</button>
+      <button class="chip" data-wiki-guide="formsvariants">✨ Forms &amp; variants</button>
       <button class="chip" data-wiki-guide="vault">🔐 Vault</button>
       <button class="chip" data-wiki-guide="rebirth">🌱 Rebirth</button>
       <button class="chip" data-wiki-guide="multiversewave">🌀 Multiverse</button>
@@ -1169,10 +1226,11 @@ function wikiScreen(root) {
     const world = el.worldVariant ? `${el.worldRegion} ${el.variantType} world variant` : '';
     const genre = el.gameGenre ? `${el.gameGenre} video game genre` : '';
     const prismatic = el.alwaysShiny ? 'prismatic always shiny multiverse' : '';
+    const forms = el.baseRoster ? 'base roster original' : el.trickOrTreat ? 'trick or treat halloween costume' : el.variantFamily ? `${el.variantFamily} variant hacker secret costume` : '';
     const exotic = isExoticSpecies(key) ? 'exotic signature' : '';
     const apex = RARITY_APEX_KEYS.join(' ');
     const special = el.ahs ? 'American Horror Story AHS horror anthology' : el.fairy ? 'fairy pixie hollow tinker bell disney fairies neverland dust periwinkle bell winter fairy snow frost tooth fairy' : el.neverland ? 'peter pan neverland wendy lost boys pirate hook mermaid crocodile' : el.adultswim ? 'adult swim cartoon network late night rick and morty aqua teen boondocks samurai jack metalocalypse smiling friends' : el.babyloons ? 'baby looney tunes nursery bugs bunny daffy tweety sylvester lola taz porky foghorn pepe toddler' : el.admin ? 'admin event staff weekend' : el.eventOnly ? 'special event weekend sprite' : '';
-    return `${el.name} ${key} ${el.trait} ${el.blurb} ${publisher} ${role} ${disney} ${careBears} ${fortniteLegacy} ${wwe} ${pony} ${tv} ${netflix} ${realm} ${kingdomHearts} ${legend} ${catalog} ${parentTypes} ${world} ${genre} ${prismatic} ${exotic} ${apex} ${special} bond codex evolution ${GENE_POWERS[key]?.name || ''} ${wikiHabitats(key).map((k) => SCENES[k].name).join(' ')}`.toLowerCase();
+    return `${el.name} ${key} ${el.trait} ${el.blurb} ${publisher} ${role} ${disney} ${careBears} ${fortniteLegacy} ${wwe} ${pony} ${tv} ${netflix} ${realm} ${kingdomHearts} ${legend} ${catalog} ${parentTypes} ${world} ${genre} ${prismatic} ${exotic} ${apex} ${special} ${forms} bond codex evolution ${GENE_POWERS[key]?.name || ''} ${wikiHabitats(key).map((k) => SCENES[k].name).join(' ')}`.toLowerCase();
   }
 
   function paint() {

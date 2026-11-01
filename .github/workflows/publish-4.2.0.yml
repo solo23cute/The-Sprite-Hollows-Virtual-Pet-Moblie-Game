@@ -1,0 +1,33 @@
+name: Publish 4.2.0 release APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - release/4.2.0
+    paths:
+      - .github/workflows/publish-4.2.0.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release and upload APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v4.2.0-v77
+          APK: SpriteHollow-4.2.0-v77-release.apk
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file .github/release-4.2.0.md
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            gh release create "$TAG" "$APK" \
+              --target "$GITHUB_SHA" \
+              --title "Sprite Hollow 4.2.0 (build 77)" \
+              --notes-file .github/release-4.2.0.md
+          fi

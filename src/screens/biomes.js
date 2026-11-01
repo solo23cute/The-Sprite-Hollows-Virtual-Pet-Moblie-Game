@@ -45,6 +45,9 @@ function exoticBiomeCards(activeScene) {
 }
 
 function openBiomeAtlas() {
+  const baseCount = typeof BASE_ROSTER_KEYS !== 'undefined' ? BASE_ROSTER_KEYS.length : 0;
+  const trickCount = typeof TRICK_OR_TREAT_KEYS !== 'undefined' ? TRICK_OR_TREAT_KEYS.length : 0;
+  const variantCount = typeof VARIANT_KEYS !== 'undefined' ? VARIANT_KEYS.length : 0;
   const visited = new Set(state.biomesVisited || []);
   const activeScene = state.theme.scene;
   const cards = BIOME_KEYS.map((type) => {
@@ -85,7 +88,10 @@ function openBiomeAtlas() {
     body: `<div class="biome-summary">
         <span class="chip">${visited.size} / ${BIOME_KEYS.length} visited</span>
         <span class="chip">${EXOTIC_SPECIES.length} exotic signatures</span>
-        <span class="chip">1,025 Pokémon sorted by type</span>
+        <span class="chip">${typeof POKEDEX_SPECIES !== 'undefined' ? POKEDEX_SPECIES.length.toLocaleString() : '1,025'} Pokémon sorted by type</span>
+        <span class="chip">${baseCount} Base forms</span>
+        <span class="chip">${trickCount} costumes</span>
+        <span class="chip">${variantCount.toLocaleString()} variants</span>
       </div>
       <div class="biome-grid">${cards}</div>
       <div class="section-title" style="margin-top:14px"><h2>Biome habitats</h2><span>${typeof EXTRA_BIOME_KEYS !== 'undefined' ? EXTRA_BIOME_KEYS.length : 0} more built-in scenes</span></div>
@@ -94,12 +100,15 @@ function openBiomeAtlas() {
       <div class="biome-grid">${exoticBiomeCards(activeScene)}</div>
       <div class="section-title" style="margin-top:14px"><h2>Hollow exotics</h2><span>${SPECIAL_EXOTIC_SPECIES.length} signatures</span></div>
       ${specialCards}
-      <div class="section-title" style="margin-top:14px"><h2>🗺️ District quests</h2><span>${typeof BIOME_QUEST_KEYS !== 'undefined' ? BIOME_QUEST_KEYS.length : 0} three-step lines</span></div>
-      <p class="quest-intro">Every GTA district and every Hollow exotic biome has a short story line. Travel there for free — each trip pays ${TRAVEL_COINS} coins — play its games, and look after a sprite on location. Each step also pays coins, XP, and bond.</p>
+      <div class="section-title" style="margin-top:14px"><h2>🗺️ District quests</h2><span>${typeof BIOME_QUEST_KEYS !== 'undefined' ? BIOME_QUEST_KEYS.length : 0} one-action lines</span></div>
+      <p class="quest-intro">Every GTA district and every Hollow exotic biome has a short story line. Travel there for free — each trip pays ${TRAVEL_COINS} coins — win one game, and look after a sprite once. The guardian finale is a quick free bout, and every win adds a <b>Season Charge</b> toward a free event egg. Each step also pays coins, XP, and bond.</p>
       <div class="quest-grid" data-quest-grid>${typeof BIOME_QUEST_KEYS !== 'undefined' ? BIOME_QUEST_KEYS.map(biomeQuestCard).join('') : ''}</div>
       <div class="card" style="padding:12px;margin-top:12px;font-size:11px;line-height:1.6;color:var(--muted)">
         <b style="color:var(--text)">How biomes work</b><br>
-        Choose any biome here or in Studio. Every species whose standard type matches the biome earns the full <b style="color:var(--gold)">+50% XP</b>; visitors still get +10%. Visit all 18 to awaken the <b style="color:var(--text)">Atlas Keeper</b>.
+        Choose any biome here or in Studio. Every species whose standard type matches the biome earns the full <b style="color:var(--gold)">+50% XP</b>; visitors still get +10%. Visit all 18 to awaken the <b style="color:var(--text)">Atlas Keeper</b>.<br><br>
+        <b style="color:var(--text)">Base, costumes &amp; variants</b><br>
+        The ${baseCount} Base forms, ${trickCount} Trick-or-Treat costumes, and ${variantCount.toLocaleString()} variant species keep the same habitat and XP rules. The Type Codex and the Wiki's Forms &amp; variants guide carry their live counts.
+        <button class="btn btn-soft btn-block" data-biome-forms style="margin-top:8px">✨ Open Forms &amp; variants</button>
       </div>`,
     onMount: (sheet, close) => {
       sheet.querySelectorAll('[data-biome-travel]').forEach((btn) => {
@@ -116,6 +125,10 @@ function openBiomeAtlas() {
         });
       });
       if (typeof wireBiomeQuests === 'function') wireBiomeQuests(sheet);
+      sheet.querySelector('[data-biome-forms]')?.addEventListener('click', () => {
+        close();
+        setTimeout(() => openWikiGuide('formsvariants'), 30);
+      });
       sheet.querySelectorAll('[data-special-exotic]').forEach((btn) => {
         btn.addEventListener('click', () => {
           close();
@@ -188,7 +201,7 @@ function openSecretVault() {
       <div class="secret-grid">${progress.map(secretCard).join('')}</div>
       <h3>🧬 Combinations & possible children</h3>
       <p>Every unlocked keeper can bond and merge with <b>every type and variant</b>, including retired parents. Open one for its parent types, named hybrids, and a live child preview with any species in the Hollow.</p>
-      <div class="secret-grid">${found.length ? found.map(vaultBreedCard).join('') : '<p class="tiny muted">Find a secret first — its full combination tree unlocks here.</p>'}</div>
+      <div class="secret-grid vault-combo-box">${found.length ? found.map(vaultBreedCard).join('') : '<p class="tiny muted">Find a secret first — its full combination tree unlocks here.</p>'}</div>
       <button class="btn btn-soft btn-block" data-vault-all-children style="margin:8px 0 10px">Browse all parent combinations & possible children</button>
       <div class="secret-code-card ${masterFound ? 'found' : ''}">
         <div class="between"><b>${masterFound ? '🕹️ Master Cheat unlocked' : '🕹️ Unlisted entry'}</b><span class="chip">${masterFound ? `LV ${MAX_LEVEL.toLocaleString()}` : 'CHEAT'}</span></div>

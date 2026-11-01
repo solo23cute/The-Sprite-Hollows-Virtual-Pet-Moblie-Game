@@ -34,7 +34,7 @@ function codexScreen(root) {
     <div class="type-feature-grid">
       <button class="type-feature" data-open-biomes>
         <span class="tf-icon">🧭</span>
-        <span class="tf-copy"><b>Type Biome Atlas</b><span>${BIOME_KEYS.length} environments · 1,025 Pokémon · ${EXOTIC_SPECIES.length} exotic signatures</span></span>
+        <span class="tf-copy"><b>Type Biome Atlas</b><span>${BIOME_KEYS.length} environments · ${POKEDEX_SPECIES.length.toLocaleString()} Pokémon · ${EXOTIC_SPECIES.length} exotic signatures</span></span>
         <span class="tf-arrow">›</span>
       </button>
       <button class="type-feature secret-feature" data-open-secrets>

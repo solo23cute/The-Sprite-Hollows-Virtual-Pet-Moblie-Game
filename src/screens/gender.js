@@ -56,17 +56,24 @@ function openGenderCodex() {
     : [];
   const readyList = readyPairs.slice(0, 8).map((p) => `<span class="chip" style="font-size:9.5px">${esc(ELEMENTS[p.a]?.name || p.a)} + ${esc(ELEMENTS[p.b]?.name || p.b)}</span>`).join('');
   const eggsWithGender = eggs.filter((e) => GENDERS[e.gender]);
+  const baseCount = typeof BASE_ROSTER_KEYS !== 'undefined' ? BASE_ROSTER_KEYS.length : 0;
+  const trickCount = typeof TRICK_OR_TREAT_KEYS !== 'undefined' ? TRICK_OR_TREAT_KEYS.length : 0;
+  const variantCount = typeof VARIANT_KEYS !== 'undefined' ? VARIANT_KEYS.length : 0;
+  const hackerCount = typeof variantFamilyKeys === 'function' ? variantFamilyKeys('hacker').length : 0;
+  const secretVariantCount = typeof SECRET_VARIANT_BASE_KEYS !== 'undefined' ? SECRET_VARIANT_BASE_KEYS.length : 0;
   const { close } = openSheet({
     title: '⚥ Gender Codex',
     sub: `${total} sprite${total === 1 ? '' : 's'} · ${counts.female} ♀ · ${counts.male} ♂ · ${counts.neutral} ⚲ — and how gender fits into breeding.`,
     body: `<div class="gender-intro">
         ${GENDER_KEYS.map((key) => `<span class="chip" style="color:${GENDERS[key].color};border-color:currentColor">${GENDERS[key].symbol} ${GENDERS[key].name} ${counts[key]}</span>`).join('')}
+        <span class="chip">${variantCount.toLocaleString()} variant species</span>
       </div>
       <div class="gender-list">${GENDER_KEYS.map((key) => genderCardHTML(key, total)).join('')}</div>
       <div class="section-title" style="margin-top:14px"><h2>Breeding with genders</h2><span>${readyPairs.length} hybrid pair${readyPairs.length === 1 ? '' : 's'} ready</span></div>
       <div class="card gender-rules" style="padding:12px">
         <ul class="wiki-list" style="margin:0">
           <li><b>Gender never blocks a merge.</b> Any two level-3+ sprites that are rested can breed, in any combination — ♀ + ♂, ♀ + ♀, ♂ + ♂, and anything with ⚲.</li>
+          <li><b>Every family uses the same roll.</b> The ${baseCount} Base forms, ${trickCount} Trick-or-Treat costumes, ${hackerCount} Hacker forms, ${variantCount.toLocaleString()} variant species, and ${secretVariantCount.toLocaleString()} Secret variants all hatch as ♀, ♂, or ⚲ exactly like classic species.</li>
           <li><b>The child's gender is a fresh roll:</b> about ${genderShare('female')}% ♀ female, ${genderShare('male')}% ♂ male, ${genderShare('neutral')}% ⚲ neutral — the parents' genders do not weight it.</li>
           <li><b>Parents keep their own gender.</b> Merging, retiring and rebirth never re-roll an existing sprite; a sprite that goes back to an egg after a Rebirth Meal keeps the gender it was born with.</li>
           <li><b>Eggs already know.</b> Every egg carries its gender from the moment it is laid, so you can check the ♀ / ♂ / ⚲ symbol before hatching${eggsWithGender.length ? ` — ${eggsWithGender.length} egg${eggsWithGender.length === 1 ? '' : 's'} waiting right now` : ''}.</li>
@@ -82,6 +89,7 @@ function openGenderCodex() {
         <button class="btn btn-primary btn-sm" data-gender-nest>Open the Nest</button>
         <button class="btn btn-soft btn-sm" data-gender-breeding>Breeding codex</button>
         <button class="btn btn-soft btn-sm" data-gender-homes>Sprite Homes</button>
+        <button class="btn btn-soft btn-sm" data-gender-forms>Forms &amp; variants</button>
       </div>
       <p class="tiny muted" style="margin:10px 2px 0;line-height:1.55">Gender is the sprite's own identity, not a breeding requirement. Every rule above is cosmetic for stats: it changes no XP, bond, need, or gift value.</p>`,
     onMount: (root) => {
@@ -99,6 +107,10 @@ function openGenderCodex() {
       root.querySelector('[data-gender-breeding]')?.addEventListener('click', () => {
         close();
         setTimeout(() => openBreedingCodex(), 40);
+      });
+      root.querySelector('[data-gender-forms]')?.addEventListener('click', () => {
+        close();
+        setTimeout(() => openWikiGuide('formsvariants'), 40);
       });
       root.querySelector('[data-gender-homes]')?.addEventListener('click', () => {
         close();

@@ -205,6 +205,10 @@ const SECRET_VARIANT_BASE_KEYS = Array.from(new Set((typeof ELEMENT_KEYS !== 'un
   .filter((key) => ELEMENTS[key] && !(typeof isSecretSpecies === 'function' && isSecretSpecies(key)))));
 SECRET_VARIANT_BASE_KEYS.forEach((baseKey) => registerVariantSpecies('secret', baseKey, ELEMENTS[baseKey].name));
 
+function variantFamilyKeys(familyKey) {
+  return VARIANT_KEYS.filter((key) => ELEMENTS[key]?.variantFamily === familyKey);
+}
+
 if (typeof registerCollectionWave === 'function') {
   registerCollectionWave({
     key: 'variants',

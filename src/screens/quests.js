@@ -16,6 +16,18 @@ function biomeQuestRewardText(step) {
   ].filter(Boolean).join(' · ');
 }
 
+function seasonChargePanel() {
+  if (typeof seasonChargeInfo !== 'function') return '';
+  const info = seasonChargeInfo();
+  const pct = Math.round(info.progress);
+  const eggLine = `${info.eggs ? `${info.eggs} event egg${info.eggs === 1 ? '' : 's'} earned so far. ` : ''}Next event egg in ${info.next} charge${info.next === 1 ? '' : 's'}.`;
+  return `<div class="card" style="padding:12px;margin-bottom:10px;border-color:rgba(255,209,102,.35);background:linear-gradient(135deg,rgba(255,209,102,.09),rgba(139,123,255,.05))">
+    <div class="between"><b>⚡ Season Charge</b><span class="chip">${info.have}/${info.need}</span></div>
+    <p class="tiny muted" style="margin:6px 0 7px;line-height:1.5">Each guardian win or completed district adds <b>1 charge</b>. Three charges hatch a random <b>event sprite egg</b> automatically. ${eggLine}</p>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+  </div>`;
+}
+
 function biomeQuestCard(sceneKey) {
   const def = BIOME_QUESTS[sceneKey];
   const scene = SCENES[sceneKey];
@@ -46,7 +58,7 @@ function biomeQuestCard(sceneKey) {
     <p class="quest-step">${esc(info.step.text)}${here ? ' <span class="tiny muted">(you are here)</span>' : ''}</p>
     <div class="bar"><i style="width:${pct}%"></i></div>
     <div class="quest-foot">
-      <span class="tiny muted">${biomeQuestRewardText(info.step)}${finale ? ` · ⚔️ ${esc(guardianName)} · free boss` : ''}</span>
+      <span class="tiny muted">${biomeQuestRewardText(info.step)}${finale ? ` · ⚡ +1 Season Charge · ⚔️ ${esc(guardianName)} · free boss` : ''}</span>
       ${here ? '' : `<button class="btn btn-ghost btn-sm" data-quest-travel="${sceneKey}">Travel · +${TRAVEL_COINS} 🪙</button>`}
       ${action}
     </div>
@@ -92,8 +104,8 @@ function questTrackHtml() {
 function openDistrictQuests() {
   openSheet({
     title: '🗺️ District quests',
-    sub: 'Seven GTA districts and six exotic biomes, each with a three-step line. Free entry, free travel, free finale.',
-    body: `<p class="quest-intro">Travel to a district, play its games, and look after a sprite on location. Travel is free and pays ${TRAVEL_COINS} coins; every step pays coins, XP, and bond — and the finale pits you against that biome’s guardian at no cost.</p>
+    sub: 'One game, one care action, then the guardian. Free entry, free travel, and every step takes one action.',
+    body: `${seasonChargePanel()}<p class="quest-intro">Travel to a district, win <b>one game</b>, and look after a sprite <b>once</b>. Travel is free and pays ${TRAVEL_COINS} coins; every step pays coins, XP, and bond — and the finale is a free guardian bout. Every win also adds a <b>Season Charge</b>, and three charges hatch an event sprite egg.</p>
       <button class="btn btn-soft btn-block" data-quest-gallery style="margin-bottom:8px">⚔️ Guardian gallery · every biome, unlimited bouts</button>
       <div class="quest-grid" data-quest-grid>${BIOME_QUEST_KEYS.map(biomeQuestCard).join('')}</div>`,
     onMount: (overlay) => {
@@ -108,7 +120,11 @@ function openDistrictQuests() {
 
 /* ---------------- guardians ---------------- */
 
-const DUEL_WINDOW_SECONDS = 20;
+const DUEL_WINDOW_SECONDS = 40;
+const DUEL_STRIKE_MIN = 22;
+const DUEL_STRIKE_MAX = 30;
+const DUEL_RESOLVE_MIN = 0;
+const DUEL_RESOLVE_MAX = 1;
 
 function guardianForScene(sceneKey, index = 0) {
   const scene = SCENES[sceneKey];
@@ -158,8 +174,8 @@ function guardianBiomeRow(sceneKey) {
 function guardianBiomeIndex() {
   const questKeys = typeof BIOME_QUEST_KEYS !== 'undefined' ? BIOME_QUEST_KEYS : [];
   const others = SCENE_KEYS.filter((key) => !questKeys.includes(key) && guardianPoolForScene(key).length);
-  return `<p class="quest-intro">Every creature in the Hollow can guard a place. Bouts are always free — no coins, no energy — and unlimited. Pick an environment, then challenge as many of its guardians as you like.</p>
-    ${guardianVaultHtml()}${guardianCustomHtml()}
+  return `<p class="quest-intro">Every creature in the Hollow can guard a place. Bouts are always free — no coins, no energy — and unlimited. Pick an environment, then challenge as many of its guardians as you like. Every win adds a <b>Season Charge</b>.</p>
+    ${seasonChargePanel()}${guardianVaultHtml()}${guardianCustomHtml()}
     <div class="guardian-list">
       ${questKeys.map(guardianBiomeRow).join('')}
       ${others.length ? '<div class="guardian-split">Every other environment</div>' : ''}
@@ -222,7 +238,8 @@ function guardianBiomeView(sceneKey, limit = 24) {
   const rest = pool.length - sampleKeys.length;
   return `<button class="btn btn-ghost btn-sm" data-guardian-back style="margin-bottom:8px">← All environments</button>
     <div class="between" style="margin-bottom:6px"><b>${scene.emoji} ${esc(scene.name)}</b><span class="chip">${pool.length.toLocaleString()} guardians</span></div>
-    <p class="tiny muted" style="margin:0 0 8px;line-height:1.5">Practice bouts here are free and unlimited: win or lose, you can call the next guardian. Wins lift bond and joy.</p>
+    <p class="tiny muted" style="margin:0 0 8px;line-height:1.5">Practice bouts here are free and unlimited: win or lose, you can call the next guardian. Wins lift bond and joy, and every win adds a Season Charge.</p>
+    ${seasonChargePanel()}
     <button class="btn btn-gold btn-block" data-guardian-random style="margin-bottom:8px">🎲 Random guardian · free</button>
     <div class="guardian-grid">${rows}</div>
     ${rest > 0 ? `<button class="btn btn-soft btn-block" data-guardian-more style="margin-top:8px">Show ${Math.min(24, rest)} more · ${rest.toLocaleString()} remaining</button>` : '<p class="tiny muted" style="margin-top:8px">Every guardian in this environment is available.</p>'}`;
@@ -233,7 +250,7 @@ function openGuardianGallery(sceneKey = null) {
   let shown = 24;
   openSheet({
     title: '⚔️ Guardian gallery',
-    sub: 'Every biome guards a roster. Free, unlimited bouts — no coins, no energy.',
+    sub: 'Every biome guards a roster. Free, unlimited bouts — every win adds a Season Charge, and three charges hatch an event egg.',
     body: '<div data-guardian-gallery></div>',
     onMount: (overlay, close) => {
       const root = overlay.querySelector('.sheet') || overlay;
@@ -360,7 +377,7 @@ function openGuardianGallery(sceneKey = null) {
     </div>
     <div class="duel-line" data-duel-line aria-live="polite">${esc(greeting)}</div>
     <button class="btn btn-primary btn-block guardian-duel-strike" data-duel-strike>⚔️ Strike</button>
-    <p class="tiny muted" style="margin:8px 2px 0;line-height:1.5">Free — no coins, no energy. Tap Strike to wear the guardian down inside ${DUEL_WINDOW_SECONDS} seconds. ${practice ? 'Practice bouts are unlimited and pay bond and joy.' : 'Win and the line pays out with a <b>150 coin guardian bonus</b>. If the clock runs out, they offer you another round.'}</p>`;
+    <p class="tiny muted" style="margin:8px 2px 0;line-height:1.5">Free — no coins, no energy. Tap Strike a few times to wear the guardian down inside ${DUEL_WINDOW_SECONDS} seconds. Each win adds <b>1 Season Charge</b>, and three charges hatch an event egg. ${practice ? 'Practice bouts are unlimited and pay bond and joy.' : 'Win and the line pays out with a <b>150 coin guardian bonus</b>. If the clock runs out, they offer you another round.'}</p>`;
 
   const hpEl = board.querySelector('[data-duel-hp]');
   const resolveEl = board.querySelector('[data-duel-resolve]');
@@ -455,10 +472,15 @@ function openGuardianGallery(sceneKey = null) {
       showResult({
         title: 'Bout won',
         blurb: `${esc(guardian.name)} yields. A good bout in ${esc(scene.name)}.`,
-        chips: [`💗 +${res.bond} bond`, `✨ +${res.xp} XP`, 'joy up', `bested ×${res.total}`],
+        chips: [
+          `💗 +${res.bond} bond`, `✨ +${res.xp} XP`, 'joy up', `bested ×${res.total}`,
+          ...(res.eventEggs || []).map((egg) => `🥚 ${esc(egg.name)} egg`),
+          `⚡ Season ${res.season?.have ?? 0}/${res.season?.need ?? 3}`,
+        ],
         next: true,
       });
-      toast(`${guardian.name} bested in ${scene.name} · bond +${res.bond}.`, '⚔️');
+      const eventNote = res.eventEggs?.length ? ` · 🥚 ${res.eventEggs.map((egg) => egg.name).join(', ')}` : '';
+      toast(`${guardian.name} bested in ${scene.name} · bond +${res.bond}${eventNote}.`, '⚔️');
       return;
     }
     const res = Actions.claimBiomeQuest(sceneKey, { won: true });
@@ -477,10 +499,15 @@ function openGuardianGallery(sceneKey = null) {
     showResult({
       title: 'Guardian bested!',
       blurb: `${esc(guardian.name)} bows. ${esc(scene.name)} is yours.`,
-      chips: [`🪙 +${total} coins`, `✨ +${res.xp} XP`, `+${res.bonus} guardian bonus`],
+      chips: [
+        `🪙 +${total} coins`, `✨ +${res.xp} XP`, `+${res.bonus} guardian bonus`,
+        ...(res.eventEggs || []).map((egg) => `🥚 ${esc(egg.name)} egg`),
+        `⚡ Season ${res.season?.have ?? 0}/${res.season?.need ?? 3}`,
+      ],
       quests: true,
     });
-    toast(`${res.title} complete — ${guardian.name} bested · +${total} coins.`, '⚔️');
+    const eventNote = res.eventEggs?.length ? ` · 🥚 ${res.eventEggs.map((egg) => egg.name).join(', ')}` : '';
+    toast(`${res.title} complete — ${guardian.name} bested · +${total} coins${eventNote}.`, '⚔️');
     if (onWin) onWin();
   };
   shell.addCleanup(() => { over = true; if (timer) clearInterval(timer); });
@@ -494,8 +521,8 @@ function openGuardianGallery(sceneKey = null) {
   strikeBtn.addEventListener('click', (event) => {
     event.stopPropagation();
     if (over) return;
-    hp = Math.max(0, hp - rand(9, 16));
-    resolve = Math.max(0, resolve - rand(2, 5));
+    hp = Math.max(0, hp - rand(DUEL_STRIKE_MIN, DUEL_STRIKE_MAX));
+    resolve = Math.max(0, resolve - rand(DUEL_RESOLVE_MIN, DUEL_RESOLVE_MAX));
     paintBars();
     if (lineEl) lineEl.textContent = pick(lines);
     Sfx.pop();
@@ -550,7 +577,9 @@ function wireBiomeQuests(root) {
       }
       Sfx.level();
       burstOn(claim, ['🗺️', '🪙', '✨'], 9);
-      toast(`${res.title}${res.finished ? ' complete!' : ' step claimed.'} +${res.coins} coins${res.xp ? ` · +${res.xp} XP` : ''}`, '🗺️');
+      const paid = res.coins + (res.bonus || 0);
+      const eventNote = res.eventEggs?.length ? ` · 🥚 ${res.eventEggs.map((egg) => egg.name).join(', ')}` : '';
+      toast(`${res.title}${res.finished ? ' complete!' : ' step claimed.'} +${paid} coins${res.xp ? ` · +${res.xp} XP` : ''}${eventNote}`, '🗺️');
       paint();
     }
   });

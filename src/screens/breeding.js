@@ -225,6 +225,11 @@ function openBreedingCodex(filterKey) {
   const tvPairCount = BREEDING_PAIRS.filter((p) => ELEMENTS[p.a]?.tvLegacy || ELEMENTS[p.b]?.tvLegacy).length;
   const realmPairCount = BREEDING_PAIRS.filter((p) => ELEMENTS[p.a]?.realmWave || ELEMENTS[p.b]?.realmWave).length;
   const khPairCount = BREEDING_PAIRS.filter((p) => ELEMENTS[p.a]?.kingdomHearts || ELEMENTS[p.b]?.kingdomHearts).length;
+  const baseCount = typeof BASE_ROSTER_KEYS !== 'undefined' ? BASE_ROSTER_KEYS.length : 0;
+  const trickCount = typeof TRICK_OR_TREAT_KEYS !== 'undefined' ? TRICK_OR_TREAT_KEYS.length : 0;
+  const variantCount = typeof VARIANT_KEYS !== 'undefined' ? VARIANT_KEYS.length : 0;
+  const hackerCount = typeof variantFamilyKeys === 'function' ? variantFamilyKeys('hacker').length : 0;
+  const secretVariantCount = typeof SECRET_VARIANT_BASE_KEYS !== 'undefined' ? SECRET_VARIANT_BASE_KEYS.length : 0;
   const pairHTML = (p) => `<button class="breeding-card" data-breed-pair="${p.key}">
     <span class="bc-art">${breedingPairArt(p)}</span>
     <span class="bc-copy"><b>${esc(p.name)}</b><span>${esc(ELEMENTS[p.a].name)} × ${esc(ELEMENTS[p.b].name)}</span><span>${esc(breedingTypeLabel(p.a))} × ${esc(breedingTypeLabel(p.b))}</span></span>
@@ -242,7 +247,7 @@ function openBreedingCodex(filterKey) {
     title: 'Breeding codex',
     sub: `${BREEDING_PAIRS.length} named hybrids · ${allSpecies.length} parent species${focusedPair ? ` · ${focusedPair}` : ''}`,
     body: `<div class="wiki-article">
-      <p class="wiki-lede">The codex now lists <b>${BREEDING_PAIRS.length} named hybrids</b>, the parent types of <b>${allSpecies.length} species</b>, and <b>${WORLD_EVOLUTION_TOTAL.toLocaleString()} type × form evolution paths</b> across every biome and the Secret Vault. Named hybrids are special results; every two level 3+ sprites can still merge and blend.</p>
+      <p class="wiki-lede">The codex now lists <b>${BREEDING_PAIRS.length} named hybrids</b>, the parent types of <b>${allSpecies.length} species</b>, and <b>${WORLD_EVOLUTION_TOTAL.toLocaleString()} type × form evolution paths</b> across every biome and the Secret Vault. Named hybrids are special results; every two level 3+ sprites can still merge and blend. The live roster includes <b>${baseCount} Base forms</b>, <b>${trickCount} Trick-or-Treat costumes</b>, and <b>${variantCount.toLocaleString()} variant species</b>, so every family is a valid parent.</p>
       <div class="type-tools" style="margin-top:8px">
         <input class="type-search" data-breed-search type="search" placeholder="Search any species or parent type…" autocomplete="off">
         <select class="type-search" data-breed-type-filter aria-label="Filter parent species by type">
@@ -264,6 +269,11 @@ function openBreedingCodex(filterKey) {
       <p>Every species is listed by its primary parent type. Open one to see every named pair and its full compatibility notes.</p>
       <div class="breed-parent-grid" data-breed-parents></div>
       <p class="tiny muted" data-breed-parents-empty hidden>No parent species matches those filters.</p>
+      <h3>✨ Base, costumes &amp; variants</h3>
+      <p>The <b>${baseCount} Base forms</b>, <b>${trickCount} Trick-or-Treat costumes</b>, and <b>${variantCount.toLocaleString()} variant species</b> are first-class parents. That includes <b>${hackerCount} Hacker forms</b> and <b>${secretVariantCount.toLocaleString()} Secret variants</b>. Search a family name above to filter the parent grid, or open every family in one guide.</p>
+      <div class="wiki-hybrid-list">
+        <button class="wiki-link" data-breed-guide="formsvariants"><b>✨ Base, costumes &amp; variants · ${baseCount + trickCount + variantCount}</b><span>Live counts, family links, and the same gender and merge rules.</span></button>
+      </div>
       <h3>🪂 Fortnite Legacy &amp; WWE pairs</h3>
       <p>The past-season and squared-circle waves are first-class parents, with <b>${legacyPairCount} named Legacy hybrids</b> and <b>${wwePairCount} named WWE hybrids</b>. Every character also inherits its chapter or division as a parent type.</p>
       <div class="wiki-hybrid-list">
@@ -352,11 +362,16 @@ function openBreedingCodex(filterKey) {
 
 function breedingGuideBody() {
   const comboPairs = BREEDING_PAIRS.filter((p) => p.combo);
+  const baseCount = typeof BASE_ROSTER_KEYS !== 'undefined' ? BASE_ROSTER_KEYS.length : 0;
+  const trickCount = typeof TRICK_OR_TREAT_KEYS !== 'undefined' ? TRICK_OR_TREAT_KEYS.length : 0;
+  const variantCount = typeof VARIANT_KEYS !== 'undefined' ? VARIANT_KEYS.length : 0;
+  const hackerCount = typeof variantFamilyKeys === 'function' ? variantFamilyKeys('hacker').length : 0;
   const legacyPairCount = BREEDING_PAIRS.filter((p) => ELEMENTS[p.a]?.fortniteLegacy || ELEMENTS[p.b]?.fortniteLegacy).length;
   const wwePairCount = BREEDING_PAIRS.filter((p) => ELEMENTS[p.a]?.wwe || ELEMENTS[p.b]?.wwe).length;
   return `<p class="wiki-lede">The breeding codex lists all <b>${BREEDING_PAIRS.length} hybrid pairs</b> the Hollow knows about, including <b>${legacyPairCount} Fortnite Legacy pairs</b> and <b>${wwePairCount} WWE pairs</b>. It is generated from the same hybrid and combo tables the merge screen uses, so the names, palettes, and powers here are the live values.</p>
     <h3>Every type, every parent</h3>
     <p>There are no type restrictions: any two level 3+ sprites can bond and merge, and <b>retired sprites are valid parents</b>. Open the Vault from the Nest to see every unlocked secret’s combinations, named hybrids, and a live possible-child preview for any species.</p>
+    <p>The same rules cover the <b>${baseCount} Base forms</b>, <b>${trickCount} Trick-or-Treat costumes</b>, <b>${hackerCount} Hacker forms</b>, and <b>${variantCount.toLocaleString()} variant species</b>. Gender is a fresh roll for every child and never blocks a pair.</p>
     <h3>How a merge works</h3>
     <p>Two grown sprites at <b>level 3 or higher</b> combine for <b>70 coins plus 25 per parent generation</b>. The child is always an egg, and both parents rest for 60 seconds afterwards.</p>
     <h3>What passes on</h3>

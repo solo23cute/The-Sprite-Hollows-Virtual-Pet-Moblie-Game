@@ -3,6 +3,7 @@
 const SAVE_KEY = 'sprite-hollow.save.v2';
 const MAX_LEVEL = 1000;
 const TRAVEL_COINS = 10;
+const SEASON_CHARGE_GOAL = 3;
 
 const CUSTOM_CLOTH_STYLES = {
   cape: { name: 'Cape', icon: '🦸' },
@@ -105,6 +106,7 @@ function freshState() {
     houses: {},
     homeUpgrades: {},
     biomeQuests: {},
+    seasonCharge: { points: 0, eggs: 0 },
     roomLayout: {},
     roomTheme: 'honey',
     customGuardians: [],
@@ -120,7 +122,7 @@ function freshState() {
       walks: 0, walkDistance: 0, bestWalk: 0, walkGifts: 0, sports: 0, sportGifts: 0,
       arcadeCoins: 0, arcadeGifts: 0, arcadeMonthGifts: 0, careGifts: 0, quests: 0, duels: 0, travels: 0,
       rubs: 0, throws: 0, catches: 0, tasksClaimed: 0, rebirths: 0,
-      dailyEggs: 0, holidayGifts: 0, weekendGifts: 0,
+      dailyEggs: 0, holidayGifts: 0, weekendGifts: 0, seasonEggs: 0,
     },
     seen: { intro: false, tour: false },
     secretUnlocks: [],
@@ -310,6 +312,11 @@ function loadState() {
         beaten: !!raw.beaten,
       };
     });
+    const savedSeasonCharge = parsed.seasonCharge && typeof parsed.seasonCharge === 'object' ? parsed.seasonCharge : {};
+    merged.seasonCharge = {
+      points: Math.max(0, Math.floor(Number(savedSeasonCharge.points) || 0)) % SEASON_CHARGE_GOAL,
+      eggs: Math.max(0, Math.floor(Number(savedSeasonCharge.eggs) || 0)),
+    };
     merged.foodUnlocks = Array.isArray(parsed.foodUnlocks) ? parsed.foodUnlocks.filter((k) => FOODS[k]?.monthly) : [];
     merged.checkin.monthCrateKey = parsed.checkin?.monthCrateKey || null;
     merged.weeklyEvents = {
@@ -2711,6 +2718,7 @@ const Actions = {
     const total = (Number(state.guardiansBeaten[guardianKey]) || 0) + 1;
     state.guardiansBeaten[guardianKey] = total;
     state.stats.duels = (Number(state.stats.duels) || 0) + 1;
+    const eventEggs = typeof addSeasonChargeRaw === 'function' ? addSeasonChargeRaw(1) : [];
     state.customGuardians = Array.isArray(state.customGuardians) ? state.customGuardians.slice() : [];
     const wins = Object.values(state.guardiansBeaten).reduce((sum, n) => sum + (Number(n) || 0), 0);
     const unlocked = [];
@@ -2722,8 +2730,8 @@ const Actions = {
       });
       if (unlocked.length && typeof syncCustomGuardians === 'function') syncCustomGuardians(state.customGuardians);
     }
-    commit('guardian', { scene: sceneKey, guardian: guardianKey, total, unlocked: unlocked.length });
-    return { ok: true, bond: 3, joy: 12, xp: 8, total, unlocked };
+    commit('guardian', { scene: sceneKey, guardian: guardianKey, total, unlocked: unlocked.length, eventEggs: eventEggs.length });
+    return { ok: true, bond: 3, joy: 12, xp: 8, total, unlocked, eventEggs, season: seasonChargeInfo() };
   },
 
   setRoomPiece(id, patch = {}) {
@@ -2791,8 +2799,9 @@ const Actions = {
     state.biomeQuests = { ...(state.biomeQuests || {}) };
     state.biomeQuests[sceneKey] = { step: finished ? def.steps.length : nextStep, progress: 0, done: finished, beaten: finalStep ? true : !!q.beaten };
     if (finished) state.stats.quests = (Number(state.stats.quests) || 0) + 1;
-    commit('biomeQuest', { scene: sceneKey, finished, coins });
-    return { ok: true, coins, bonus, xp: reward.xp || 0, finished, title: def.title };
+    const eventEggs = finished && typeof addSeasonChargeRaw === 'function' ? addSeasonChargeRaw(1) : [];
+    commit('biomeQuest', { scene: sceneKey, finished, coins, eventEggs: eventEggs.length });
+    return { ok: true, coins, bonus, xp: reward.xp || 0, finished, title: def.title, eventEggs, season: seasonChargeInfo() };
   },
 
   bondHouse(houseId) {
@@ -2928,6 +2937,52 @@ const Actions = {
 
 /* District quest progress: only counts inside the biome you are standing in,
    and only for the step currently in front of you. */
+/* Season Charge is a small, visible reward track shared by both halves of the
+   district loop. Guardian practice wins and completed district lines each add
+   one charge; three charges hatch a random event or Admin egg. */
+function seasonChargeInfo() {
+  const charge = state.seasonCharge && typeof state.seasonCharge === 'object' ? state.seasonCharge : {};
+  const points = Math.max(0, Math.floor(Number(charge.points) || 0)) % SEASON_CHARGE_GOAL;
+  return {
+    have: points,
+    need: SEASON_CHARGE_GOAL,
+    next: SEASON_CHARGE_GOAL - points,
+    eggs: Math.max(0, Math.floor(Number(charge.eggs) || 0)),
+    progress: (points / SEASON_CHARGE_GOAL) * 100,
+  };
+}
+
+function grantSeasonEventEggRaw() {
+  if (typeof weekendAdminEggPool !== 'function' || typeof rollEgg !== 'function') return null;
+  const pool = weekendAdminEggPool();
+  if (!pool.length) return null;
+  const key = pick(pool);
+  const egg = rollEgg('wild', { element: key, eggLabel: `${ELEMENTS[key].name} Season Event Egg` });
+  egg.hatch = 40;
+  state.sprites.push(egg);
+  state.stats.seasonEggs = (Number(state.stats.seasonEggs) || 0) + 1;
+  return { key, egg, name: ELEMENTS[key].name };
+}
+
+function addSeasonChargeRaw(amount = 1) {
+  const gain = Math.max(0, Math.floor(Number(amount) || 0));
+  if (!gain) return [];
+  state.seasonCharge = state.seasonCharge && typeof state.seasonCharge === 'object'
+    ? { ...state.seasonCharge }
+    : { points: 0, eggs: 0 };
+  state.seasonCharge.points = Math.max(0, Math.floor(Number(state.seasonCharge.points) || 0)) + gain;
+  state.seasonCharge.eggs = Math.max(0, Math.floor(Number(state.seasonCharge.eggs) || 0));
+  const earned = [];
+  while (state.seasonCharge.points >= SEASON_CHARGE_GOAL) {
+    const egg = grantSeasonEventEggRaw();
+    if (!egg) break;
+    state.seasonCharge.points -= SEASON_CHARGE_GOAL;
+    state.seasonCharge.eggs += 1;
+    earned.push(egg);
+  }
+  return earned;
+}
+
 function biomeQuestNote(kind) {
   if (typeof BIOME_QUESTS === 'undefined' || typeof biomeQuestStep !== 'function') return;
   const sceneKey = state.theme && state.theme.scene;

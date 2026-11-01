@@ -1,4 +1,15 @@
-## 4.1.2 Import a saved Hollow on the first screen (current release)
+## 4.2.0 Season Charge, shorter district quests, and easier guardian duels (current release)
+
+- **Season Charge is live.** Every guardian win and every completed district adds one charge. At **3 charges**, a random event or Admin sprite egg is added automatically, already **40% warmed** and labelled as a Season Event Egg.
+- **District quests are one-action lines.** All 13 GTA and exotic biome lines now need one game win and one care action per step, with free travel and a free guardian finale.
+- **Guardian duels are much easier.** The window is **40 seconds**, each Strike deals **22–30 damage**, and return hits drain only 0–1 resolve. Most guardians yield in about four strikes, with unlimited retries.
+- **Tour and Wiki updated.** A dedicated District quests & guardians tour step and an expanded Wiki guide explain the loop, the charge meter, and event eggs.
+- **Hotfixes 1–11 are included**, covering quest/finale clicks, at-home duels, short-screen game menus, forms and variants, gender/breeding/atlas counts, Vault scrolling, and cache busting.
+- Package: `versionName 4.2.0` / `versionCode 77`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34, signed with the 4.1.3 rotation lineage (v2 + v3 + v3.1).
+- **Android 7.0 and up:** [`SpriteHollow-4.2.0-v77-release.apk`](SpriteHollow-4.2.0-v77-release.apk) — 759,739 bytes. SHA-256 `1a994712b6a1f0c2b780e55bcc9a53b96f56ac33c180790a56104235627efdf3`.
+- Verified across all 124 page-order scripts, the 13 quest lines, Season Charge awards, the new tour and Wiki copy, APK ZIP integrity/alignment, package metadata, packaged assets, and v2/v3/v3.1 signatures. A physical Android install test remains pending.
+
+## 4.1.2 Import a saved Hollow on the first screen (previous release)
 
 - **Restore before you hatch.** The first-run intro now carries a **💾 Restore a saved Hollow** button, so a Hollow can be brought back from a rescue code or a file before a starter egg is picked - the case that matters after a reinstall. It opens the same confirm-guarded sheet as Studio's backup screen, which explains how many sprites, eggs and coins the code holds before anything is written.
 - **Accepts what the rescue tool produces.** `SH-save-1:` codes, deflated `SH-save-2:` codes, and raw JSON (the direct output of `tools/rescue-save.py`) all import, so a save pulled off an older install can be carried in without conversion. A successful restore sets `state.started` and reloads straight into the game, skipping the intro.

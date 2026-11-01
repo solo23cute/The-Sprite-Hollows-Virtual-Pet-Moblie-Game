@@ -2078,7 +2078,20 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   max-height: min(92%, calc(100dvh - 18px));
   overflow-x: hidden;
 }
-.sheet-body, .modal-body { min-width: 0; max-width: 100%; }
+.sheet-body, .modal-body { min-width: 0; max-width: 100%; overflow-x: hidden; }
+.vault-combo-box {
+  max-height: 300px;
+  max-height: min(36dvh, 300px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+  scrollbar-width: thin;
+}
+.vault-combo-box::-webkit-scrollbar { width: 4px; }
+.vault-combo-box .secret-card { flex: 0 0 auto; }
+@media (max-height: 560px) {
+  .vault-combo-box { max-height: 28dvh; }
+}
 .sheet-body > *, .modal-body > * { max-width: 100%; }
 .sheet .between > div:first-child { min-width: 0; }
 .secret-grid {

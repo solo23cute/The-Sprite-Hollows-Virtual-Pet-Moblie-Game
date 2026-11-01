@@ -150,6 +150,24 @@ function worldEvolutionStats() {
   };
 }
 
+function worldEvolutionVariantStats() {
+  return {
+    base: typeof BASE_ROSTER_KEYS !== 'undefined' ? BASE_ROSTER_KEYS.length : 0,
+    trick: typeof TRICK_OR_TREAT_KEYS !== 'undefined' ? TRICK_OR_TREAT_KEYS.length : 0,
+    variants: typeof VARIANT_KEYS !== 'undefined' ? VARIANT_KEYS.length : 0,
+    hacker: typeof variantFamilyKeys === 'function' ? variantFamilyKeys('hacker').length : 0,
+    secretVariants: typeof SECRET_VARIANT_BASE_KEYS !== 'undefined' ? SECRET_VARIANT_BASE_KEYS.length : 0,
+  };
+}
+
+function worldEvolutionVariantHTML() {
+  const forms = worldEvolutionVariantStats();
+  return `<div class="card" style="padding:12px;margin-top:12px;text-align:left">
+    <b>✨ Base, costumes &amp; variants</b>
+    <p class="tiny muted" style="margin:6px 0 0;line-height:1.55">The atlas maps the core species ladder. The separate roster adds <b>${forms.base} Base forms</b>, <b>${forms.trick} Trick-or-Treat costumes</b>, <b>${forms.hacker} Hacker forms</b>, <b>${forms.variants.toLocaleString()} variant species</b>, and <b>${forms.secretVariants.toLocaleString()} Secret variants</b>. They use the same evolution forms and are catalogued in Types and the Wiki.</p>
+  </div>`;
+}
+
 function worldEvolutionRows(opts = {}) {
   const q = String(opts.query || '').trim().toLowerCase();
   const environment = opts.environment || 'all';
@@ -207,6 +225,9 @@ function worldEvolutionWikiBody() {
     <h3>Every environment</h3>
     <p>Choose any of the <b>${stats.biomes} type biomes</b>, any of the <b>${stats.scenes - stats.biomes} Hollow habitats</b>, or the <b>Secret Vault</b>. Each card links back to its full species, parent, and bond records.</p>
     <div class="world-evo-env-strip">${WORLD_EVOLUTION_ENVIRONMENTS.map((env) => `<button class="world-evo-env" data-world-evo-env="${env.key}"><b>${env.emoji} ${esc(env.name)}</b><span>${(stats.environments[env.key] || 0).toLocaleString()} paths${env.vault ? ' · free to read' : ''}</span></button>`).join('')}</div>
+    <h3>Base, costumes &amp; variants</h3>
+    ${worldEvolutionVariantHTML()}
+    <button class="btn btn-soft btn-block" data-wiki-guide="formsvariants" style="margin-top:8px">✨ Open the Forms &amp; variants guide</button>
     <h3>All twelve tiers</h3>
     <p>The atlas filters the full ladder: ${RARITY_TIER_ORDER.map((key) => `<b>${TYPE_EGG_RARITIES[key].name}</b>`).join(' · ')}. Celestial, Divine, and Eternal are still trail-only apex ranks, so they appear as tier knowledge rather than egg paths.</p>
     <button class="btn btn-primary btn-block" data-world-evo-open style="margin-top:12px">🧬 Open the free World Evolution Atlas</button>
@@ -243,6 +264,8 @@ function openWorldEvolutionAtlas(opts = {}) {
     body: `<div class="wiki-article">
       ${worldEvolutionStatHTML()}
       <p class="tiny muted" style="line-height:1.55">Every type, all ${WORLD_EVOLUTION_FORM_KEYS.length} forms, every biome and Hollow scene, and every Secret Vault path. This reference is free; Vault ownership is separate.</p>
+      ${worldEvolutionVariantHTML()}
+      <button class="btn btn-soft btn-block" data-we-forms style="margin-top:8px">✨ Open the Forms &amp; variants guide</button>
       <div class="type-tools" style="margin-top:8px">
         <input class="type-search" data-we-search type="search" placeholder="Search type, gene, parent, personality, environment…" value="${esc(query)}" autocomplete="off">
         <select class="type-search" data-we-env aria-label="Filter by environment">
@@ -305,6 +328,10 @@ function openWorldEvolutionAtlas(opts = {}) {
       formSelect.addEventListener('change', () => { form = formSelect.value; reset(); });
       tierSelect.addEventListener('change', () => { tier = tierSelect.value; reset(); });
       sourceSelect.addEventListener('change', () => { source = sourceSelect.value; reset(); });
+      sheet.querySelector('[data-we-forms]')?.addEventListener('click', () => {
+        close();
+        setTimeout(() => openWikiGuide('formsvariants'), 30);
+      });
       more.addEventListener('click', () => { limit += 18; paint(); });
       paint();
     },

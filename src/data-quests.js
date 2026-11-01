@@ -1,6 +1,8 @@
 /* District quests: a three-step story line for every GTA district and every
    Hollow exotic biome. Steps advance only while you are actually there, and
-   each step pays coins, XP, and bond. Loaded after the biome data files. */
+   each step pays coins, XP, and bond. The update makes every step a single
+   action so a district can be finished in one short visit. Loaded after the
+   biome data files. */
 
 const BIOME_QUEST_DEFS = {
   'gta-libertycity': {
@@ -117,8 +119,10 @@ Object.entries(BIOME_QUEST_DEFS).forEach(([sceneKey, def]) => {
     scene: sceneKey,
     title: def.title,
     icon: def.icon,
-    steps: def.steps.map(([text, kind, need, coins, xp], index) => ({
-      text, kind, need,
+    steps: def.steps.map(([text, kind, , coins, xp], index) => ({
+      text: text.replace(/\b2 games\b/g, '1 game').replace(/\btwice\b/g, 'once'),
+      kind,
+      need: 1,
       reward: { coins, xp, bond: index === 2 ? 8 : 2 },
     })),
   };

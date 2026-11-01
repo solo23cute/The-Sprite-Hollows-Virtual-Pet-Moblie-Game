@@ -44,6 +44,7 @@ const TOUR_STEPS = [
       'Open a sprite to see a NEXT EVOLUTION card with its next stage, required level, XP left, and progress.',
       `At level 10, twelve points in one diet path unlocks one of ${EVOLUTION_FORM_KEYS.length} permanent forms.`,
       'The Bond Codex lists all six bond ranks, their passive bonuses, every stage, and every diet evolution.',
+      'The Gender Codex explains the ♀ / ♂ / ⚲ roll, and the Breeder Codex lists every named hybrid and parent type.',
       'Retirement unlocks at Elder level 100. A Rebirth Meal at level 1,000 returns them to an egg with permanent rebirth bonuses.',
     ],
     tip: 'Retired sprites still count for Vault progress and can merge. A Rebirth Meal starts their next life with permanent bonuses.',
@@ -93,6 +94,19 @@ const TOUR_STEPS = [
     tip: 'Open the Wiki Roster browser to filter ponies by family, TV by show, and Keyblade characters by world. Every card opens its species file.',
   },
   {
+    icon: '✨', kicker: 'FORMS, COSTUMES & VARIANTS',
+    title: 'Every form has a home',
+    text: `The roster now has ${BASE_ROSTER_KEYS.length} Base forms, ${TRICK_OR_TREAT_KEYS.length} Trick-or-Treat costumes, and ${VARIANT_KEYS.length.toLocaleString()} variant-tier sprites, including ${variantFamilyKeys('hacker').length} Hacker forms. Every one is a real type egg with its own gene, Titan, homes, and a place in the Wiki.`,
+    points: [
+      'Filter ◻️ Base in Types to see the original, unshined forms of the Fortune favorites.',
+      'Trick-or-Treat costumes are Halloween species with a 🎃 gene and a permanent +10% XP bonus.',
+      `Hacker forms glow with neon visors and circuit traces; ${SECRET_VARIANT_BASE_KEYS.length.toLocaleString()} Secret variants add a hidden form for every normal sprite.`,
+      'The Gender Codex covers every family: each egg rolls its own ♀, ♂, or ⚲ gender before it hatches.',
+      'The Breeder Codex and both atlases read the same live roster, so Base, costume, and variant parents are never left out.',
+    ],
+    tip: 'Search Types for Base, Trick or Treat, Hacker, or Secret, or open the Forms & variants guide in the Wiki.',
+  },
+  {
     icon: '🧭', kicker: 'TYPE BIOMES',
     title: 'Eighteen homes for eighteen types',
     text: 'Every one of the eighteen standard types has a dedicated biome with its own sky, ground, weather, and guardian. Studio now separates Core habitats, Type biomes, and Custom biomes so all 18 are visible and selectable. Matching species earn 50% more XP there, and visitors still get a small bonus.',
@@ -103,6 +117,18 @@ const TOUR_STEPS = [
       'Custom biomes welcome every grown sprite with no resident cap.',
     ],
     tip: 'Switching habitats and climates is free. Try a new home whenever you like.',
+  },
+  {
+    icon: '🗺️', kicker: 'DISTRICT QUESTS & GUARDIANS',
+    title: 'Short quests, quick guardian bouts',
+    text: `Every GTA district and exotic biome has a three-step story line, and every step now takes one action. Travel is free, win one game, look after a sprite once, then face the guardian. The finale is a free 40-second duel: each Strike deals 22–30 damage, so most guardians yield in about four hits.`,
+    points: [
+      `${BIOME_QUEST_KEYS.length} district lines are live. Each one pays coins, XP, and bond on every step, with a 150-coin guardian bonus at the end.`,
+      'The district sheet and Biome Atlas show the exact step, a one-action progress bar, and a direct Travel button.',
+      'Every guardian win and every completed district adds 1 Season Charge. At 3 charges a random event or Admin egg is added automatically, already 40% warmed.',
+      'Open the Guardian gallery from the district sheet to challenge any environment for free. Practice wins also add Season Charge, with unlimited retries.',
+    ],
+    tip: 'Open Today → District quests, or the quest card in the Biome Atlas. The guardian finale is free, so a timeout only means another round.',
   },
   {
     icon: '🎮', kicker: 'CLASSIC GAMES',
@@ -144,6 +170,7 @@ const TOUR_STEPS = [
     title: 'Check in, quest, and collect',
     text: 'Today runs the Hollow calendar. Check in during the morning, afternoon, evening, and night windows for coins, snacks, and streak progress. Quests and goals pay extra for things you already do.',
     points: [
+      'District quests now need one game and one care action; guardian finales are quick 40-second bouts, and every guardian win or completed district adds a Season Charge toward a free event or Admin egg.',
       'The monthly crate pays coins, stocks food, and unlocks a new monthly dish.',
       'Weekly and monthly tracks add bigger milestones and a yearly mythic reward.',
       'Weather follows the real date. Cold or wet weather drains needs faster, so use the wardrobe.',
@@ -164,12 +191,13 @@ const TOUR_STEPS = [
   {
     icon: '🔐', kicker: 'SECRETS & EXOTICS',
     title: 'Some doors are not in the Nest',
-    text: `${SECRET_SPECIES.length} secret sprites are not sold in the Nest. Open the Vault from the Nest to see every unlocked keeper, its parent types, named hybrids, and a possible-child preview. Milestone doors, twelve monthly keepers, and eight twice-weekly relays are tracked there. Exotic guardians are different: they can hatch from their type eggs.`,
+    text: `${SECRET_SPECIES.length} secret sprites are not sold in the Nest. Open the Vault from the Nest to see every unlocked keeper, its parent types, named hybrids, and a possible-child preview. Milestone doors, twelve monthly keepers, and eight twice-weekly relays are tracked there. Exotic guardians are different: they can hatch from their type eggs. A further ${SECRET_VARIANT_BASE_KEYS.length.toLocaleString()} Secret variants are purchasable type eggs; they do not need a Vault door.`,
     points: [
       'Finish this tour to earn the first secret, the Hollow Guide.',
       'Reach level 1,000, visit all eighteen biomes, reach 100 bond, hatch 25 eggs, and decode the Master name for the rest.',
       'Open the Vault during a monthly or Monday–Wednesday / Thursday–Sunday window, then claim the keeper before it rotates.',
       'Retired sprites still count for Vault progress and can be used as merge parents.',
+      `Secret variants are a separate purchasable family (${SECRET_VARIANT_BASE_KEYS.length.toLocaleString()} forms), not additional Vault doors.`,
       'Collect 8 Fortnite Legacy species for the Season Keeper, or 6 WWE species for the Ring Keeper. Reach 16 Legacy or 12 WWE to earn the exotic Rift Champion or Grand Slam.',
       'The Elder Keeper unlocks when a sprite retires at Elder level 100; this tour awards the Hollow Guide.',
       'The Master Cheat answers to the word MASTER once the tour is complete.',
