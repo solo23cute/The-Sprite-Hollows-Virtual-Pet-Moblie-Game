@@ -1,3 +1,12 @@
+## 3.14.0 Start over and keep your coins
+
+- **Reset now banks your coins.** "Start a brand-new Hollow" in Studio still wipes the Hollow — every sprite, egg, unlock, wardrobe item, journal entry, streak and stat — but the coins you already earned stay in your pocket, so you begin again at the egg picker with the full bank you built up.
+- The confirm sheet says exactly what happens, including the live coin figure: **"Restart with 4,321 coins"**. Nothing is silently kept beyond the coins, and nothing else survives the reset.
+- Picking a new starter egg no longer drops you to the 160-coin starting balance: the starter flow tops you up to at least 160 but leaves a bigger bank untouched.
+- A brand-new install is unchanged — first launch still begins the intro with 160 coins.
+- Android build: **versionName 3.14.0 / versionCode 63** — release-signed `SpriteHollow-3.14.0-v63-release.apk` (636 KB, same rotated 2026-11 certificate chain as 3.13.0, so it installs straight over it and keeps your saves).
+- Verified with a jsdom suite that boots the real script order on the app's own WebView origin: a played Hollow holding 4,321 coins, two sprites, stats, a journal and a wardrobe resets to zero sprites / zero stats / default name while all 4,321 coins are written to the new save; the reloaded game reads those coins back, the new starter egg leaves the bank intact, a first install still starts at 160, and a nearly broke Hollow keeps its 95 coins. 14/14 checks, no runtime errors.
+
 ## 3.13.0 Adult Swim, Baby Looney Tunes, the Tooth Fairy, and Periwinkle Bell
 
 - **Adult Swim wave — 58 sprites.** The late-night roster: Rick Sanchez, Morty, Summer, Beth, Jerry, Mr. Meeseeks, Squanchy, Birdperson, Pickle Rick, Master Shake, Frylock, Meatwad, Carl, Space Ghost, Zorak, Moltar, Brak, Harvey Birdman, Rusty Venture, Brock Samson, The Monarch, Dr. Girlfriend, Captain Murphy, Stormy Waters, Killface, Nathan Explosion, Skwisgaar, Toki, Pickles, William Murderface, The Warden, Huey, Riley, Granddad Freeman, Black Dynamite, Samurai Jack, Aku, Spear, Fang, Robot Chicken, Orel, Early Cuyler, Mr. Pickles, Pim, Charlie, Glep, Eric Andre, Brendon Small, Xavier, Mouse Fitzgerald, Stan, Roger, Francine, Steve, Hayley, Klaus, Gary Goodspeed, and Mooncake. Each has a late-night gene (Mad Science, Chaos, Muscle, Weird, Flex, Deadpan…), a Titan, an egg, a habitat, and named hybrids.

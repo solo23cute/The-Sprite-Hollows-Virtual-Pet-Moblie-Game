@@ -1328,7 +1328,7 @@ const Actions = {
   startGame(element, breed) {
     state.started = true;
     state.seen.intro = true;
-    state.coins = 160;
+    state.coins = Math.max(160, Math.floor(Number(state.coins) || 0));
     const egg = makeSprite({
       element,
       breed,
@@ -2492,8 +2492,20 @@ const Actions = {
     stateListeners.forEach((fn) => { try { fn({ type: 'ambient' }); } catch {} });
   },
 
+  /* Start a brand-new Hollow but bank the coins: everything else is rebuilt from
+     scratch (eggs, sprites, unlocks, streaks, journal), so the player picks a
+     starter egg again with the coins they already earned still in their pocket. */
   reset() {
-    try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
+    const banked = Math.max(0, Math.floor(Number(state.coins) || 0));
+    const fresh = freshState();
+    fresh.coins = banked;
+    state.coins = banked;
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(fresh));
+    } catch (err) {
+      console.warn('Could not write the fresh Hollow save', err);
+      try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
+    }
     location.reload();
   },
 };

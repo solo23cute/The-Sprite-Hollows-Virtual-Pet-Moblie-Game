@@ -44,8 +44,8 @@ echo "==> Linking APK shell"
   --java "$HERE/build/gen" \
   --min-sdk-version 26 \
   --target-sdk-version 34 \
-  --version-code 62 \
-  --version-name 3.13.0 \
+  --version-code 63 \
+  --version-name 3.14.0 \
   "$HERE/build/res.zip"
 
 echo "==> Compiling Java"
