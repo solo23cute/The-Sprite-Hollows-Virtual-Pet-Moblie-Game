@@ -378,11 +378,11 @@ Any static file server works. The game saves to `localStorage` after every actio
 
 ## Android APK
 
-**Download:** [`SpriteHollow-3.13.0-v62-release.apk`](SpriteHollow-3.13.0-v62-release.apk) — 632 KB, release-signed with the rotated 2026-11 key (`a64c2b04…` on Android 13+, original release key lineage below that), fully offline, `versionName 3.13.0` / `versionCode 62`. SHA-256 `68e524c22a7756e973e4372a39796fda9642470c9dcdfb1acd135dfef328f111`. It installs in place over earlier release-key builds; a debug-signed [`SpriteHollow-3.13.0-v62.apk`](SpriteHollow-3.13.0-v62.apk) (651 KB, SHA-256 `3dc1162e7d51a90db53212e87eefbcca350ec6c3f63761f072881de7cbb78f9c`) is kept for sideloading onto clean devices.
+**Download:** [`SpriteHollow-3.20.0-v69-release.apk`](SpriteHollow-3.20.0-v69-release.apk) — 706 KB, release-signed with the project release key, fully offline, `versionName 3.20.0` / `versionCode 69`. SHA-256 `255bad0ba86204900cdff40ec5ee978a20bdeb8421ceed4fa7a0feb8d26b13ff`. It installs in place over 3.19.0; a debug-signed [`SpriteHollow-3.20.0-v69.apk`](SpriteHollow-3.20.0-v69.apk) (714 KB, SHA-256 `53eb453eaaca7c22252fc115ca5c41c34273e7e74486484239beaed7b3ce783a`) is kept for sideloading onto clean devices.
 
-**Release build (3.9.0):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 579 KB, signed with the project release key. SHA-256 `ad03d06073b644ab2974dc8b8b7244813b05120f34d71aa21d9722827cdf6b0e`.
+**Release build (3.20.0):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 706 KB, signed with the project release key. SHA-256 `255bad0ba86204900cdff40ec5ee978a20bdeb8421ceed4fa7a0feb8d26b13ff`.
 
-- Minimum Android 8.0 (API 26); targets Android 14 (API 34).
+- Minimum Android 7.0 (API 24); targets Android 14 (API 34).
 - Install: open the APK on the phone and allow installation from this source, or use `adb install -r SpriteHollow.apk`.
 - The APK bundles the exact same game inside an Android WebView. A tiny asset interceptor serves it from an `https://appassets…` origin so `localStorage` saves persist across app restarts.
 - Spoken lines use the device's offline text-to-speech engine through a small Java bridge, so voice works with no network and no audio files.
