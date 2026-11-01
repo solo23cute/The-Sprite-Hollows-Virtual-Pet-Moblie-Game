@@ -7,3 +7,4 @@ android/release-key.properties
 apk-*.png
 apk-check*.png
 __pycache__/
+project.zip
