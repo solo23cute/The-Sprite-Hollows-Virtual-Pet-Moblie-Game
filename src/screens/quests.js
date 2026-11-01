@@ -1,6 +1,12 @@
 /* District quest cards, the Hollow quest tracker, guardian duels, and the
    guardian gallery that lets any biome host an unlimited run of challengers. */
 
+if (typeof GAME_INFO !== 'undefined') {
+  Object.assign(GAME_INFO, {
+    guardian: { title: 'Guardian Duel', tag: 'Guardian bout', desc: 'Tap Strike before the guardian’s resolve runs out.' },
+  });
+}
+
 function biomeQuestRewardText(step) {
   const reward = step.reward || {};
   return [
@@ -301,9 +307,7 @@ function openGuardianGallery(sceneKey = null) {
   });
 }
 
-/* ---------------- guardian duel ---------------- */
-
-function openGuardianDuel(sceneKey, onWin, opts = {}) {
+/* ---------------- guardian duel ---------------- */function openGuardianDuel(sceneKey, onWin, opts = {}) {
   const def = BIOME_QUESTS[sceneKey] || null;
   const scene = SCENES[sceneKey];
   if (!scene) return null;
@@ -332,120 +336,174 @@ function openGuardianDuel(sceneKey, onWin, opts = {}) {
   let over = false;
   let timer = null;
 
-  openSheet({
-    title: `⚔️ ${esc(guardian.name)}`,
-    sub: `${practice ? 'Practice bout' : 'Quest finale'} · free · guardian of ${scene.emoji} ${esc(scene.name)}${def && !practice ? ` · ${esc(def.title)}` : ''}`,
-    body: `<div class="guardian-duel-stage" style="background:linear-gradient(180deg, ${tint.b2}, ${tint.b1})">
-        <div class="scene-decor">${buildSceneDecor(sceneKey)}</div>
-        <span class="duel-guardian">${spriteSVG(guardianSample(guardianKey, 'ancient'), { expr: 'happy' })}<b>${esc(guardian.name)}</b></span>
-        ${mine ? `<span class="duel-challenger">${spriteSVG(mine, { expr: 'happy' })}<b>${esc(displayName(mine))}</b></span>` : ''}
-      </div>
-      <div class="duel-bars">
-        <div class="duel-bar"><span>Guardian resolve</span><div class="bar"><i data-duel-hp style="width:100%"></i></div></div>
-        <div class="duel-bar"><span>${mine ? esc(displayName(mine)) : 'Your sprite'}</span><div class="bar"><i data-duel-resolve style="width:100%"></i></div></div>
-      </div>
-      <div class="duel-line" data-duel-line>${esc(greeting)}</div>
-      <button class="btn btn-primary btn-block" data-duel-strike>⚔️ Strike</button>
-      <div class="row" style="gap:8px;margin-top:8px">
-        <button class="btn btn-soft btn-block" data-duel-next>🔄 Another guardian</button>
+  /* The duel now uses the same full-screen shell as sports and trail games,
+     rather than a small bottom sheet stacked over another sheet. */
+  if (typeof closeAllOverlays === 'function') closeAllOverlays();
+  const shell = gameOverlayShell('guardian');
+  const { board } = shell;
+  shell.wrap.querySelector('.game-top h2').textContent = `⚔️ ${guardian.name}`;
+  shell.wrap.querySelector('.game-top .muted').textContent = `${practice ? 'Practice bout' : 'Quest finale'} · ${scene.emoji} ${esc(scene.name)}`;
+  shell.wrap.querySelector('.gstat span').textContent = 'Resolve';
+  shell.hintEl.textContent = `${def && !practice ? esc(def.title) : 'Free guardian bout'} · tap Strike`;
+  shell.timerBar.style.width = '100%';
+  shell.timerEl.textContent = `${windowLeft}s`;
+  board.classList.add('guardian-duel-board');
+  board.innerHTML = `
+    <div class="guardian-duel-stage" style="background:linear-gradient(180deg, ${tint.b2}, ${tint.b1})">
+      <div class="scene-decor">${buildSceneDecor(sceneKey)}</div>
+      <span class="duel-guardian">${spriteSVG(guardianSample(guardianKey, 'ancient'), { expr: 'happy' })}<b>${esc(guardian.name)}</b></span>
+      ${mine ? `<span class="duel-challenger">${spriteSVG(mine, { expr: 'happy' })}<b>${esc(displayName(mine))}</b></span>` : ''}
+    </div>
+    <div class="duel-bars">
+      <div class="duel-bar"><span>Guardian resolve</span><div class="bar"><i data-duel-hp style="width:100%"></i></div></div>
+      <div class="duel-bar"><span>${mine ? esc(displayName(mine)) : 'Your sprite'}</span><div class="bar"><i data-duel-resolve style="width:100%"></i></div></div>
+    </div>
+    <div class="duel-line" data-duel-line aria-live="polite">${esc(greeting)}</div>
+    <button class="btn btn-primary btn-block guardian-duel-strike" data-duel-strike>⚔️ Strike</button>
+    <p class="tiny muted" style="margin:8px 2px 0;line-height:1.5">Free — no coins, no energy. Tap Strike to wear the guardian down inside ${DUEL_WINDOW_SECONDS} seconds. ${practice ? 'Practice bouts are unlimited and pay bond and joy.' : 'Win and the line pays out with a <b>150 coin guardian bonus</b>. If the clock runs out, they offer you another round.'}</p>`;
+
+  const hpEl = board.querySelector('[data-duel-hp]');
+  const resolveEl = board.querySelector('[data-duel-resolve]');
+  const lineEl = board.querySelector('[data-duel-line]');
+  const strikeBtn = board.querySelector('[data-duel-strike]');
+  const paintBars = () => {
+    if (hpEl) hpEl.style.width = `${hp}%`;
+    if (resolveEl) resolveEl.style.width = `${resolve}%`;
+    shell.scoreEl.textContent = Math.max(0, Math.round(hp));
+  };
+  const restart = (message) => {
+    hp = 100;
+    resolve = 100;
+    windowLeft = DUEL_WINDOW_SECONDS;
+    paintBars();
+    shell.timerEl.textContent = `${windowLeft}s`;
+    shell.timerBar.style.width = '100%';
+    if (lineEl) lineEl.textContent = message;
+  };
+  let resultShown = false;
+  const appendResult = ({ title, blurb, chips, next = false, quests = false }) => {
+    if (resultShown) return;
+    resultShown = true;
+    const result = document.createElement('div');
+    result.className = 'game-result';
+    result.innerHTML = `<div class="gr-inner">
+      <div class="gr-emoji">⚔️</div>
+      <h3>${title}</h3>
+      <p class="muted small">${blurb}</p>
+      <div class="gr-rewards">${chips.map((chip) => `<span class="chip">${chip}</span>`).join('')}</div>
+      <div class="row" style="gap:8px;margin-top:14px;flex-wrap:wrap">
+        ${next ? '<button class="btn btn-gold btn-block" data-duel-next>🔄 Another guardian</button>' : ''}
+        ${quests ? '<button class="btn btn-soft btn-block" data-duel-quests>🗺️ District quests</button>' : ''}
         <button class="btn btn-ghost btn-block" data-duel-gallery>🧭 Gallery</button>
       </div>
-      <div class="hg-result" data-duel-result hidden></div>
-      <p class="tiny muted" style="margin-top:8px;line-height:1.5">Free — no coins, no energy. Tap Strike to wear the guardian down inside ${DUEL_WINDOW_SECONDS} seconds. ${practice ? 'Practice bouts are unlimited and pay bond and joy.' : 'Win and the line pays out with a <b>150 coin guardian bonus</b>. If the clock runs out, they offer you another round.'}</p>`,
-    onClose: () => { over = true; if (timer) clearInterval(timer); },
-    onMount: (overlay, close) => {
-      const root = overlay.querySelector('.sheet') || overlay;
-      const hpEl = overlay.querySelector('[data-duel-hp]');
-      const resolveEl = overlay.querySelector('[data-duel-resolve]');
-      const lineEl = overlay.querySelector('[data-duel-line]');
-      const resultEl = overlay.querySelector('[data-duel-result]');
-      const strikeBtn = overlay.querySelector('[data-duel-strike]');
-      const paintBars = () => {
-        if (hpEl) hpEl.style.width = `${hp}%`;
-        if (resolveEl) resolveEl.style.width = `${resolve}%`;
-      };
-      const restart = (message) => {
-        hp = 100;
-        resolve = 100;
-        windowLeft = DUEL_WINDOW_SECONDS;
-        paintBars();
-        if (lineEl) lineEl.textContent = message;
-      };
-      const win = () => {
-        if (over) return;
-        over = true;
-        if (timer) clearInterval(timer);
-        if (strikeBtn) strikeBtn.disabled = true;
-        if (practice) {
-          const res = Actions.guardianWin(sceneKey, guardianKey);
-          if (!res || !res.ok) {
-            if (lineEl) lineEl.textContent = 'That guardian cannot answer right now.';
-            if (resultEl) {
-              resultEl.hidden = false;
-              resultEl.innerHTML = '<b>The bout fizzled.</b><span>Close the gallery and try again.</span>';
-            }
-            Sfx.error();
-            return;
-          }
-          if (lineEl) lineEl.textContent = `${guardian.name} yields. A good bout.`;
-          if (resultEl) {
-            resultEl.hidden = false;
-            resultEl.innerHTML = `<b>Bout won</b><span>💗 +${res.bond} bond · ✨ +${res.xp} XP · joy up · bested ×${res.total}</span>`;
-          }
-          Sfx.win();
-          burstOn(strikeBtn, ['⚔️', '✨', '💗'], 10);
-          toast(`${guardian.name} bested in ${scene.name} · bond +${res.bond}.`, '⚔️');
-          return;
-        }
-        const res = Actions.claimBiomeQuest(sceneKey, { won: true });
-        if (!res.ok) {
-          if (resultEl) {
-            resultEl.hidden = false;
-            resultEl.innerHTML = '<b>The line is already settled.</b><span>Try a practice bout instead.</span>';
-          }
-          return;
-        }
-        const total = res.coins + res.bonus;
-        if (lineEl) lineEl.textContent = `${guardian.name} bows. ${scene.name} is yours.`;
-        if (resultEl) {
-          resultEl.hidden = false;
-          resultEl.innerHTML = `<b>Guardian bested!</b><span>🪙 +${total} coins (includes +${res.bonus} guardian bonus) · ✨ +${res.xp} XP</span>`;
-        }
-        Sfx.win();
-        burstOn(strikeBtn, ['⚔️', '✨', '🏆'], 12);
-        toast(`${res.title} complete — ${guardian.name} bested · +${total} coins.`, '⚔️');
-        if (onWin) onWin();
-      };
-      timer = setInterval(() => {
-        windowLeft -= 1;
-        if (windowLeft <= 0 && !over) restart(`${guardian.name} lets the clock run out. They offer you another round.`);
-      }, 1000);
-      strikeBtn?.addEventListener('click', (event) => {
-        event.stopPropagation();
-        if (over) return;
-        hp = Math.max(0, hp - rand(9, 16));
-        resolve = Math.max(0, resolve - rand(2, 5));
-        paintBars();
-        if (lineEl) lineEl.textContent = pick(lines);
-        Sfx.pop();
-        burstOn(strikeBtn, ['⚔️', '✨'], 4);
-        if (hp <= 0) win();
-        else if (resolve <= 0) restart(`${guardian.name} steadies you. Take a breath and strike again.`);
+    </div>`;
+    board.appendChild(result);
+    result.querySelector('[data-duel-next]')?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const pool = guardianPoolForScene(sceneKey);
+      const nextKey = pool.length > 1 ? pool[(pool.indexOf(guardianKey) + 1) % pool.length] : guardianKey;
+      shell.close();
+      setTimeout(() => openGuardianDuel(sceneKey, onWin, { guardianKey: nextKey, practice }), 40);
+    });
+    result.querySelector('[data-duel-quests]')?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      shell.close();
+      setTimeout(() => openDistrictQuests(), 40);
+    });
+    result.querySelector('[data-duel-gallery]')?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      shell.close();
+      setTimeout(() => openGuardianGallery(sceneKey), 40);
+    });
+    requestAnimationFrame(() => result.querySelector('button')?.focus({ preventScroll: true }));
+  };
+  /* Quest XP can cross an evolution threshold. Evolution is announced on a
+     short delay and sits in the portal above the game, so let it play and
+     clear before revealing the result; otherwise its sheet covers the
+     result buttons. Queued evolutions are drained a beat after close. */
+  const showResult = (opts) => {
+    if (strikeBtn) strikeBtn.hidden = true;
+    const reveal = () => {
+      if (shell.isClosed() || resultShown) return;
+      if (typeof overlayStack !== 'undefined' && overlayStack.length) {
+        setTimeout(reveal, 200);
+        return;
+      }
+      appendResult(opts);
+    };
+    setTimeout(reveal, 400);
+  };
+  const win = () => {
+    if (over) return;
+    over = true;
+    if (timer) clearInterval(timer);
+    shell.timerEl.textContent = '0s';
+    shell.timerBar.style.width = '0%';
+    if (practice) {
+      const res = Actions.guardianWin(sceneKey, guardianKey);
+      if (!res || !res.ok) {
+        Sfx.error();
+        showResult({
+          title: 'The bout fizzled',
+          blurb: 'That guardian cannot answer right now. Close the gallery and try again.',
+          chips: [],
+        });
+        return;
+      }
+      Sfx.win();
+      burstOn(strikeBtn, ['⚔️', '✨', '💗'], 10);
+      showResult({
+        title: 'Bout won',
+        blurb: `${esc(guardian.name)} yields. A good bout in ${esc(scene.name)}.`,
+        chips: [`💗 +${res.bond} bond`, `✨ +${res.xp} XP`, 'joy up', `bested ×${res.total}`],
+        next: true,
       });
-      root.querySelector('[data-duel-next]')?.addEventListener('click', (event) => {
-        event.stopPropagation();
-        const pool = guardianPoolForScene(sceneKey);
-        const next = pool.length > 1 ? pool[(pool.indexOf(guardianKey) + 1) % pool.length] : guardianKey;
-        close();
-        setTimeout(() => openGuardianDuel(sceneKey, onWin, { guardianKey: next, practice }), 40);
+      toast(`${guardian.name} bested in ${scene.name} · bond +${res.bond}.`, '⚔️');
+      return;
+    }
+    const res = Actions.claimBiomeQuest(sceneKey, { won: true });
+    if (!res.ok) {
+      Sfx.error();
+      showResult({
+        title: 'The line is already settled',
+        blurb: 'Try a practice bout instead.',
+        chips: [],
       });
-      root.querySelector('[data-duel-gallery]')?.addEventListener('click', (event) => {
-        event.stopPropagation();
-        close();
-        setTimeout(() => openGuardianGallery(sceneKey), 40);
-      });
-    },
+      return;
+    }
+    const total = res.coins + res.bonus;
+    Sfx.win();
+    burstOn(strikeBtn, ['⚔️', '✨', '🏆'], 12);
+    showResult({
+      title: 'Guardian bested!',
+      blurb: `${esc(guardian.name)} bows. ${esc(scene.name)} is yours.`,
+      chips: [`🪙 +${total} coins`, `✨ +${res.xp} XP`, `+${res.bonus} guardian bonus`],
+      quests: true,
+    });
+    toast(`${res.title} complete — ${guardian.name} bested · +${total} coins.`, '⚔️');
+    if (onWin) onWin();
+  };
+  shell.addCleanup(() => { over = true; if (timer) clearInterval(timer); });
+  timer = setInterval(() => {
+    if (over) return;
+    windowLeft -= 1;
+    shell.timerEl.textContent = `${Math.max(0, windowLeft)}s`;
+    shell.timerBar.style.width = `${Math.max(0, windowLeft / DUEL_WINDOW_SECONDS) * 100}%`;
+    if (windowLeft <= 0) restart(`${guardian.name} lets the clock run out. They offer you another round.`);
+  }, 1000);
+  strikeBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (over) return;
+    hp = Math.max(0, hp - rand(9, 16));
+    resolve = Math.max(0, resolve - rand(2, 5));
+    paintBars();
+    if (lineEl) lineEl.textContent = pick(lines);
+    Sfx.pop();
+    burstOn(strikeBtn, ['⚔️', '✨'], 4);
+    if (hp <= 0) win();
+    else if (resolve <= 0) restart(`${guardian.name} steadies you. Take a breath and strike again.`);
   });
+  paintBars();
   return true;
 }
 

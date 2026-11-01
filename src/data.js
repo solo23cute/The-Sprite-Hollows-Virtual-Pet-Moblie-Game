@@ -2336,8 +2336,11 @@ function baseTypeEggRarity(key) {
 }
 function typeEggRarity(key) {
   if (typeof MASTER_CHEAT_SPECIES !== 'undefined' && key === MASTER_CHEAT_SPECIES) return 'master';
-  if (typeof isExoticSpecies === 'function' && isExoticSpecies(key)) return 'exotic';
+  if (ELEMENTS[key]?.secretVariant) return 'secret';
+  /* Vault keepers outrank Exotic, including the two exotic-class secrets. */
   if (typeof isSecretSpecies === 'function' && isSecretSpecies(key)) return 'secret';
+  if (ELEMENTS[key]?.masterTier) return 'master';
+  if (typeof isExoticSpecies === 'function' && isExoticSpecies(key)) return 'exotic';
   return baseTypeEggRarity(key);
 }
 const RARITY_COIN_BONUS = {

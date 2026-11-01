@@ -29,7 +29,7 @@ function collectionScreen(root) {
     <div data-retired></div>
     <div class="section-title"><h2>Hollow notes</h2></div>
     <div class="card" style="padding:13px;font-size:11.5px;line-height:1.6;color:var(--muted)">
-      Sprites are born from eggs and grow through <b style="color:var(--text)">Baby → Juvenile → Sprite → Elder</b> as they level, up to the cap of <b style="color:var(--text)">level 1,000</b>. Open any sprite to see its next stage and the exact level it needs.
+      Sprites are born from eggs and grow through <b style="color:var(--text)">Baby → Juvenile → Sprite → Elder → Ancient → Sensei</b>. Retirement unlocks at <b style="color:var(--text)">Elder level 100</b>, and the level cap is <b style="color:var(--text)">1,000</b>. Open any sprite to see its next stage and the exact level it needs.
       Merge two level-3+ sprites in the Nest to blend their elements, colors and personalities into a brand new egg.
     </div>`;
 
@@ -251,7 +251,7 @@ function openSpriteDetail(id) {
       ${s.stage !== 'egg' ? `<div class="card" style="padding:12px;margin-top:10px;font-size:11.5px;line-height:1.6;color:var(--muted)">🍬 <b style="color:var(--text)">Candy sugar ${s.sugar || 0}/3.</b> Feeding candy treats builds sugar. At 3, this sprite transforms into a random candy species.</div>` : ''}
       <div class="detail-actions">
         <button class="btn ${isActive ? 'btn-ghost' : 'btn-primary'}" data-set-active ${isActive || s.retired ? 'disabled' : ''}>${s.retired ? 'Retired' : isActive ? 'Currently active' : 'Set active'}</button>
-        ${STAGE_ORDER.indexOf(s.stage) >= STAGE_ORDER.indexOf('elder') ? `<button class="btn btn-soft" data-retire>${s.retired ? 'Bring back' : 'Retire'}</button>` : ''}
+        ${s.level >= STAGE_LEVEL.elder && STAGE_ORDER.indexOf(s.stage) >= STAGE_ORDER.indexOf('elder') ? `<button class="btn btn-soft" data-retire>${s.retired ? 'Bring back' : 'Retire'}</button>` : ''}
         ${s.stage !== 'egg' && s.level >= MAX_LEVEL ? `<button class="btn btn-gold" data-rebirth>🌱 Rebirth (${foodCount('rebirthmeal')})</button>` : ''}
         <button class="btn btn-soft" data-talk>${icon('chat')} Talk</button>
         <button class="btn" data-style>${icon('palette')} Style</button>
@@ -355,7 +355,7 @@ function openEvolutionForecast(id) {
   }).join('');
   openSheet({
     title: '🌟 Evolution path',
-    sub: `${displayName(s)} · ${evo.final ? 'Elder' : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}`,
+    sub: `${displayName(s)} · ${evo.final ? STAGE_LABELS[s.stage] : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}`,
     body: `<div class="card evolution-next-card">
         <div class="between"><span class="tiny muted" style="font-weight:800;letter-spacing:.08em">NEXT STAGE</span><span class="chip">Level ${s.level}${s.level >= MAX_LEVEL ? ' · MAX' : ''}</span></div>
         <div class="evo-next-main"><span class="evo-next-icon">${evo.final ? '🏆' : evo.ready ? '🌟' : '🌱'}</span><div><b>${evo.final ? `${STAGE_LABELS[STAGE_ORDER[STAGE_ORDER.length - 1]]} is the final stage` : `${STAGE_LABELS[s.stage]} → ${evo.nextLabel}`}</b><p>${evo.final ? `Every age tier is complete. The long road runs to level ${MAX_LEVEL.toLocaleString()}.` : evo.ready ? `Ready now: ${esc(displayName(s))} can become a ${evo.nextLabel}.` : `Needs ${evo.levelsLeft} more level${evo.levelsLeft === 1 ? '' : 's'} (level ${evo.required}) to reach ${evo.nextLabel}.`}</p></div></div>

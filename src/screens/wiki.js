@@ -385,7 +385,7 @@ const WIKI_GUIDES = [
       <h3>Rarity bands</h3>
       <div class="wiki-rarity-list">
         ${RARITY_TIER_ORDER.map((key) => {
-          const band = key === 'common' ? 'under 75 coins' : key === 'uncommon' ? '75–97 coins' : key === 'rare' ? '98–116 coins' : key === 'epic' ? '117–164 coins' : key === 'legendary' ? '165–209 coins' : key === 'mythic' ? '210+ coins' : key === 'secret' ? 'Secret Vault keepers · above Mythic' : key === 'exotic' ? 'Hollow exotics · above Secret' : key === 'master' ? 'The Master secret · above Exotic' : 'Trail-only apex rank · above Master';
+          const band = key === 'common' ? 'under 75 coins' : key === 'uncommon' ? '75–97 coins' : key === 'rare' ? '98–116 coins' : key === 'epic' ? '117–164 coins' : key === 'legendary' ? '165–209 coins' : key === 'mythic' ? '210+ coins' : key === 'secret' ? 'Secret tier · Vault keepers and Secret variants, above Mythic' : key === 'exotic' ? 'Hollow exotics · above Secret' : key === 'master' ? 'The Master secret · above Exotic' : 'Trail-only apex rank · above Master';
           return `<div><span class="te-dot" style="background:${TYPE_EGG_RARITIES[key].color}"></span><b>${TYPE_EGG_RARITIES[key].name}</b><span>${band}</span></div>`;
         }).join('')}
       </div>
@@ -393,13 +393,14 @@ const WIKI_GUIDES = [
       <h3>Gene powers</h3>
       <p>Every species has one gene power. It is always active while that sprite lives in the Hollow, stacking with its breed habit, finish, combo, and evolution. A Fire sprite might add game coins; a Mother Earth adds slower need decay and a bigger XP gain.</p>
       <h3>Type eggs</h3>
+      <p><b>Secret variants are purchasable Secret-tier forms.</b> Vault keepers remain Vault-only; their eggs do not appear in the Nest.</p>
       <p>Every non-Vault species can be bought directly as a type egg in the Nest. A Water Egg always hatches Water, a Demon Egg always hatches Demon. Prices are listed on each species card and in the field guide.</p>`,
   },
   {
     id: 'bonds',
     icon: '💞',
     title: 'Bonds & evolution',
-    summary: 'All six bond ranks, their passive bonuses, the four life stages, and every diet form.',
+    summary: 'All six bond ranks, their passive bonuses, the six age stages, and every diet form.',
     body: bondWikiBody,
   },
   {
@@ -784,7 +785,7 @@ const WIKI_GUIDES = [
     body: () => `<p class="wiki-lede">The feed sheet has two food sources: the <b>market</b>, where you spend coins, and the <b>pantry</b>, where bought food waits.</p>
       <h3>Market & pantry</h3>
       <p>The guide lists <b>${FOOD_KEYS.length} foods</b> across seven categories: <b>produce, meat, vegetables, drinks, desserts, meals, and treats</b>. ${FOOD_KEYS.length - 1} are market stock; the extra entry is the arcade-only <b>Starpath Feast</b>. Feeding from the pantry consumes the item and builds diet affinities toward evolution. The <b>World Kitchen</b> guide groups 96 of them by region, while the <b>Anime & Trainer Kitchen</b> covers the newest menu.</p>
-      <p>The <b>Starpath Feast</b> comes from arcade bonus gifts and month gifts. It advances the active sprite to its next growth milestone (5, 10, 20, or 30) and is not sold in the market.</p>
+      <p>The <b>Starpath Feast</b> comes from arcade bonus gifts and month gifts. It advances the active sprite to its next growth milestone (5, 10, 100, 250, 500, or 1,000) and is not sold in the market.</p>
       <p>The full <b>Food &amp; snacks</b> guide lives on the Sprites screen. It lists every item with its effects, diet affinity, source, pantry count, and monthly-crate lock status.</p>
       <h3>Snacks</h3>
       <p>Ten candy-tagged treats — including cotton candy, candy canes, gumballs, and toffee chews — also build a sprite's <b>Sugar</b>. At 3 sugar, the sprite transforms into a random candy species and sugar resets to 0.</p>
@@ -832,7 +833,7 @@ const WIKI_GUIDES = [
       <p><b>Rune Slide, Zombie Siege, and Hollow Duel</b> are the three Arcade challenges. Rune Slide is a sliding puzzle with a visible order strip and green placement hints; you have two minutes to finish three boards. Zombie Siege is a three-lane horde defense, and Hollow Duel is a timed strike-and-guard fight. They are always open, and every game pays coins and XP to the active sprite, plus joy and bond, scaled by score.</p>
       <h3>Arcade bonus &amp; month gifts</h3>
       <p>Every <b>5,000 coins</b> earned in the three Arcade challenges fills a bonus gift. Gifts contain coins, a pantry food, and a snack; every third one also includes a <b>Starpath Feast</b>. The monthly track has three tiers at <b>5,000 / 12,000 / 25,000 arcade coins</b>, resetting on the first of the month. Higher tiers include one or two Starpath Feasts.</p>
-      <p>A <b>Starpath Feast</b> is a gift-only food that advances the active sprite to its next growth milestone: level 5, 10, 20, 100, 250, 500, or 1,000. It cannot be bought in the market and is never consumed by a max-level sprite.</p>
+      <p>A <b>Starpath Feast</b> is a gift-only food that advances the active sprite to its next growth milestone: level 5, 10, 100, 250, 500, or 1,000. It cannot be bought in the market and is never consumed by a max-level sprite.</p>
       <h3>Rarity play payouts</h3>
       <p>Every completed game pays the normal score coins, then adds the active sprite's <b>rarity bonus</b>: <b>Common 1,500</b>, <b>Uncommon 1,500</b>, <b>Rare 2,700</b>, <b>Epic 4,000</b>, <b>Legendary 6,750</b>, <b>Mythic 10,000</b>, <b>Secret 13,500</b>, <b>Exotic 18,000</b>, and <b>Master 25,000</b>.</p>
       <p><b>Common and Uncommon</b> sprites also get a <b>25% gift-speed bonus</b>, so their gifts arrive sooner. <b>Special</b> combos, mutations, and shinies keep their normal payout and add the bonus for their species' rarity. Gene, habit, finish, phase, and holiday bonuses still apply.</p>
@@ -906,7 +907,8 @@ function openWikiArticle(key) {
   const price = TYPE_EGG_PRICE[key];
   const hybrids = hybridsFor(key);
   const habitats = wikiHabitats(key);
-  const secret = isSecretSpecies(key);
+  const vaultSecret = isSecretSpecies(key);
+  const secretVariant = el.variantFamily === 'secret';
   const master = key === MASTER_CHEAT_SPECIES;
   const parentTypes = typeof parentTypesForSpecies === 'function' ? parentTypesForSpecies(key) : [];
   const entry = ELEMENT_KEYS.slice().sort((a, b) => ELEMENTS[a].name.localeCompare(ELEMENTS[b].name)).indexOf(key) + 1;
@@ -923,7 +925,7 @@ function openWikiArticle(key) {
         <div class="wiki-portrait">${spriteSVG(sample, { expr: 'happy' })}</div>
         <div class="wiki-facts">
           <div><span>Rarity</span><b style="color:${tier.color}">${tier.name}</b></div>
-          <div><span>Egg</span><b>${secret || master ? 'Vault only' : `${price || '—'} 🪙`}</b></div>
+          <div><span>Egg</span><b>${vaultSecret || master ? 'Vault only' : `${price || '—'} 🪙`}</b></div>
           <div><span>Gene</span><b>${power.icon} ${esc(power.name)}</b></div>
           ${el.heroPublisher ? `<div><span>Publisher</span><b>${HERO_PUBLISHER_META[el.heroPublisher].icon} ${esc(HERO_PUBLISHER_META[el.heroPublisher].label)}</b></div>` : ''}
           ${el.heroRole ? `<div><span>Role</span><b>${esc(HERO_ROLE_META[el.heroRole].label)}</b></div>` : ''}
@@ -941,7 +943,7 @@ function openWikiArticle(key) {
           ${el.worldVariant ? `<div><span>Region</span><b>${esc(el.worldRegion)} · ${esc(el.variantType)} variant</b></div>` : ''}
           ${el.gameGenre ? `<div><span>Genre</span><b>${esc(el.gameGenre)}</b></div>` : ''}
           ${parentTypes.length ? `<div><span>Parent types</span><b>${esc(parentTypes.join(' · '))}</b></div>` : ''}
-          ${secret ? `<div><span>Vault</span><b>${master ? '🕹️ Master secret' : '🔐 Secret keeper'}</b></div>` : ''}
+          ${vaultSecret ? `<div><span>Vault</span><b>${master ? '🕹️ Master secret' : '🔐 Secret keeper'}</b></div>` : secretVariant ? '<div><span>Class</span><b>🔐 Secret variant · purchasable</b></div>' : ''}
           ${isExoticSpecies(key) ? `<div><span>Class</span><b>✦ Exotic signature</b></div>` : ''}
           <div><span>Titan</span><b>${esc(TITAN_NAMES[key])}</b></div>
           <div><span>Habitat</span><b>${esc(habitatNames || 'Anywhere')}</b></div>
@@ -981,7 +983,7 @@ function openWikiArticle(key) {
       ${el.legendGroup ? `<button class="btn btn-soft btn-block" data-wiki-guide="legends" style="margin-top:9px">Open the crossover legends guide</button>` : ''}
       ${VIDEO_GAME_LEGEND_GROUPS.includes(el.legendGroup) ? `<button class="btn btn-soft btn-block" data-wiki-guide="videogames" style="margin-top:9px">Open the video games &amp; FNAF guide</button>` : ''}
       ${el.catalogGroup ? `<button class="btn btn-soft btn-block" data-wiki-guide="${catalogGuideForGroup(el.catalogGroup)}" style="margin-top:9px">Open the ${esc(CATALOG_GROUPS[el.catalogGroup].label)} guide</button>` : ''}
-      ${secret ? `<button class="btn btn-soft btn-block" data-wiki-vault style="margin-top:9px">Open the Secret Vault</button>` : ''}
+      ${vaultSecret ? `<button class="btn btn-soft btn-block" data-wiki-vault style="margin-top:9px">Open the Secret Vault</button>` : ''}
       ${isExoticSpecies(key) ? `<button class="btn btn-soft btn-block" data-wiki-guide="hollowexotics" style="margin-top:9px">Open the Hollow exotics guide</button>` : ''}
       <h3>Care notes</h3>
       <ul class="wiki-list">
@@ -990,7 +992,7 @@ function openWikiArticle(key) {
         <li>Its gene power is always active while it lives in your Hollow.</li>
       </ul>
       <div class="wiki-article-actions">
-        ${secret || master ? '' : `<button class="btn btn-soft btn-block" data-wiki-nest>Find ${article(el.name)} ${esc(el.name)} egg in the Nest</button>`}
+        ${vaultSecret || master ? '' : `<button class="btn btn-soft btn-block" data-wiki-nest>Find ${article(el.name)} ${esc(el.name)} egg in the Nest</button>`}
       </div>
       <div class="wiki-footnote">Species entry #${String(entry).padStart(3, '0')} of ${ELEMENT_KEYS.length} · Sprite Hollow field notes</div>
     </div>`,
@@ -1194,7 +1196,7 @@ function wikiScreen(root) {
         id: `wiki-card-${key}`, element: key, breed: 'puff', stage: 'sprite',
         pattern: 'plain', palette: 'native', accessory: 'none', name: el.name, level: 3, size: 'standard',
       };
-      const badge = key === MASTER_CHEAT_SPECIES ? 'MASTER' : isSecretSpecies(key) ? 'SECRET' : el.alwaysShiny ? 'PRISMATIC' : isExoticSpecies(key) ? 'EXOTIC' : tier.name;
+      const badge = key === MASTER_CHEAT_SPECIES ? 'MASTER' : (isSecretSpecies(key) || el.variantFamily === 'secret') ? 'SECRET' : el.alwaysShiny ? 'PRISMATIC' : isExoticSpecies(key) ? 'EXOTIC' : tier.name;
       return `<button class="wiki-species-card" data-wiki-type="${key}">
         <span class="ws-art">${spriteSVG(sample, { expr: 'happy' })}</span>
         <span class="ws-copy"><b>${esc(el.name)}</b><span class="ws-rarity" style="color:${tier.color}">${badge}</span><span class="ws-trait">${esc(el.catalogType || el.trait.split('—')[0].trim())}</span></span>

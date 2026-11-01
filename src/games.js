@@ -29,6 +29,7 @@ function gameOverlayShell(kind) {
       <div class="game-timer"><i data-timerbar style="width:100%"></i></div>
     </div>`;
   app.appendChild(wrap);
+  app.classList.add('game-open');
   let closed = false;
   let cleanup = [];
   const close = () => {
@@ -36,6 +37,7 @@ function gameOverlayShell(kind) {
     closed = true;
     cleanup.forEach((fn) => { try { fn(); } catch {} });
     wrap.remove();
+    if (!app.querySelector('.game-overlay')) app.classList.remove('game-open');
   };
   wrap.querySelector('[data-quit]').addEventListener('click', () => {
     close();

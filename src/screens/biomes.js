@@ -152,9 +152,9 @@ function openSecretVault() {
     const isFound = unlocked.has(key);
     const available = meta.vaultWindow ? vaultOpen(key) : false;
     const sample = {
-      id: `secret-${key}`, element: key, breed: 'puff', stage: key === MASTER_CHEAT_SPECIES && isFound ? 'elder' : 'sprite',
+      id: `secret-${key}`, element: key, breed: 'puff', stage: key === MASTER_CHEAT_SPECIES && isFound ? 'sensei' : 'sprite',
       palette: 'native', pattern: 'plain', accessory: key === MASTER_CHEAT_SPECIES && isFound ? 'crown' : 'none',
-      name: meta.name, level: isFound ? 30 : 3, size: 'standard', variant: key === MASTER_CHEAT_SPECIES && isFound ? 'galaxy' : null,
+      name: meta.name, level: isFound ? (key === MASTER_CHEAT_SPECIES ? MAX_LEVEL : 30) : 3, size: 'standard', variant: key === MASTER_CHEAT_SPECIES && isFound ? 'galaxy' : null,
     };
     return `<article class="secret-card ${isFound ? 'found' : 'locked'} ${available ? 'available' : ''}" data-secret="${key}">
       <span class="secret-art">${spriteSVG(sample, { expr: 'happy' })}</span>
@@ -191,7 +191,7 @@ function openSecretVault() {
       <div class="secret-grid">${found.length ? found.map(vaultBreedCard).join('') : '<p class="tiny muted">Find a secret first — its full combination tree unlocks here.</p>'}</div>
       <button class="btn btn-soft btn-block" data-vault-all-children style="margin:8px 0 10px">Browse all parent combinations & possible children</button>
       <div class="secret-code-card ${masterFound ? 'found' : ''}">
-        <div class="between"><b>${masterFound ? '🕹️ Master Cheat unlocked' : '🕹️ Unlisted entry'}</b><span class="chip">${masterFound ? 'LV 30' : 'CHEAT'}</span></div>
+        <div class="between"><b>${masterFound ? '🕹️ Master Cheat unlocked' : '🕹️ Unlisted entry'}</b><span class="chip">${masterFound ? `LV ${MAX_LEVEL.toLocaleString()}` : 'CHEAT'}</span></div>
         <p>${masterFound ? 'The Master Cheat is in your collection, already at level 1,000. Try not to break the Hollow.' : 'One secret ignores every normal rule. Finish the tour, then speak the Master’s name into the console.'}</p>
         <form class="secret-code-row" data-secret-form>
           <input name="code" maxlength="18" autocomplete="off" placeholder="Enter cheat code" aria-label="Cheat code">

@@ -74,6 +74,7 @@ function codexScreen(root) {
         <button class="chip" data-codex-category="exotic">✦ Exotic</button>
         <button class="chip" data-codex-category="secret">🔐 Secret</button>
         <button class="chip" data-codex-category="master">🕹️ Master</button>
+        <button class="chip" data-codex-category="base">◻️ Base</button>
         <button class="chip" data-codex-category="prismatic">🌈 Prismatic</button>
       </div>
     </div>
@@ -109,8 +110,9 @@ function codexScreen(root) {
     const catalog = el.catalogGroup && typeof CATALOG_GROUPS !== 'undefined' ? CATALOG_GROUPS[el.catalogGroup]?.label || '' : '';
     const categoryOk = category === 'all' || category === 'prismatic'
       || (category === 'exotic' && isExoticSpecies(key))
-      || (category === 'secret' && isSecretSpecies(key) && key !== MASTER_CHEAT_SPECIES)
-      || (category === 'master' && key === MASTER_CHEAT_SPECIES);
+      || (category === 'secret' && ((isSecretSpecies(key) && key !== MASTER_CHEAT_SPECIES) || el.variantFamily === 'secret'))
+      || (category === 'master' && (key === MASTER_CHEAT_SPECIES || !!el.masterTier))
+      || (category === 'base' && typeof BASE_ROSTER_KEYS !== 'undefined' && BASE_ROSTER_KEYS.includes(key));
     const prismaticOk = category !== 'prismatic' || !!el.alwaysShiny;
     return categoryOk && prismaticOk
       && (!q || `${el.name} ${key} ${family} ${catalog} ${el.catalogType || ''} ${el.alwaysShiny ? 'prismatic always shiny multiverse' : ''} celestial divine eternal apex bond codex evolution`.toLowerCase().includes(q))
@@ -124,18 +126,21 @@ function codexScreen(root) {
     const power = GENE_POWERS[key];
     const price = TYPE_EGG_PRICE[key];
     const hybrids = hybridsFor(key);
-    const secret = isSecretSpecies(key);
-    const master = key === MASTER_CHEAT_SPECIES;
+    const vaultSecret = isSecretSpecies(key);
+    const secretVariant = el.variantFamily === 'secret';
+    const secret = vaultSecret || secretVariant;
+    const master = key === MASTER_CHEAT_SPECIES || !!el.masterTier;
+    const vaulted = vaultSecret || key === MASTER_CHEAT_SPECIES;
     const badge = master ? '<span class="tc-exotic">MASTER</span> ' : secret ? '<span class="tc-exotic">SECRET</span> ' : el.alwaysShiny ? '<span class="tc-exotic">PRISMATIC</span> ' : exotic ? '<span class="tc-exotic">EXOTIC</span> ' : '';
     const sample = {
-      id: `codex-${key}`, element: key, breed: 'puff', stage: 'sprite',
+      id: `codex-${key}`, element: key, breed: 'puff', stage: 'sprite', variant: el.forcedVariant || null,
       pattern: 'plain', palette: 'native', accessory: 'none', name: el.name, level: 3, size: 'standard', shiny: !!el.alwaysShiny,
     };
     return `<button class="type-card" data-type="${key}">
       <span class="tc-art">${spriteSVG(sample, { expr: 'happy' })}</span>
       <span class="tc-top"><b>${el.name}</b><i class="te-dot" style="background:${tier.color}"></i></span>
       <span class="tc-power">${badge}${power.icon} ${power.name}</span>
-      <span class="tc-meta">${secret || master ? `${tier.name} · Vault only` : `${tier.name} · ${price || '—'} 🪙`} · ${hybrids.length} hybrid${hybrids.length === 1 ? '' : 's'}</span>
+      <span class="tc-meta">${vaulted ? `${tier.name} · Vault only` : `${tier.name} · ${price || '—'} 🪙`} · ${hybrids.length} hybrid${hybrids.length === 1 ? '' : 's'}</span>
     </button>`;
   }
 
@@ -169,12 +174,12 @@ function codexScreen(root) {
       reset();
     });
   });
-  root.querySelectorAll('[data-codex-category]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      category = btn.dataset.codexCategory;
-      root.querySelectorAll('[data-codex-category]').forEach((b) => b.classList.toggle('on', b === btn));
-      reset();
-    });
+  root.addEventListener('click', (event) => {
+    const btn = event.target instanceof Element ? event.target.closest('[data-codex-category]') : null;
+    if (!btn || !root.contains(btn)) return;
+    category = btn.dataset.codexCategory;
+    root.querySelectorAll('[data-codex-category]').forEach((b) => b.classList.toggle('on', b === btn));
+    reset();
   });
   more.addEventListener('click', () => {
     limit += 12;
@@ -254,13 +259,16 @@ function openTypeDetail(key) {
   const price = TYPE_EGG_PRICE[key];
   const hybrids = hybridsFor(key);
   const exotic = isExoticSpecies(key);
-  const secret = isSecretSpecies(key);
-  const master = key === MASTER_CHEAT_SPECIES;
-  const vaulted = secret || master;
+  const vaultSecret = isSecretSpecies(key);
+  const secretVariant = el.variantFamily === 'secret';
+  const secret = vaultSecret || secretVariant;
+  const master = key === MASTER_CHEAT_SPECIES || !!el.masterTier;
+  const vaulted = vaultSecret || key === MASTER_CHEAT_SPECIES;
+  const baseRoster = typeof BASE_ROSTER_KEYS !== 'undefined' && BASE_ROSTER_KEYS.includes(key);
   const biome = biomeForSpecies(key);
   const pal = resolvePalette({ element: key, palette: 'native' });
   const sample = {
-    id: `type-detail-${key}`, element: key, breed: 'puff', stage: 'sprite',
+    id: `type-detail-${key}`, element: key, breed: 'puff', stage: 'sprite', variant: el.forcedVariant || null,
     pattern: 'plain', palette: 'native', accessory: 'none', name: el.name, level: 3, size: 'standard',
   };
   openSheet({
@@ -273,7 +281,8 @@ function openTypeDetail(key) {
           <span class="chip">${tier.name}</span>
           <span class="chip">${vaulted ? 'Vault only' : `${price || '—'} 🪙 egg`}</span>
           <span class="chip">Titan · ${TITAN_NAMES[key]}</span>
-          ${master ? '<span class="chip chip-exotic">🕹️ Master secret</span>' : secret ? '<span class="chip chip-exotic">🔐 Secret Vault</span>' : el.alwaysShiny ? '<span class="chip chip-exotic">🌈 Prismatic · always shiny</span>' : exotic ? '<span class="chip chip-exotic">✦ Exotic guardian</span>' : ''}
+          ${baseRoster ? '<span class="chip">◻️ Base roster</span>' : ''}
+          ${master ? `<span class="chip chip-exotic">🕹️ ${vaulted ? 'Master secret' : 'Master tier'}</span>` : secretVariant ? '<span class="chip chip-exotic">🔐 Secret variant</span>' : vaultSecret ? '<span class="chip chip-exotic">🔐 Secret Vault</span>' : el.alwaysShiny ? '<span class="chip chip-exotic">🌈 Prismatic · always shiny</span>' : exotic ? '<span class="chip chip-exotic">✦ Exotic guardian</span>' : ''}
           ${biome ? `<span class="chip">${biome.emoji} ${esc(biome.name)}</span>` : ''}
         </div>
       </div>

@@ -162,7 +162,7 @@ function openFoodDetail(kind, key) {
   const source = isSnack
     ? 'Snacks are free. Check-ins and gifts can drop them, and the first check-in each day always stocks a pantry food.'
     : item.stageBoost
-      ? 'A Starpath Feast is awarded by the arcade bonus track and month gifts. Feed it from the pantry to carry the active sprite to its next growth milestone (5, 10, 20, or 30). It is not sold in the market.'
+      ? 'A Starpath Feast is awarded by the arcade bonus track and month gifts. Feed it from the pantry to carry the active sprite to its next growth milestone (5, 10, 100, 250, 500, or 1,000). It is not sold in the market.'
     : locked
       ? 'This monthly food is still sealed. Claim the monthly crate on Today — one crate per calendar month unlocks the next food and stocks two of it.'
       : item.monthly

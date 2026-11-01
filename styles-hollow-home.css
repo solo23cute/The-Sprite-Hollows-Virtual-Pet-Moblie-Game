@@ -253,6 +253,13 @@
 .duel-bars{display:grid;gap:6px;margin:10px 0}
 .duel-bar span{display:block;font-size:10px;color:var(--muted);margin-bottom:3px}
 .duel-line{margin:6px 0 8px;font-size:12px;line-height:1.45;min-height:34px}
+.guardian-duel-board{overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;cursor:default;display:flex;flex-direction:column;gap:8px;padding:10px;background-color:#0b0918;background-image:radial-gradient(120% 80% at 50% 0%,#1b1638,#090714 72%)}
+.guardian-duel-board .guardian-duel-stage{flex:0 0 auto}
+.guardian-duel-board .duel-bars{margin:0}
+.guardian-duel-board .duel-line{min-height:0;margin:0}
+.guardian-duel-board .guardian-duel-strike{margin-top:0}
+.guardian-duel-board .game-result{padding:16px}
+.guardian-duel-strike[hidden],.guardian-duel-actions[hidden]{display:none}
 
 /* ---- decorate mode ---- */
 .decor-row{display:flex;align-items:center;gap:8px;padding:8px;border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);margin-top:6px}
@@ -307,7 +314,7 @@
 
 /* ---------- responsive layout guard: every menu, sprite and card stays in frame ---------- */
 html, body, #app, .shell, .screen { max-width: 100%; }
-.sheet, .modal { width: 100%; max-height: calc(100vh - max(10px, var(--safe-t))); max-height: calc(100dvh - max(10px, var(--safe-t))); }
+.sheet, .modal { width: 100%; max-height: calc(100% - max(10px, var(--safe-t))); }
 .sheet, .modal, .sheet *, .modal * { min-width: 0; }
 .sheet .sub, .sheet p, .modal p, .home-biome, .home-sub, .sh-status, .quest-step { overflow-wrap: anywhere; }
 .overlay { max-height: 100vh; max-height: 100dvh; }
@@ -345,7 +352,8 @@ html, body, #app, .shell, .screen { max-width: 100%; }
   .duel-pick-art { width: 40px; height: 40px; flex-basis: 40px; }
 }
 @media (max-height: 560px) {
-  .sheet { max-height: calc(100vh - 4px); max-height: calc(100dvh - 4px); }
+  .sheet { max-height: calc(100% - 4px); }
   .guardian-duel-stage { height: 136px; }
+  .guardian-duel-board { padding: 8px; gap: 6px; }
   .home-pane { height: 82px; }
 }

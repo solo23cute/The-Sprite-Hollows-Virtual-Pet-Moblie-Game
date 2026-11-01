@@ -38,13 +38,13 @@ const TOUR_STEPS = [
   {
     icon: '💛', kicker: 'SPRITES & GROWTH',
     title: 'Raise them to level 1,000',
-    text: 'Everything you do together grants XP. Feeding, games, chats, baths, naps, trails, and petting all count, and matching the habitat multiplies the gain. Sprites grow through Baby, Juvenile, Sprite, and Elder at levels 1, 5, 10, and 20, then keep growing to the new cap of level 1,000.',
+    text: 'Everything you do together grants XP. Feeding, games, chats, baths, naps, trails, and petting all count, and matching the habitat multiplies the gain. Sprites grow through the six age tiers from Baby at level 1 to Sensei at level 1,000.',
     points: [
       'Feeding builds the Hearty, Sweet, Eerie, and Wild diet affinities.',
       'Open a sprite to see a NEXT EVOLUTION card with its next stage, required level, XP left, and progress.',
       `At level 10, twelve points in one diet path unlocks one of ${EVOLUTION_FORM_KEYS.length} permanent forms.`,
       'The Bond Codex lists all six bond ranks, their passive bonuses, every stage, and every diet evolution.',
-      'A sprite retires only at level 1,000. A Rebirth Meal returns them to an egg with permanent rebirth bonuses.',
+      'Retirement unlocks at Elder level 100. A Rebirth Meal at level 1,000 returns them to an egg with permanent rebirth bonuses.',
     ],
     tip: 'Retired sprites still count for Vault progress and can merge. A Rebirth Meal starts their next life with permanent bonuses.',
   },
@@ -171,7 +171,7 @@ const TOUR_STEPS = [
       'Open the Vault during a monthly or Monday–Wednesday / Thursday–Sunday window, then claim the keeper before it rotates.',
       'Retired sprites still count for Vault progress and can be used as merge parents.',
       'Collect 8 Fortnite Legacy species for the Season Keeper, or 6 WWE species for the Ring Keeper. Reach 16 Legacy or 12 WWE to earn the exotic Rift Champion or Grand Slam.',
-      'The Elder Keeper unlocks when a sprite retires at MAX; this tour awards the Hollow Guide.',
+      'The Elder Keeper unlocks when a sprite retires at Elder level 100; this tour awards the Hollow Guide.',
       'The Master Cheat answers to the word MASTER once the tour is complete.',
     ],
     tip: 'The vault tracks every clue, so open it whenever a milestone feels close.',
@@ -211,7 +211,7 @@ function tourLiveStep() {
     icon: '🥋',
     kicker: 'EVOLUTION & CODEX',
     title: `${STAGE_ORDER.length} age tiers, ${ELEMENT_KEYS.length.toLocaleString()} sprites`,
-    text: `Every sprite grows through ${tiers}. Crossing an age tier opens an evolution screen with the new stage, its bonus, and the full ladder, and the same screen appears when a diet path unlocks one of ${EVOLUTION_FORM_KEYS.length} permanent forms. The final tier is Sensei, and a Sensei can retire at level 100.`,
+    text: `Every sprite grows through ${tiers}. Crossing an age tier opens an evolution screen with the new stage, its bonus, and the full ladder, and the same screen appears when a diet path unlocks one of ${EVOLUTION_FORM_KEYS.length} permanent forms. The final tier is Sensei at level 1,000; retirement unlocks at Elder level 100.`,
     points: [
       `${waves.length} collection waves are live, and the Codex, Wiki, and this tour rebuild their counts from the same data whenever new sprites are added.`,
       ...waves.slice(0, 7).map((wave) => `${wave.icon} ${wave.label} · ${wave.count()}`),

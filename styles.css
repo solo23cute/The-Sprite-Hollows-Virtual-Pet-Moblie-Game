@@ -740,11 +740,13 @@ input { user-select: text; -webkit-user-select: text; }
   position: absolute; inset: 0; z-index: 60;
   display: flex; flex-direction: column;
   overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
-  background: radial-gradient(120% 80% at 50% 0%, rgba(60, 40, 120, 0.9), rgba(8, 6, 20, 0.98));
+  background-color: #080614;
+  background-image: radial-gradient(120% 80% at 50% 0%, rgba(60, 40, 120, 0.9), rgba(8, 6, 20, 0.98));
   padding: calc(12px + var(--safe-t)) 14px calc(14px + var(--safe-b));
   animation: fadein 0.25s;
 }
 @keyframes fadein { from { opacity: 0; } }
+.app.game-open .toast-wrap, .app.game-open .cc-bar { display: none; }
 .game-top { display: flex; align-items: center; gap: 10px; z-index: 2; flex: none; }
 .game-top h2 { font-size: 16px; font-weight: 900; }
 .game-top .gstat { margin-left: auto; text-align: right; }
@@ -786,8 +788,10 @@ input { user-select: text; -webkit-user-select: text; }
 .game-result {
   position: absolute; inset: 0; z-index: 6; padding: 20px;
   display: grid; place-items: center; text-align: center;
-  background: radial-gradient(100% 80% at 50% 30%, rgba(60, 44, 110, .92), rgba(10, 8, 20, .97));
-  backdrop-filter: blur(8px); animation: fadein .25s;
+  background-color: #0b0818;
+  background-image: radial-gradient(100% 80% at 50% 30%, rgba(60, 44, 110, .92), rgba(10, 8, 20, .97));
+  animation: fadein .25s;
+  overflow-y: auto; overscroll-behavior: contain;
 }
 .gr-inner { max-width: 270px; }
 .gr-emoji { font-size: 44px; }
@@ -858,8 +862,28 @@ input { user-select: text; -webkit-user-select: text; }
 .stat-tile span { font-size: 9px; color: var(--muted); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* ---------- bottom sheet / modal ---------- */
-.portal { position: absolute; inset: 0; z-index: 80; pointer-events: none; }
+/* Keep every sheet and modal inside the same centered phone frame as the
+   game. A viewport-wide sheet looks detached as soon as the browser is
+   resized wider than the app. */
+.portal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(100vw, 460px);
+  height: 100vh;
+  height: 100dvh;
+  z-index: 80;
+  pointer-events: none;
+}
 .portal > * { pointer-events: auto; }
+@media (min-width: 520px) and (min-height: 720px) {
+  .portal {
+    height: min(920px, calc(100vh - 36px));
+    height: min(920px, calc(100dvh - 36px));
+    border-radius: 34px;
+    overflow: hidden;
+  }
+}
 .overlay {
   position: absolute; inset: 0;
   background: rgba(6, 4, 16, 0.62);
@@ -2046,3 +2070,44 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .weather-picker .style-opt .sw { width: 24px; height: 24px; flex: none; }
 .weather-chip { border-color: rgba(255, 209, 102, 0.34); }
 .duel-chip { border-color: rgba(255, 138, 92, 0.38); }
+
+
+/* ---------- responsive Secret Vault + sheet sizing ---------- */
+.sheet {
+  width: min(100%, 460px);
+  max-height: min(92%, calc(100dvh - 18px));
+  overflow-x: hidden;
+}
+.sheet-body, .modal-body { min-width: 0; max-width: 100%; }
+.sheet-body > *, .modal-body > * { max-width: 100%; }
+.sheet .between > div:first-child { min-width: 0; }
+.secret-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  align-items: start;
+}
+.secret-card {
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  overflow: hidden;
+  text-align: left;
+  font: inherit;
+}
+.secret-art { flex: 0 0 58px; width: 58px; height: 58px; }
+.secret-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.secret-copy b { line-height: 1.3; overflow-wrap: anywhere; }
+.secret-copy > span:not(.secret-kicker):not(.secret-found-note) { font-size: 10px; line-height: 1.5; }
+.secret-found-note { line-height: 1.4; overflow-wrap: anywhere; }
+.secret-vault-head { align-items: flex-start; }
+.secret-vault-head > div { min-width: 0; }
+.secret-vault-head b, .secret-vault-head p { overflow-wrap: anywhere; }
+.secret-code-row { flex-wrap: wrap; }
+.secret-code-row input { min-width: 0; flex: 1 1 150px; }
+.secret-code-row .btn { flex: 1 0 auto; }
+.type-feature, .tf-copy { min-width: 0; max-width: 100%; }
+.tf-copy b, .tf-copy span { overflow-wrap: anywhere; }
+@media (max-width: 360px) {
+  .secret-card { gap: 7px; padding: 8px; }
+  .secret-art { flex-basis: 50px; width: 50px; height: 50px; }
+  .secret-copy b { font-size: 11.5px; }
+}

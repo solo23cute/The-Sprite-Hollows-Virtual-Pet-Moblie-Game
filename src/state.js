@@ -464,9 +464,11 @@ function eggs() {
 function displayName(s) {
   if (!s) return 'Sprite';
   if (s.stage === 'egg') {
-    const finish = finishOf(s) ? `${finishOf(s).name} ` : '';
-    if (s.starter) return `${finish}${(ELEMENTS[s.element] || ELEMENTS.bloom).name} Egg`;
-    return `${finish}${s.eggLabel || s.name || 'Mystery Egg'}`;
+    const finish = finishOf(s)?.name || '';
+    const elementName = (ELEMENTS[s.element] || ELEMENTS.bloom).name;
+    const base = s.starter ? `${elementName} Egg` : (s.eggLabel || s.name || 'Mystery Egg');
+    const prefix = finish && !base.startsWith(finish) && !elementName.startsWith(finish) ? `${finish} ` : '';
+    return `${prefix}${base}`;
   }
   return s.name || 'Sprite';
 }
@@ -485,9 +487,9 @@ function spriteRarityBonus(s) {
   return s ? rarityCoinBonus(s.element, s.rarityBoost) : 0;
 }
 function stageForLevel(level) {
-  if (level >= 100) return 'sensei';
-  if (level >= 45) return 'ancient';
-  if (level >= 20) return 'elder';
+  if (level >= 1000) return 'sensei';
+  if (level >= 500) return 'ancient';
+  if (level >= 100) return 'elder';
   if (level >= 10) return 'sprite';
   if (level >= 5) return 'juvenile';
   return 'baby';
@@ -497,8 +499,8 @@ function xpNeeded(level) {
 }
 const STAGE_ORDER = ['baby', 'juvenile', 'sprite', 'elder', 'ancient', 'sensei'];
 const STAGE_LABELS = { baby: 'Baby', juvenile: 'Juvenile', sprite: 'Sprite', elder: 'Elder', ancient: 'Ancient', sensei: 'Sensei' };
-const STAGE_LEVEL = { baby: 1, juvenile: 5, sprite: 10, elder: 20, ancient: 45, sensei: 100 };
-const GROWTH_MILESTONES = [5, 10, 20, 100, 250, 500, 1000];
+const STAGE_LEVEL = { baby: 1, juvenile: 5, sprite: 10, elder: 100, ancient: 500, sensei: 1000 };
+const GROWTH_MILESTONES = [5, 10, 100, 250, 500, 1000];
 function stageEvolutionInfo(s) {
   if (!s || s.stage === 'egg') return { egg: true, current: 'egg', next: null, nextLabel: 'Egg', required: 1, levelsLeft: 0, ready: false, final: false, progress: 0 };
   const index = STAGE_ORDER.indexOf(s.stage);
@@ -863,7 +865,7 @@ function randomWildRaw({ rare = false, mythic = false } = {}) {
     baby: randInt(1, 4),
     juvenile: randInt(5, 9),
     sprite: randInt(10, 19),
-    elder: randInt(20, 30),
+    elder: randInt(100, 149),
   }[stage];
   const combo = rare && chance(0.55) ? pick(COMBOS) : null;
   const mutation = chance(rare ? 0.5 : 0.08) ? pick(MUTATIONS) : null;
@@ -1243,6 +1245,8 @@ function mergeOdds(a = null, b = null) {
 }
 function makeSprite(opts = {}) {
   const element = opts.element || pick(WILD_SPECIES);
+  const forcedFinish = ELEMENTS[element]?.forcedVariant;
+  const variant = FINISHES[forcedFinish] ? forcedFinish : FINISHES[opts.variant] ? opts.variant : null;
   return {
     id: opts.id || uid('sp'),
     name: opts.name || null,
@@ -1258,7 +1262,7 @@ function makeSprite(opts = {}) {
     personality: opts.personality || pick(PERSONALITY_KEYS),
     gender: GENDERS[opts.gender] ? opts.gender : rollGender(),
     mutation: opts.mutation || null,
-    variant: FINISHES[opts.variant] ? opts.variant : null,
+    variant,
     shiny: !!(opts.shiny || ELEMENTS[element]?.alwaysShiny),
     size: SIZES[opts.size] ? opts.size : rollSize(),
     diet: opts.diet || { hearty: 0, sweet: 0, eerie: 0, wild: 0 },
@@ -1297,7 +1301,7 @@ function unlockSecretRaw(key) {
   const sprite = makeSprite({
     element: key,
     name: meta.name,
-    stage: meta.master ? 'elder' : 'baby',
+    stage: meta.master ? 'sensei' : 'baby',
     level: meta.master ? MAX_LEVEL : 1,
     bond: meta.master ? 100 : 55,
     gen: meta.master ? 5 : 0,
@@ -1387,7 +1391,7 @@ function rollEgg(tierId, opts = {}) {
 
 const TRAIL_STAGE_ORDER = STAGE_ORDER;
 const TRAIL_STAGE_LABELS = STAGE_LABELS;
-const TRAIL_STAGE_LEVEL = { juvenile: 5, sprite: 10, elder: 20, ancient: 45, sensei: 100 };
+const TRAIL_STAGE_LEVEL = { juvenile: 5, sprite: 10, elder: 100, ancient: 500, sensei: 1000 };
 
 /* Every finished trail resolves one visible reward: a type-tier rise, a stage
    evolution, or a generous coin bonus. Higher trails roll the rare outcomes more often. */
@@ -1452,7 +1456,7 @@ const Actions = {
 
   retire(id) {
     const s = findSprite(id);
-    if (!s || STAGE_ORDER.indexOf(s.stage) < STAGE_ORDER.indexOf('elder')) return { ok: false, reason: 'elder' };
+    if (!s || s.level < STAGE_LEVEL.elder || STAGE_ORDER.indexOf(s.stage) < STAGE_ORDER.indexOf('elder')) return { ok: false, reason: 'elder' };
     s.retired = true;
     unlockSecret('elderkeeper');
     s.retiredAt = Date.now();
