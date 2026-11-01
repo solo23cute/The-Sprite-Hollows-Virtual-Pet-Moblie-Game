@@ -8,3 +8,5 @@ apk-*.png
 apk-check*.png
 __pycache__/
 project.zip
+android/release-*.keystore
+android/release-lineage-*.bin
