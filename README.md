@@ -5,6 +5,8 @@
 - **Same signing key as 3.19.0 and 3.20.0** (certificate SHA-256 `799ec735323db8c9cbc362c66ab27633aeb79531ace3fe9a8ae87739a61be9b4`), and versionCode 70 > 69, so 4.1.1 installs straight over either of them and keeps the saved Hollow. The key stays at `android/release.keystore` (password in `android/release-key.properties`, both gitignored and reused by every later build) - back that file up, because Android needs the identical key for every future update.
 - The version string comes from `APP_VERSION` in `src/util.js`, so the top bar, intro screen, boot screen and Studio footer all read v4.1.1; `android/build.sh` now defaults to `VERSION_CODE=70` / `VERSION_NAME=4.1.1`.
 
+- **Coming from 3.18.0 or earlier:** those releases carry the earlier rotated key (`107d75b5…` below Android 13, `a64c2b04…` on Android 13+), not this one, and Android refuses a differently signed APK over an installed app no matter how much higher the versionCode is - that is the `App not installed` message. Recovering that key and signing through its lineage with `LINEAGE=/path/to/lineage.bin KEYSTORE=/path/to/release.keystore KEYPASS=... KS_ALIAS=... bash android/build.sh out.apk` produces an APK that upgrades in place; without the key an uninstall is unavoidable, and 3.18.0 has no save-code exporter (it arrived in 3.20.0), so its Hollow cannot be carried across.
+
 ### Downloads
 
 - **Android 7.0 and up:** `SpriteHollow-4.1.1-v70-release.apk` - 722,338 bytes, release-signed (v2 + v3, `--v1-signing-enabled false`), `versionName 4.1.1` / `versionCode 70`. SHA-256 `a91a698e7b6eb42d79e895f02db5ca48d3b3930e4b5e4a2fd3e63ed0e4950cab`.

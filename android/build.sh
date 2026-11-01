@@ -94,6 +94,18 @@ if [ "$SIGN_V1" = "true" ]; then
   # Android 5-6 (below API 24) only understands JAR signing.
   SIGN_FLAGS+=(--v1-signing-enabled true --v2-signing-enabled true)
 fi
+
+# Optional signing-certificate lineage, so a build signed with a newer key still
+# updates in place over installs carrying an older one. Needs the lineage file and
+# the keystore holding its newest key.
+LINEAGE="${LINEAGE:-}"
+if [ -n "$LINEAGE" ]; then
+  if [ ! -f "$LINEAGE" ]; then
+    echo "Missing signing lineage: $LINEAGE" >&2
+    exit 1
+  fi
+  SIGN_FLAGS+=(--lineage "$LINEAGE")
+fi
 "$JAVA_BIN/java$EXE" -jar "$BT/lib/apksigner.jar" sign \
   --ks "$KEYSTORE" --ks-pass "pass:$KEYPASS" --key-pass "pass:$KEYPASS" \
   --ks-key-alias "$KS_ALIAS" \
