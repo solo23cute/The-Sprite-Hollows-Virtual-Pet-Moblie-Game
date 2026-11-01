@@ -5,7 +5,7 @@
 - **The Tooth Fairy arrives.** A proper pillow-side fairy joins the Pixie Hollow wave with a wish gene, her own egg, and a shared hybrid with Toothiana.
 - **Periwinkle Bell.** Tinker Bell’s frost-talent sister is now listed under her full winter-fairy name, and Wiki search understands `periwinkle bell`, `winter fairy`, `tooth fairy`, `adult swim`, and `baby looney tunes`.
 - Both new waves register in the collection registry, so the Tour, Wiki, and Codex counts pick them up automatically (18 waves total).
-- Android build: **versionName 3.13.0 / versionCode 62** — installable APK `SpriteHollow-3.13.0-v62.apk` (651 KB, debug-signed).
+- Android build: **versionName 3.13.0 / versionCode 62** — release-signed `SpriteHollow-3.13.0-v62-release.apk` (628 KB) plus a debug-signed `SpriteHollow-3.13.0-v62.apk` (651 KB).
 - Verified with the jsdom suite: 100 scripts boot clean, 58 Adult Swim + 9 Baby Looney Tunes + 53 Pixie Hollow sprites register with genes, Titans, eggs, and habitats, every new wave reports a live count, and Wiki search finds Rick, Baby Bugs, the Tooth Fairy, and Periwinkle Bell.
 
 ## 3.12.0 Evolution in progress, Hollow loading screen, and every fairy + Neverland
@@ -280,7 +280,7 @@ Any static file server works. The game saves to `localStorage` after every actio
 
 ## Android APK
 
-**Download:** [`SpriteHollow-3.13.0-v62.apk`](SpriteHollow-3.13.0-v62.apk) — 651 KB, debug-signed, fully offline, `versionName 3.13.0` / `versionCode 62`. SHA-256 `3dc1162e7d51a90db53212e87eefbcca350ec6c3f63761f072881de7cbb78f9c`. Older builds remain below as `SpriteHollow.apk` (3.9.0) and the per-version archives.
+**Download:** [`SpriteHollow-3.13.0-v62-release.apk`](SpriteHollow-3.13.0-v62-release.apk) — 628 KB, signed with the project release key and its rotation lineage, fully offline, `versionName 3.13.0` / `versionCode 62`. SHA-256 `9744efbb854f218bde960efe520b598124d7c32664bec8c82f9f682664d96a9c`. It installs in place over earlier release-key builds; a debug-signed [`SpriteHollow-3.13.0-v62.apk`](SpriteHollow-3.13.0-v62.apk) (651 KB, SHA-256 `3dc1162e7d51a90db53212e87eefbcca350ec6c3f63761f072881de7cbb78f9c`) is kept for sideloading onto clean devices.
 
 **Release build (3.9.0):** [`SpriteHollow-release.apk`](SpriteHollow-release.apk) — 579 KB, signed with the project release key. SHA-256 `ad03d06073b644ab2974dc8b8b7244813b05120f34d71aa21d9722827cdf6b0e`.
 
