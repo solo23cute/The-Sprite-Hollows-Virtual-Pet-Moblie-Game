@@ -101,6 +101,7 @@ function openStudioSheet(opts = {}) {
 
     <div class="divider" style="margin:18px 0"></div>
     <button class="btn btn-soft btn-block" data-tour-replay style="margin-bottom:10px">🧭 Replay induction tour</button>
+    <button class="btn btn-soft btn-block" data-save-backup style="margin-bottom:10px">💾 Save backup &amp; restore</button>
     <button class="btn btn-ghost btn-block" data-reset style="color:var(--bad);border-color:color-mix(in srgb, var(--bad) 35%, transparent)">
       ${icon('trash')} Start a brand-new Hollow
     </button>
@@ -504,6 +505,10 @@ function openStudioSheet(opts = {}) {
       root.querySelector('[data-tour-replay]').addEventListener('click', () => {
         close();
         setTimeout(() => startTour({ fromStudio: true }), 180);
+      });
+      root.querySelector('[data-save-backup]').addEventListener('click', () => {
+        close();
+        setTimeout(() => openSaveBackup(), 180);
       });
       root.querySelector('[data-reset]').addEventListener('click', async () => {
         const banked = Math.max(0, Math.floor(Number(state.coins) || 0));

@@ -1,3 +1,17 @@
+## 3.20.0 Save backup codes
+
+- **Carry the whole Hollow in one line of text.** Studio now has **💾 Save backup & restore**: *Copy code* puts a save code on the clipboard, *Download file* drops a `.txt` copy, and *Choose a file* or a paste into the restore box brings it back on any device.
+- **The code holds everything** - every sprite and egg with its palette, pattern, accessory and genes, plus coins, streaks, quests, guardian wins, custom guardians, vault doors, custom biomes, clothes and room themes. Codes start `SH-save-`; a deflated code (`SH-save-2:`) is roughly a fifth of the plain one (`SH-save-1:`), and devices without `CompressionStream` fall back to the plain form automatically. Raw JSON saves import too.
+- **Restoring is guarded.** The code is parsed and checked for a real Hollow save, the sheet shows how many sprites, eggs and coins it carries, and a danger-styled confirm explains that the local Hollow is replaced before anything is written (or a file is read).
+- **Nothing can overwrite a restored save on the way out.** `saveState` now honours a lock that is set the moment a restore begins, so the `pagehide`/`beforeunload` writers cannot put the old Hollow back over the imported one while the page reloads.
+- Verified: `node --check` on every touched file, plus a jsdom harness that loads all scripts in page order and runs 20 checks - packed and plain round-trips, sprite detail survival, raw JSON import, junk/empty/foreign input rejection, the sheet opening and filling its code, a bad restore warning and re-enabling, and the restore write plus save lock.
+
+### Downloads
+
+- **Android 7.0 and up:** `SpriteHollow-3.20.0-v69-release.apk` - 722,338 bytes, release-signed, `versionName 3.20.0` / `versionCode 69`, minSdk 24, targetSdk 34. SHA-256 `255bad0ba86204900cdff40ec5ee978a20bdeb8421ceed4fa7a0feb8d26b13ff`.
+- Debug build: `SpriteHollow-3.20.0-v69.apk` - 730,729 bytes, SHA-256 `53eb453eaaca7c22252fc115ca5c41c34273e7e74486484239beaed7b3ce783a`.
+- Both are signed with the **same key as 3.19.0**, so 3.20.0 installs straight over it and keeps the saved Hollow. That key is kept at `android/release.keystore` (password in `android/release-key.properties`, both gitignored, certificate SHA-256 `799ec735323db8c9cbc362c66ab27633aeb79531ace3fe9a8ae87739a61be9b4`) and every later build reuses it, so the upgrade chain from here is unbroken. Back that file up - Android needs the same key for every future update.
+
 ## 3.19.0 Free colours, free decor, earned guardians, and guardian vaults
 
 - **Ten new free colourways** for every sprite: Rose Gold, Mint Chip, Bubblegum, Warm Sand, Deep Forest, Neon Lime, Galaxy, Frost, Coral Reef, and Goldleaf, alongside the original fourteen. All are pickable in the Studio for no coins.

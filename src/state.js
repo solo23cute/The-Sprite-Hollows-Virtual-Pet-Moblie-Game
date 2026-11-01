@@ -367,8 +367,13 @@ function loadState() {
 
 const state = loadState();
 let saveTimer = null;
+/* Set while a restored save is loading, so the pagehide/beforeunload writers
+   do not put the old Hollow back over the one that was just imported. */
+let saveLocked = false;
+function lockSaves() { saveLocked = true; }
 
 function saveState(immediate = false) {
+  if (saveLocked) return;
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
