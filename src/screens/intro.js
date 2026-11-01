@@ -40,6 +40,7 @@ function introScreen(root, onStart) {
           </button>`;
         }).join('')}
       </div>
+      <button class="btn btn-soft btn-block" data-intro-restore style="margin-top:10px">💾 Restore a saved Hollow</button>
       <div class="intro-note">Works offline · auto-saves on this device · no account needed</div>
     </div>
   </div>`;
@@ -53,4 +54,17 @@ function introScreen(root, onStart) {
       onStart(s.element, s.breed);
     });
   });
+
+  /* Coming back from a reinstall: bring a Hollow in before picking a starter.
+     Restoring reloads the page with state.started set, so the intro is skipped. */
+  const restore = root.querySelector('[data-intro-restore]');
+  if (restore) {
+    restore.addEventListener('click', () => {
+      if (typeof openSaveBackup !== 'function') return;
+      Sfx.init();
+      Sfx.pop();
+      tapHaptic(12);
+      openSaveBackup();
+    });
+  }
 }
