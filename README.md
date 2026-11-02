@@ -1,4 +1,15 @@
-## 4.2.0 Season Charge, shorter district quests, and easier guardian duels (current release)
+## 4.3.0 Medical TV: Grey’s Anatomy and Scrubs (current release)
+
+- **106 new medical-TV signatures.** The TV Legends family now includes **76 Grey’s Anatomy characters covering every season from 1 to 23** and **30 Scrubs characters covering all nine seasons**. Each has an original procedural portrait, role, season range, show gene, Titan, type egg, habitat, and named hybrid.
+- **Dedicated Medical TV roster tab and Wiki guide.** Filter by show, see each character’s season range, and open the new **Medical TV: Grey’s & Scrubs** guide with live counts and season indexes.
+- **Induction tour updated.** The new-collections step introduces the medical wing, and the collection-wave registry, Codex counts, and Wiki search include it automatically.
+- Package: `versionName 4.3.0` / `versionCode 78`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.3.0-v78-release.apk`](SpriteHollow-4.3.0-v78-release.apk) — 764,065 bytes. SHA-256 `c929251d6746277c8c083fc2909359937922fb0f4999a989a23557ee2fda4a12`.
+- Signed with the **6466cb8f** release signer (v2 + v3). Android 13+ updates in place over 4.2.0; Android 7–12 needs a clean install because the older 107d75b5 v2 private key is not in this checkout.
+- Debug build: `SpriteHollow-4.3.0-v78-debug.apk` — SHA-256 `2d151a50be69e11b0c247dd43d6fab2f79256d4b3036a63cb9ce7284ea342fe3`.
+- Verified: all source JS passes `node --check`; 106/106 medical art signatures render; every Grey’s season 1–23 and Scrubs season 1–9 has characters; APK metadata, ZIP alignment, v2/v3 signatures, and packaged assets pass. A physical Android install test remains pending.
+
+## 4.2.0 Season Charge, shorter district quests, and easier guardian duels (previous release)
 
 - **Season Charge is live.** Every guardian win and every completed district adds one charge. At **3 charges**, a random event or Admin sprite egg is added automatically, already **40% warmed** and labelled as a Season Event Egg.
 - **District quests are one-action lines.** All 13 GTA and exotic biome lines now need one game win and one care action per step, with free travel and a free guardian finale.

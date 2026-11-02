@@ -114,6 +114,25 @@ function rosterTabs() {
       search: (el) => [el.name, el.gtaGame, el.trait, el.blurb, GTA_GROUPS[el.gtaGroup]?.label, 'Grand Theft Auto'].join(' '),
     },
     {
+      id: 'medical',
+      label: 'Medical TV',
+      icon: '🩺',
+      total: MEDICAL_TOTAL,
+      noun: 'characters',
+      singular: 'character',
+      filterNoun: 'show',
+      allLabel: 'All medical shows',
+      hint: 'Search Grey’s, Scrubs, seasons, roles…',
+      filters: MEDICAL_SHOW_ORDER.map((show) => ({
+        key: show,
+        label: MEDICAL_SHOWS[show].label,
+        icon: MEDICAL_SHOWS[show].icon,
+        keys: MEDICAL_BY_SHOW[show],
+      })),
+      subtitle: (el) => `${el.medicalShow} · ${el.medicalRole} · S${el.medicalSeasons[0]}${el.medicalSeasons.length > 1 ? `–${el.medicalSeasons[el.medicalSeasons.length - 1]}` : ''}`,
+      search: (el) => [el.name, el.medicalShow, el.medicalRole, el.medicalArticle, el.trait, el.blurb, 'Medical TV'].join(' '),
+    },
+    {
       id: 'netflixanime',
       label: 'Netflix Anime',
       icon: '🍥',
@@ -162,12 +181,12 @@ function rosterScreen(root) {
 
   root.innerHTML = `
     <div class="screen-head">
-      <div><div class="eyebrow">Collection discovery</div><h1>Roster browser</h1><p>Find any pony, Care Bear, TV legend, Netflix character, or Keyblade wielder by family, show, or world.</p></div>
+      <div><div class="eyebrow">Collection discovery</div><h1>Roster browser</h1><p>Find any pony, Care Bear, TV legend, Netflix character, medical-TV regular, or Keyblade wielder by family, show, or world.</p></div>
       <button class="icon-btn" data-roster-back aria-label="Back to the Wiki" title="Back to the Wiki">${icon('arrow')}</button>
     </div>
     <div class="roster-hero">
       <span class="rh-icon">🧭</span>
-      <span class="rh-copy"><b>${PONY_TOTAL + CARE_BEAR_TOTAL + TV_LEGACY_TOTAL + KH_TOTAL + NETFLIX_TOTAL} collectibles, seven ways in.</b><span>Owned species are marked, and every card opens its full Wiki file. The Netflix wing adds 60 characters across 20 shows.</span></span>
+      <span class="rh-copy"><b>${tabs.reduce((sum, tab) => sum + tab.total, 0)} collectibles, ${tabs.length} ways in.</b><span>Owned species are marked, and every card opens its full Wiki file. The medical wing adds ${MEDICAL_TOTAL} characters across all 23 Grey’s Anatomy seasons and all nine Scrubs seasons.</span></span>
     </div>
     <div class="roster-tabs" data-roster-tabs role="tablist" aria-label="Collections"></div>
     <div class="type-tools">

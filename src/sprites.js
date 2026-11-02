@@ -127,6 +127,7 @@ function mouthMarkup(expr) {
 function signatureFeature(el, c) {
   return (typeof signatureCollectionSecret === 'function' ? signatureCollectionSecret(el, c) : '') ||
     (typeof signaturePony === 'function' ? signaturePony(el, c) : '') ||
+    (typeof signatureMedicalTV === 'function' ? signatureMedicalTV(el, c) : '') ||
     (typeof signatureNetflix === 'function' ? signatureNetflix(el, c) : '') ||
     (typeof signatureTVLegacy === 'function' ? signatureTVLegacy(el, c) : '') ||
     (typeof signatureRealmWave === 'function' ? signatureRealmWave(el, c) : '') ||

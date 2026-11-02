@@ -328,6 +328,7 @@ const WIKI_GUIDES = [
           ${card('ponies', '🦄', 'My Little Pony', PONY_TOTAL, 'Mane Six, Cutie Mark Crusaders, royalty, Ponyville, sweethearts, and villains with check-in/task bonuses.')}
           ${card('tvlegends', '📺', 'TV Legends', TV_LEGACY_TOTAL, 'Prestige, sitcom, sci-fi, fantasy, and animated television across five eras.')}
           ${card('netflix', '🎬', 'Netflix animation wing', NETFLIX_TOTAL, '60 characters across 10 Netflix Anime and 10 Netflix Toons shows, three per show.')}
+          ${card('medicaltv', '🩺', 'Medical TV: Grey’s & Scrubs', MEDICAL_TOTAL, `${GREYS_TOTAL} Grey’s Anatomy characters across all 23 seasons and ${SCRUBS_TOTAL} Scrubs characters across all nine.`)}
           ${card('fourrealms', '🌗', 'Horror, Light & Darkness', REALM_TOTAL, 'Eight Horror, eight Dark Horror, eight Light, and eight Darkness sprites.')}
           ${card('kingdomhearts', '🗝️', 'Kingdom Hearts', KH_TOTAL, 'Destiny Islands, Organization XIII, Wayfinders, Seekers, Disney worlds, and Keyblade legacy.')}
           ${card('holidays', '🍬', 'Candy, holidays & seasonal', seasonalCount, 'Candy, Halloween, and Christmas species plus the holiday calendar.')}
@@ -991,6 +992,8 @@ function openWikiArticle(key) {
           ${el.pony ? `<div><span>Pony</span><b>${PONY_GROUPS[el.ponyGroup].icon} ${esc(PONY_GROUPS[el.ponyGroup].label)} · ${esc(el.ponyType)}</b></div>` : ''}
           ${el.tvLegacy ? `<div><span>TV show</span><b>${TV_LEGACY_GROUPS[el.tvLegacyGroup].icon} ${esc(el.tvShow)}</b></div>` : ''}
           ${el.netflix ? `<div><span>Netflix</span><b>${NETFLIX_WINGS[el.netflixWing].icon} ${esc(el.netflixShow)} · ${esc(NETFLIX_WINGS[el.netflixWing].label)}</b></div>` : ''}
+          ${el.medicalTV ? `<div><span>Medical TV</span><b>${MEDICAL_SHOWS[el.medicalShowKey].icon} ${esc(el.medicalShow)} · ${esc(el.medicalRole)}</b></div>` : ''}
+          ${el.medicalTV ? `<div><span>Seasons</span><b>${el.medicalSeasons[0]}${el.medicalSeasons.length > 1 ? `–${el.medicalSeasons[el.medicalSeasons.length - 1]}` : ''}</b></div>` : ''}
           ${el.realmWave ? `<div><span>Realm</span><b>${REALM_WAVE_GROUPS[el.realmGroup].icon} ${esc(REALM_WAVE_GROUPS[el.realmGroup].label)} · ${esc(el.realmRole)}</b></div>` : ''}
           ${el.kingdomHearts ? `<div><span>Kingdom Hearts</span><b>${KH_GROUPS[el.khGroup].icon} ${esc(el.khWorld)}</b></div>` : ''}
           ${el.legendGroup ? `<div><span>Family</span><b>${LEGEND_GROUPS[el.legendGroup].icon} ${esc(LEGEND_GROUPS[el.legendGroup].label)}${el.legendClassic ? ' · classic' : ''}</b></div>` : ''}
@@ -1010,6 +1013,7 @@ function openWikiArticle(key) {
       <p>${esc(el.trait)}</p>
       <blockquote class="wiki-quote">“${esc(el.greeting)}”</blockquote>
       ${el.netflix ? `<h3>Show notes</h3><p>${esc(el.netflixArticle)}</p><p class="tiny muted">Original character study. The ${esc(el.netflixShow)} palette and motifs are used as inspiration; no show frames or traced art are included.</p>` : ''}
+      ${el.medicalTV ? `<h3>Chart notes</h3><p>${esc(el.medicalArticle)}</p><p class="tiny muted">Original procedural study. No broadcast frames or traced character art are included.</p>` : ''}
       <h3>Where it thrives</h3>
       <div class="wiki-habitat-table">${wikiHabitatRows(key) || '<p>This sprite is comfortable anywhere in the Hollow.</p>'}</div>
       <h3>Gene power</h3>
@@ -1033,6 +1037,7 @@ function openWikiArticle(key) {
       ${el.pony ? `<button class="btn btn-soft btn-block" data-wiki-guide="ponies" style="margin-top:9px">Open the My Little Pony guide</button>` : ''}
       ${el.tvLegacy ? `<button class="btn btn-soft btn-block" data-wiki-guide="tvlegends" style="margin-top:9px">Open the TV Legends guide</button>` : ''}
       ${el.netflix ? `<button class="btn btn-soft btn-block" data-wiki-guide="netflix" style="margin-top:9px">Open the Netflix animation wing</button>` : ''}
+      ${el.medicalTV ? `<button class="btn btn-soft btn-block" data-wiki-guide="medicaltv" style="margin-top:9px">Open the Grey’s &amp; Scrubs guide</button>` : ''}
       ${el.realmWave ? `<button class="btn btn-soft btn-block" data-wiki-guide="fourrealms" style="margin-top:9px">Open the Horror, Light &amp; Darkness guide</button>` : ''}
       ${el.kingdomHearts ? `<button class="btn btn-soft btn-block" data-wiki-guide="kingdomhearts" style="margin-top:9px">Open the Kingdom Hearts guide</button>` : ''}
       ${el.legendGroup ? `<button class="btn btn-soft btn-block" data-wiki-guide="legends" style="margin-top:9px">Open the crossover legends guide</button>` : ''}
@@ -1133,7 +1138,7 @@ function wikiScreen(root) {
     </div>
     <button class="roster-launch" data-open-roster>
       <span class="rl-icon">🧭</span>
-      <span class="rl-copy"><b>Roster browser · ${PONY_TOTAL + CARE_BEAR_TOTAL + TV_LEGACY_TOTAL + KH_TOTAL + NETFLIX_TOTAL}</b><span>Filter ponies, Care Bears, TV shows, Netflix shows, and Keyblade worlds by group, with owned progress.</span></span>
+      <span class="rl-copy"><b>Roster browser · ${PONY_TOTAL + CARE_BEAR_TOTAL + TV_LEGACY_TOTAL + KH_TOTAL + NETFLIX_TOTAL + MEDICAL_TOTAL}</b><span>Filter ponies, Care Bears, TV shows, Netflix shows, medical shows, and Keyblade worlds by group, with owned progress.</span></span>
       <span class="rl-arrow">›</span>
     </button>
     <div class="section-title" style="margin-top:12px"><h2>Collection waves</h2><span data-wiki-waves-count></span></div>
@@ -1218,6 +1223,7 @@ function wikiScreen(root) {
     const pony = el.pony ? `My Little Pony pony ${el.ponyType || ''} ${el.ponyGroup || ''}` : '';
     const tv = el.tvLegacy ? `TV television ${el.tvShow || ''} ${el.tvLegacyGroup || ''}` : '';
     const netflix = el.netflix ? `Netflix animation ${NETFLIX_WINGS[el.netflixWing]?.label || ''} ${el.netflixShow || ''} ${el.netflixArticle || ''}` : '';
+    const medical = el.medicalTV ? `Medical TV doctor hospital ${el.medicalShow || ''} ${el.medicalRole || ''} ${(el.medicalSeasons || []).join(' ')} ${el.medicalArticle || ''}` : '';
     const realm = el.realmWave ? `${el.realmGroup || ''} ${el.realmRole || ''} realm horror light darkness` : '';
     const kingdomHearts = el.kingdomHearts ? `Kingdom Hearts Keyblade ${el.khWorld || ''} ${el.khGroup || ''}` : '';
     const legend = el.legendGroup ? `${el.legendGroup} ${LEGEND_GROUPS[el.legendGroup]?.label || ''} crossover legends` : '';
@@ -1230,7 +1236,7 @@ function wikiScreen(root) {
     const exotic = isExoticSpecies(key) ? 'exotic signature' : '';
     const apex = RARITY_APEX_KEYS.join(' ');
     const special = el.ahs ? 'American Horror Story AHS horror anthology' : el.fairy ? 'fairy pixie hollow tinker bell disney fairies neverland dust periwinkle bell winter fairy snow frost tooth fairy' : el.neverland ? 'peter pan neverland wendy lost boys pirate hook mermaid crocodile' : el.adultswim ? 'adult swim cartoon network late night rick and morty aqua teen boondocks samurai jack metalocalypse smiling friends' : el.babyloons ? 'baby looney tunes nursery bugs bunny daffy tweety sylvester lola taz porky foghorn pepe toddler' : el.admin ? 'admin event staff weekend' : el.eventOnly ? 'special event weekend sprite' : '';
-    return `${el.name} ${key} ${el.trait} ${el.blurb} ${publisher} ${role} ${disney} ${careBears} ${fortniteLegacy} ${wwe} ${pony} ${tv} ${netflix} ${realm} ${kingdomHearts} ${legend} ${catalog} ${parentTypes} ${world} ${genre} ${prismatic} ${exotic} ${apex} ${special} ${forms} bond codex evolution ${GENE_POWERS[key]?.name || ''} ${wikiHabitats(key).map((k) => SCENES[k].name).join(' ')}`.toLowerCase();
+    return `${el.name} ${key} ${el.trait} ${el.blurb} ${publisher} ${role} ${disney} ${careBears} ${fortniteLegacy} ${wwe} ${pony} ${tv} ${netflix} ${medical} ${realm} ${kingdomHearts} ${legend} ${catalog} ${parentTypes} ${world} ${genre} ${prismatic} ${exotic} ${apex} ${special} ${forms} bond codex evolution ${GENE_POWERS[key]?.name || ''} ${wikiHabitats(key).map((k) => SCENES[k].name).join(' ')}`.toLowerCase();
   }
 
   function paint() {

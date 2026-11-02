@@ -82,11 +82,12 @@ const TOUR_STEPS = [
   },
   {
     icon: '🦄', kicker: 'NEW COLLECTIONS',
-    title: 'Ponies, TV, four realms, and Keyblades',
-    text: `Four new collections live in the Nest. There are ${PONY_TOTAL} My Little Pony friends, ${TV_LEGACY_TOTAL} TV Legends, ${REALM_TOTAL} horror/light/darkness sprites, and ${KH_TOTAL} Kingdom Hearts characters. The widening wave adds 50 background ponies, 10 royal leaders, 15 extended Care Bears, full-show TV casts, and the Disney worlds of Kingdom Hearts. Every one has a gene, Titan, type egg, habitat, named hybrid, Wiki file, and original procedural art.`,
+    title: 'Ponies, TV, medicine, four realms, and Keyblades',
+    text: `Five new collections live in the Nest. There are ${PONY_TOTAL} My Little Pony friends, ${TV_LEGACY_TOTAL} TV Legends, ${MEDICAL_TOTAL} medical-TV signatures, ${REALM_TOTAL} horror/light/darkness sprites, and ${KH_TOTAL} Kingdom Hearts characters. The widening wave adds 50 background ponies, 10 royal leaders, 15 extended Care Bears, full-show TV casts, and the Disney worlds of Kingdom Hearts. Every one has a gene, Titan, type egg, habitat, named hybrid, Wiki file, and original procedural art.`,
     points: [
       'Ponies add bonus coins to check-ins and completed tasks while active. Background ponies, royal leaders, and the expanded Care family all use the same care systems.',
       'TV Legends now build full-show casts across prestige drama, sitcoms, sci-fi, fantasy, and animated shows, each with a show label.',
+      `The medical wing adds ${GREYS_TOTAL} Grey’s Anatomy characters from all 23 seasons and ${SCRUBS_TOTAL} Scrubs characters from all nine seasons. The Medical TV roster tab filters by show and shows each character’s season range.`,
       'Netflix Anime and Netflix Toons each have their own roster tab, a filter for all 10 shows, and owned counts for the wing and every show.',
       'Horror, Dark Horror, Light, and Darkness each have their own eight-sprite family and realm aura.',
       'Kingdom Hearts covers Destiny Islands, all of Organization XIII, the Wayfinders, Seekers, Keyblade legacy, and 50 Disney-world characters.',
