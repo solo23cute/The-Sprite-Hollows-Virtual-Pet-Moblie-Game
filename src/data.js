@@ -1934,15 +1934,15 @@ const CHECKIN_WINDOWS = [
 const WEEK_MILESTONES = [
   { id: 'snack-stash', n: 4, label: 'Snack stash', icon: '🍬', kind: 'snacks', amount: 3 },
   { id: 'wild-visitor', n: 8, label: 'Wild sprite', icon: '🌟', kind: 'wild' },
-  { id: 'rare-visitor', n: 16, label: 'Rare elder', icon: '💎', kind: 'rare' },
+  { id: 'rare-visitor', n: 16, label: 'Rare elderly sprite', icon: '💎', kind: 'rare' },
 ];
 
 const MONTH_MILESTONES = [
   { id: 'monthly-wild', n: 24, label: 'Monthly wild friend', icon: '🌟', kind: 'wild' },
-  { id: 'monthly-rare', n: 48, label: 'Monthly rare elder', icon: '💎', kind: 'rare' },
+  { id: 'monthly-rare', n: 48, label: 'Monthly rare elderly sprite', icon: '💎', kind: 'rare' },
 ];
 
-const YEAR_MILESTONE = { id: 'yearly-mythic', n: 150, label: 'Mythic elder', icon: '👑', kind: 'mythic' };
+const YEAR_MILESTONE = { id: 'yearly-mythic', n: 150, label: 'Mythic elderly sprite', icon: '👑', kind: 'mythic' };
 
 /* Food builds evolution affinity. At level 10, enough affinity unlocks a form. */
 const DIET_PATHS = {

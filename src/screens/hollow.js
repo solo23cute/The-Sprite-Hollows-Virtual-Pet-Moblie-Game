@@ -139,7 +139,7 @@ function openWeatherSheet() {
 }
 
 function spriteSize(stage, size = 'standard') {
-  const base = { baby: 132, juvenile: 146, sprite: 160, elder: 174, ancient: 184, sensei: 192 }[stage] || 132;
+  const base = { baby: 132, juvenile: 146, sprite: 160, youngadult: 166, midadult: 170, highadult: 172, elder: 174, ancient: 184, sensei: 192 }[stage] || 132;
   return Math.round(base * (SIZES[size]?.scale || 1));
 }
 

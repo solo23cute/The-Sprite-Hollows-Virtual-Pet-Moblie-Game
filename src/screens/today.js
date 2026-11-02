@@ -33,11 +33,11 @@ function todayScreen(root) {
     <div class="stat-tiles" data-stats></div>
     <div class="card" style="padding:13px;margin-top:12px;font-size:11.5px;line-height:1.65;color:var(--muted)">
       <b style="color:var(--text)">How check-ins work</b><br>
-      There are four check-in windows each day: morning, afternoon, evening, and night. Each one pays coins, and the first check-in of the day keeps your daily streak alive. Check in often enough in a week to earn snacks, a wild sprite, and a rare elder. Longer streaks unlock monthly and yearly rewards.
+      There are four check-in windows each day: morning, afternoon, evening, and night. Each one pays coins, and the first check-in of the day keeps your daily streak alive. Check in often enough in a week to earn snacks, a wild sprite, and a rare elderly sprite. Longer streaks unlock monthly and yearly rewards.
       <br><br><b style="color:var(--text)">Weekly events</b><br>
       Every day brings a different free event: Monday XP, Tuesday meals, Wednesday desserts, Thursday drinks, Friday missing Vault sprites, Saturday unclaimed crates, and Sunday a grand feast. Claim each event once per week.
       <br><br><b style="color:var(--text)">Growing up</b><br>
-      XP comes from petting, feeding, baths, chats, tasks and games. The age tiers are ${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(', ')} — crossing one opens an evolution screen. Sensei is the final tier at level 1,000; retirement unlocks at Elder level 100. At level 10, diet affinity can evolve a sprite into one of ${EVOLUTION_FORM_KEYS.length} permanent forms.
+      XP comes from petting, feeding, baths, chats, tasks and games. The age tiers are ${STAGE_ORDER.map((stage) => `${STAGE_LABELS[stage]} ${STAGE_LEVEL[stage]}`).join(', ')} — crossing one opens an evolution screen. Sensei is the final tier at level 1,000; retirement unlocks at Elderly level 100. At level 10, diet affinity can evolve a sprite into one of ${EVOLUTION_FORM_KEYS.length} permanent forms.
     </div>`;
 
   const dateEl = root.querySelector('[data-today-date]');

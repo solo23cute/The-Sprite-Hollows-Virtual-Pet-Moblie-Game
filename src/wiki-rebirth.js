@@ -2,8 +2,8 @@
 
 WIKI_GUIDES.push({
   id: 'rebirth', icon: '🌱', title: 'Retirement & reincarnation',
-  summary: 'Elder retirement, MAX Rebirth Meals, permanent bonuses, daily codes, and milestone Vault keepers.',
-  body: () => `<p class="wiki-lede">A sprite that reaches <b>Elder level 100</b> can retire to the cozy home section of the Sprites screen; at <b>level 1,000 / MAX</b> it can take a Rebirth Meal. Retirement pauses needs and XP, but it is not the end: feed a <b>🌱 Rebirth Meal</b> from the pantry to begin a new life.</p>
+  summary: 'Elderly retirement, MAX Rebirth Meals, permanent bonuses, daily codes, and milestone Vault keepers.',
+  body: () => `<p class="wiki-lede">A sprite that reaches <b>Elderly level 100</b> can retire to the cozy home section of the Sprites screen; at <b>level 1,000 / MAX</b> it can take a Rebirth Meal. Retirement pauses needs and XP, but it is not the end: feed a <b>🌱 Rebirth Meal</b> from the pantry to begin a new life.</p>
     <h3>Rebirth Meal</h3>
     <p>The Rebirth Meal costs <b>600 coins</b> in the market. Feed it to a level 1,000 MAX sprite to return them to an egg, reset to level 1, and keep their identity, finish, palette, breed, and collection slot. The new egg must be warmed and hatched again.</p>
     <h3>Permanent rebirth bonuses</h3>

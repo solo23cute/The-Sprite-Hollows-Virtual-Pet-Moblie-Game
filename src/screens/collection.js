@@ -29,7 +29,7 @@ function collectionScreen(root) {
     <div data-retired></div>
     <div class="section-title"><h2>Hollow notes</h2></div>
     <div class="card" style="padding:13px;font-size:11.5px;line-height:1.6;color:var(--muted)">
-      Sprites are born from eggs and grow through <b style="color:var(--text)">Baby → Juvenile → Sprite → Elder → Ancient → Sensei</b>. Retirement unlocks at <b style="color:var(--text)">Elder level 100</b>, and the level cap is <b style="color:var(--text)">1,000</b>. Open any sprite to see its next stage and the exact level it needs.
+      Sprites are born from eggs and grow through <b style="color:var(--text)">${['Egg', ...STAGE_ORDER.map((stage) => STAGE_LABELS[stage])].join(' → ')}</b>. Retirement unlocks at <b style="color:var(--text)">${STAGE_LABELS.elder} level ${STAGE_LEVEL.elder}</b>, and the level cap is <b style="color:var(--text)">1,000</b>. Open any sprite to see its next stage and the exact level it needs.
       Merge two level-3+ sprites in the Nest to blend their elements, colors and personalities into a brand new egg.
     </div>`;
 
@@ -105,7 +105,7 @@ function collectionScreen(root) {
     if (retired.length) {
       retiredBox.innerHTML = `<div class="section-title" style="margin-top:18px"><h2>Retirement home</h2><span>${retired.length} resting</span></div>
         <div class="collection-grid retired-grid">${retired.map(spriteCardHTML).join('')}</div>
-        <div class="card" style="padding:12px;margin-top:8px;font-size:11px;line-height:1.6;color:var(--muted)">Retired elders stay home. Their needs stop fading and they stop earning XP, but you can still pet, feed, and visit them. Tap one to bring them back.</div>`;
+        <div class="card" style="padding:12px;margin-top:8px;font-size:11px;line-height:1.6;color:var(--muted)">Retired elderly sprites stay home. Their needs stop fading and they stop earning XP, but you can still pet, feed, and visit them. Tap one to bring them back.</div>`;
       retiredBox.querySelectorAll('[data-sprite]').forEach((card) => {
         card.addEventListener('click', () => openSpriteDetail(card.dataset.sprite));
       });
@@ -281,7 +281,7 @@ function openSpriteDetail(id) {
       root.querySelector('[data-retire]')?.addEventListener('click', () => {
         const wasRetired = s.retired;
         const res = wasRetired ? Actions.unretire(s.id) : Actions.retire(s.id);
-        if (res && res.ok === false) { toast(res.reason === 'elder' ? 'Only elders can retire.' : 'That did not work.', '🏡'); Sfx.error(); return; }
+        if (res && res.ok === false) { toast(res.reason === 'elder' ? 'Only elderly sprites can retire.' : 'That did not work.', '🏡'); Sfx.error(); return; }
         close();
         toast(wasRetired ? `${displayName(s)} is back in the Hollow.` : `${displayName(s)} retired to a cozy home.`, '🏡');
         Sfx.pop();

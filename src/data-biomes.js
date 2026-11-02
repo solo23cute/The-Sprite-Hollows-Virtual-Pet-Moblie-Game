@@ -416,7 +416,7 @@ const SECRET_SPECIES_META = {
   },
   dailykeeper: {
     name: 'Elder Keeper', title: 'Rest is part of the story',
-    clue: 'Retire your first Elder sprite.',
+    clue: 'Retire your first Elderly sprite.',
     palette: ['#c9a6ff', '#f4ecff', '#4a2a7a', '#ffd166'],
     trait: 'Storied — every retirement adds a chapter to the Hollow’s library.',
     blurb: 'A secret keeper who appears when a sprite finishes one long life and chooses to rest.',

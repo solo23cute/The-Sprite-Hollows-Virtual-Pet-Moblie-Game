@@ -444,7 +444,7 @@ const WIKI_GUIDES = [
     id: 'bonds',
     icon: '💞',
     title: 'Bonds & evolution',
-    summary: 'All six bond ranks, their passive bonuses, the six age stages, and every diet form.',
+    summary: `All six bond ranks, their passive bonuses, the ${STAGE_ORDER.length} age stages, and every diet form.`,
     body: bondWikiBody,
   },
   {
@@ -787,7 +787,7 @@ const WIKI_GUIDES = [
     summary: `Levels, stages, diet affinities, and the ${EVOLUTION_FORM_KEYS.length} evolution forms.`,
     body: () => `<p class="wiki-lede">Sprites level up by doing things with you. Levels unlock new life stages and, eventually, a Titan name.</p>
       <h3>Stages</h3>
-      <p><b>${['Egg', ...STAGE_ORDER.map((stage) => STAGE_LABELS[stage])].join(' → ')}</b> at levels 1 / ${STAGE_ORDER.map((stage) => STAGE_LEVEL[stage]).slice(1).join(' / ')}. Every level pays 12 coins and raises joy and bond. Elders are bigger, get a sparkle aura, and carry the species' Titan name.</p>
+      <p><b>${['Egg', ...STAGE_ORDER.map((stage) => STAGE_LABELS[stage])].join(' → ')}</b> at levels 1 / ${STAGE_ORDER.map((stage) => STAGE_LEVEL[stage]).slice(1).join(' / ')}. Every level pays 12 coins and raises joy and bond. Older stages grow larger, get a sparkle aura, and carry the species' Titan name.</p>
       <h3>Fast XP</h3>
       <p>The best XP comes from matching the sprite's habitat, then playing games, feeding, and sleeping. Petting is small but repeatable. Gene powers, finishes, combos, generation, and habitat bonuses all multiply the final amount.</p>
       <h3>Diet evolution</h3>
@@ -817,7 +817,7 @@ const WIKI_GUIDES = [
       <h3>Monthly crate</h3>
       <p>The Today screen also has a monthly check-in crate, once per calendar month. It pays <b>100 coins plus 5 per check-in day that month</b> (up to 150), stocks three pantry foods, and unlocks one new monthly food with two extra of it.</p>
       <h3>Weekly & monthly</h3>
-      <p>Weekly check-ins unlock snack bundles, a wild sprite at 8, and a rare elder at 16. Monthly milestones and a yearly mythic elder reward longer consistency. Week, month, and year counters track streaks separately.</p>
+      <p>Weekly check-ins unlock snack bundles, a wild sprite at 8, and a rare elderly sprite at 16. Monthly milestones and a yearly mythic elderly sprite reward longer consistency. Week, month, and year counters track streaks separately.</p>
       <h3>Daily goals</h3>
       <p>Four rotating tasks each day pay coins and XP. Weekly and monthly goals add bigger targets. They draw from the same actions you already do: pet, feed, chat, bathe, nap, game, warm eggs, hatch, and merge.</p>`,
   },
@@ -1018,7 +1018,7 @@ function openWikiArticle(key) {
         <span><b>${esc(power.name)}</b><br><span>${esc(power.desc)}</span></span>
       </div>
       <h3>Growth</h3>
-      <p>Hatches from a <b>${esc(el.name)} Egg</b> and grows through <b>${['Egg', ...STAGE_ORDER.map((stage) => STAGE_LABELS[stage])].join(' → ')}</b> at levels 1 / ${STAGE_ORDER.map((stage) => STAGE_LEVEL[stage]).slice(1).join(' / ')}. The level cap is <b>${MAX_LEVEL.toLocaleString()}</b>, and the next stage is previewed on every owned sprite. Its elder Titan name is <b>${esc(TITAN_NAMES[key])}</b>.</p>
+      <p>Hatches from a <b>${esc(el.name)} Egg</b> and grows through <b>${['Egg', ...STAGE_ORDER.map((stage) => STAGE_LABELS[stage])].join(' → ')}</b> at levels 1 / ${STAGE_ORDER.map((stage) => STAGE_LEVEL[stage]).slice(1).join(' / ')}. The level cap is <b>${MAX_LEVEL.toLocaleString()}</b>, and the next stage is previewed on every owned sprite. Its Titan name is <b>${esc(TITAN_NAMES[key])}</b>.</p>
       <button class="btn btn-soft btn-block" data-wiki-action="bonds" style="margin-top:9px">💞 Bond Codex &amp; evolution path</button>
       <h3>Genetics & hybrids</h3>
       ${hybrids.length

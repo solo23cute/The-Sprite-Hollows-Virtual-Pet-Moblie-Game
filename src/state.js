@@ -167,7 +167,7 @@ function normalizeSprite(raw) {
     form: EVOLUTION_FORMS[s.form] ? s.form : null,
     special: COMBOS.some((c) => c.id === s.special) ? s.special : null,
     evolvedAt: Number(s.evolvedAt) || 0,
-    stage: ['egg', 'baby', 'juvenile', 'sprite', 'elder'].includes(s.stage) ? s.stage : 'baby',
+    stage: s.stage === 'egg' ? 'egg' : stageForLevel(level),
     level,
     xp: level >= MAX_LEVEL ? 0 : Math.max(0, Number(s.xp) || 0),
     bond: clamp(Number(s.bond) || 0),
@@ -497,6 +497,9 @@ function stageForLevel(level) {
   if (level >= 1000) return 'sensei';
   if (level >= 500) return 'ancient';
   if (level >= 100) return 'elder';
+  if (level >= 35) return 'highadult';
+  if (level >= 25) return 'midadult';
+  if (level >= 18) return 'youngadult';
   if (level >= 10) return 'sprite';
   if (level >= 5) return 'juvenile';
   return 'baby';
@@ -504,10 +507,10 @@ function stageForLevel(level) {
 function xpNeeded(level) {
   return 50 + level * 18;
 }
-const STAGE_ORDER = ['baby', 'juvenile', 'sprite', 'elder', 'ancient', 'sensei'];
-const STAGE_LABELS = { baby: 'Baby', juvenile: 'Juvenile', sprite: 'Sprite', elder: 'Elder', ancient: 'Ancient', sensei: 'Sensei' };
-const STAGE_LEVEL = { baby: 1, juvenile: 5, sprite: 10, elder: 100, ancient: 500, sensei: 1000 };
-const GROWTH_MILESTONES = [5, 10, 100, 250, 500, 1000];
+const STAGE_ORDER = ['baby', 'juvenile', 'sprite', 'youngadult', 'midadult', 'highadult', 'elder', 'ancient', 'sensei'];
+const STAGE_LABELS = { baby: 'Baby', juvenile: 'Juvenile', sprite: 'Teen', youngadult: 'Young Adult', midadult: 'Mid-Adult', highadult: 'High Adult', elder: 'Elderly', ancient: 'Ancient', sensei: 'Sensei' };
+const STAGE_LEVEL = { baby: 1, juvenile: 5, sprite: 10, youngadult: 18, midadult: 25, highadult: 35, elder: 100, ancient: 500, sensei: 1000 };
+const GROWTH_MILESTONES = [5, 10, 18, 25, 35, 100, 250, 500, 1000];
 function stageEvolutionInfo(s) {
   if (!s || s.stage === 'egg') return { egg: true, current: 'egg', next: null, nextLabel: 'Egg', required: 1, levelsLeft: 0, ready: false, final: false, progress: 0 };
   const index = STAGE_ORDER.indexOf(s.stage);
@@ -867,11 +870,14 @@ function currentCheckinSlot() {
 
 /* ---------------- wild sprite rewards ---------------- */
 function randomWildRaw({ rare = false, mythic = false } = {}) {
-  const stage = mythic ? 'elder' : pick(rare ? ['juvenile', 'sprite', 'elder'] : ['baby', 'juvenile', 'sprite', 'elder']);
+  const stage = mythic ? 'elder' : pick(rare ? ['juvenile', 'sprite', 'youngadult', 'midadult', 'highadult', 'elder'] : ['baby', 'juvenile', 'sprite', 'youngadult', 'midadult', 'highadult', 'elder']);
   const level = {
     baby: randInt(1, 4),
     juvenile: randInt(5, 9),
-    sprite: randInt(10, 19),
+    sprite: randInt(10, 17),
+    youngadult: randInt(18, 24),
+    midadult: randInt(25, 34),
+    highadult: randInt(35, 99),
     elder: randInt(100, 149),
   }[stage];
   const combo = rare && chance(0.55) ? pick(COMBOS) : null;
@@ -1398,7 +1404,7 @@ function rollEgg(tierId, opts = {}) {
 
 const TRAIL_STAGE_ORDER = STAGE_ORDER;
 const TRAIL_STAGE_LABELS = STAGE_LABELS;
-const TRAIL_STAGE_LEVEL = { juvenile: 5, sprite: 10, elder: 100, ancient: 500, sensei: 1000 };
+const TRAIL_STAGE_LEVEL = { juvenile: 5, sprite: 10, youngadult: 18, midadult: 25, highadult: 35, elder: 100, ancient: 500, sensei: 1000 };
 
 /* Every finished trail resolves one visible reward: a type-tier rise, a stage
    evolution, or a generous coin bonus. Higher trails roll the rare outcomes more often. */

@@ -1,7 +1,7 @@
 /* Evolution theatre: a transformation sequence that plays while a sprite evolves,
    then reveals the new age tier or permanent diet form. */
 
-const EVO_STAGE_ICONS = { baby: '🐣', juvenile: '🌱', sprite: '✨', elder: '🌳', ancient: '🗿', sensei: '🥋' };
+const EVO_STAGE_ICONS = { baby: '🐣', juvenile: '🌱', sprite: '🎒', youngadult: '🧑', midadult: '🧑‍💼', highadult: '🧑‍🚀', elder: '🌳', ancient: '🗿', sensei: '🥋' };
 
 const EVO_PHASES = [
   'Gathering pixie dust…',
@@ -17,10 +17,13 @@ function stageBonusLine(stage) {
   return {
     baby: 'A brand-new Hollow resident.',
     juvenile: 'Grown enough to explore the Hollow on their own.',
-    sprite: 'Old enough to show their true colours and patterns.',
-    elder: 'A steady elder: bigger art, calmer needs, and a wiser bond.',
+    sprite: 'A teenager: more independence, a sharper personality, and a bigger world.',
+    youngadult: 'A young adult: confident, curious, and ready to explore.',
+    midadult: 'A mid-adult: settled, steady, and deeply bonded.',
+    highadult: 'A high adult: experienced, calm, and full of stories.',
+    elder: 'An elderly sprite: bigger art, calmer needs, and a wise bond.',
     ancient: 'An ancient form: rarer sparkle and stronger presence.',
-    sensei: 'A Sensei — the final age tier at level 1,000. Retirement unlocks at Elder level 100.',
+    sensei: 'A Sensei — the final age tier at level 1,000. Retirement unlocks at Elderly level 100.',
   }[stage] || 'A new stage begins.';
 }
 
