@@ -1,4 +1,13 @@
-## 4.3.8 A Rewards screen: your numbers, the daily spin and every quest (current release)
+## 4.3.9 Players earn without signing in, and the owner reviews payouts with a passcode (current release)
+
+- **Nothing to sign up for.** A player who opens the Hollow is a guest: care pays coins and the Wallet takes a payout request with a PayPal email. No name, no password, no email, no invite code.
+- **The owner needs only a passcode.** Opening payout review the first time asks for a passcode the owner chooses on the spot; after that the same passcode unlocks the queue from any session. There is no owner account, and review runs on the guest session the game already made, so approving and paying payouts never requires signing in.
+- **Guarded, not open.** The passcode must be at least 8 characters, wrong guesses are counted and throttled after ten in ten minutes, a claimed Hollow cannot be seized by a second claim, and a player who has not unlocked it gets `403` on every admin route. The passcode is stored only as a PBKDF2 hash in the settings table.
+- **Tests:** a dedicated suite (`server/test-owner.mjs`) covers 17 behaviours — claim, unlock from a second session, wrong passcode, rate limiting, a blocked second claim, settings changes and admin access refused before unlocking — and the wallet suite checks the sheet asks for a passcode and never for a username or email.
+- Package: `versionName 4.3.9` / `versionCode 87`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.3.9-v87-release.apk`](SpriteHollow-4.3.9-v87-release.apk) — 780,748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `18792213a58f78deae99f0a93cf79acf8414db12c6af4f6bdd3771a273a01011`. Installs over 4.3.8 in place.
+
+## 4.3.8 A Rewards screen: your numbers, the daily spin and every quest (previous release)
 
 - **One place for the economy.** A star button in the top bar opens **Rewards**: coins, check-in streak, best sprite level and quest progress as four cards, then every quest the game already tracks — today, this week and this month — each with a real progress bar, its coin reward and a Claim button that pays through the same `Actions.claimTask` the rest of the game uses.
 - **A daily spin.** One spin a day pays 25–500 Hollow coins. It is decided on the device, stored in the saved game state so reloading or reinstalling cannot grant a second spin, and paid through the normal coin ledger.

@@ -241,18 +241,17 @@
     return sheet.close;
   }
 
-  function ownerForm(needsSetup) {
+  function ownerForm({ claiming = false } = {}) {
     return `
-      <p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">Players earn without signing in. This account is only for reviewing payouts.</p>
+      <p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">Players earn without signing in. ${claiming
+        ? 'Choose an owner passcode to review payouts — no account, no email.'
+        : 'Enter the owner passcode to review payouts.'}</p>
       <form data-owner-form>
-        <label class="tiny muted" style="display:block;margin:0 2px 5px">Name</label>
-        <input name="username" autocomplete="username" placeholder="your name" required maxlength="20" style="${fieldStyle}">
-        ${needsSetup ? `<label class="tiny muted" style="display:block;margin:10px 2px 5px">Pet name</label>
-        <input name="petName" placeholder="e.g. Mochi" required maxlength="24" style="${fieldStyle}">` : ''}
-        <label class="tiny muted" style="display:block;margin:10px 2px 5px">Password</label>
-        <input name="password" type="password" autocomplete="${needsSetup ? 'new-password' : 'current-password'}" placeholder="${needsSetup ? 'at least 8 characters' : 'your password'}" required minlength="8" style="${fieldStyle}">
-        <button class="btn btn-primary btn-block" type="submit" style="margin-top:12px">${needsSetup ? 'Create owner account' : 'Sign in'}</button>
-      </form>`;
+        <label class="tiny muted" style="display:block;margin:0 2px 5px">Owner passcode</label>
+        <input name="passcode" type="password" autocomplete="${claiming ? 'new-password' : 'current-password'}" placeholder="at least 8 characters" required minlength="8" style="${fieldStyle}">
+        <button class="btn btn-primary btn-block" type="submit" style="margin-top:12px">${claiming ? 'Claim this Hollow' : 'Unlock payout review'}</button>
+      </form>
+      <p class="tiny muted" style="margin:10px 2px 0;line-height:1.6">Keep it safe — this passcode is the only thing in front of other players' payouts.</p>`;
   }
 
   async function adminBody() {
@@ -291,12 +290,15 @@
       return sheet.close;
     }
     let needsSetup = false;
+    let ownerClaimed = true;
     try {
       const boot = await api('/bootstrap');
       needsSetup = !!boot.needsSetup;
-    } catch { /* offline: show the sign-in form anyway */ }
+      ownerClaimed = boot.ownerClaimed !== false;
+    } catch { /* offline: still offer the passcode form */ }
 
     const isOwner = !!S.me?.user?.isAdmin;
+    const claiming = !ownerClaimed && needsSetup;
     let body = '';
     if (isOwner) {
       try {
@@ -305,12 +307,12 @@
         body = `<p class="tiny muted">${esc(err.message)}</p>`;
       }
     } else {
-      body = ownerForm(needsSetup);
+      body = ownerForm({ claiming });
     }
 
     const sheet = openSheet({
-      title: isOwner ? 'Payout review' : 'Owner sign in',
-      sub: isOwner ? 'Approve, pay or reject PayPal payouts.' : 'Only the owner needs an account.',
+      title: isOwner ? 'Payout review' : (claiming ? 'Claim this Hollow' : 'Owner access'),
+      sub: isOwner ? 'Approve, pay or reject PayPal payouts.' : 'A passcode is all the owner needs.',
       body,
       onMount: (root, close) => {
         const form = root.querySelector('[data-owner-form]');
@@ -321,10 +323,9 @@
             const payload = Object.fromEntries(new FormData(form).entries());
             S.busy = true;
             try {
-              const res = await api(needsSetup ? '/auth/signup' : '/auth/login', { body: payload });
-              writeToken(res.token);
-              S.me = res;
-              syncPill();
+              const res = await api('/owner/login', { body: payload });
+              S.me = { ...(S.me || {}), user: res.owner || { ...(S.me?.user || {}), isAdmin: true } };
+              toast(res.claimed ? 'This Hollow is yours. Keep the passcode safe.' : 'Owner passcode accepted.', '🔑');
               close();
               openOwner();
             } catch (err) {

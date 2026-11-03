@@ -13,6 +13,10 @@
      request; only an admin transition can reject (refund) or mark paid. */
 
 export const SESSION_COOKIE = 'cp_session';
+
+/* Owner access without an account: one passcode guards payout review. */
+const OWNER_PASSCODE_KEY = 'owner_passcode';
+const OWNER_ATTEMPT_USERNAME = 'owner';
 /* The packaged Android build is a different origin (appassets.androidplatform.net),
    so it cannot rely on a SameSite cookie. Those clients send the session as a
    bearer token and are allowed through by origin. */
@@ -603,6 +607,47 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
   /* Leaving for good: sessions, pet, ledger and payout history go with the
      account. A real account confirms its password; a guest only ever had the
      session token it was handed. */
+  /* The owner never needs an account: the first person to claim sets a passcode
+     and everyone after that unlocks with it. Payout review then runs from an
+     ordinary guest session, so nothing has to be signed up for. */
+  async function ownerLogin(request) {
+    const user = await requireUser(request);
+    const body = await readJson(request);
+    const passcode = String(body.passcode || '').trim();
+    if (passcode.length < 8) fail(400, 'Owner passcodes need at least 8 characters.');
+
+    const attempts = await store.get(
+      'SELECT COUNT(*) AS n FROM login_attempts WHERE username = ? AND created_at > ?',
+      [OWNER_ATTEMPT_USERNAME, now() - 10 * 60 * 1000],
+    );
+    if (toInt(attempts?.n) >= 10) fail(429, 'Too many attempts. Try again in a few minutes.');
+
+    const settings = await readSettings();
+    const stored = settings[OWNER_PASSCODE_KEY] ? String(settings[OWNER_PASSCODE_KEY]) : '';
+    let claimed = false;
+
+    if (!stored) {
+      const admins = await store.get('SELECT COUNT(*) AS n FROM users WHERE is_admin = 1');
+      if (toInt(admins?.n) > 0) fail(409, 'This Hollow already has an owner.');
+      const hash = await hashPassword(passcode);
+      await store.batch([{
+        sql: 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+        params: [OWNER_PASSCODE_KEY, hash],
+      }]);
+      claimed = true;
+    } else if (!(await verifyPassword(passcode, stored))) {
+      await store.run('INSERT INTO login_attempts (username, created_at) VALUES (?, ?)', [OWNER_ATTEMPT_USERNAME, now()]);
+      fail(403, 'That passcode is not right.');
+    }
+
+    await store.run('UPDATE users SET is_admin = 1, last_seen_at = ? WHERE id = ?', [now(), user.id]);
+    return json({
+      ok: true,
+      claimed,
+      owner: { id: user.id, username: user.username, isAdmin: true },
+    }, claimed ? 201 : 200);
+  }
+
   async function deleteAccount(request) {
     const user = await requireUser(request);
     const body = await readJson(request);
@@ -1216,6 +1261,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     const settings = await readSettings();
     return json({
       needsSetup: toInt(admins?.n) === 0,
+      ownerClaimed: !!settings[OWNER_PASSCODE_KEY],
       requiresAdminCode: !!adminInviteCode,
       settings: publicSettings(settings),
       serverTime: now(),
@@ -1232,6 +1278,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     ['POST', /^\/api\/auth\/login$/, (req) => login(req)],
     ['POST', /^\/api\/auth\/logout$/, (req) => logout(req)],
     ['DELETE', /^\/api\/account$/, (req) => deleteAccount(req)],
+    ['POST', /^\/api\/owner\/login$/, (req) => ownerLogin(req)],
     ['GET', /^\/api\/me$/, async (req) => json(await mePayload(await requireUser(req)))],
     ['POST', /^\/api\/pet\/care$/, async (req) => care(req, await requireUser(req))],
     ['POST', /^\/api\/games\/start$/, async (req) => startGame(req, await requireUser(req))],
