@@ -503,23 +503,17 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     const existing = await store.get('SELECT id FROM users WHERE username = ?', [username]);
     if (existing) fail(409, 'That name is taken. Try another.');
 
-    // Guests are created without signing in, so "first account" means the first
-    // account that actually claims ownership.
+    // Nobody needs a code to play: guests are created without signing in at all,
+    // and an account is optional. The first account that claims ownership becomes
+    // the payout owner. An invite code is still honoured when one is supplied, so
+    // codes already handed out keep working, but it is never required.
     const adminRow = await store.get('SELECT COUNT(*) AS n FROM users WHERE is_admin = 1');
     const isFirstUser = toInt(adminRow?.n) === 0;
-    const usingAdminCode = adminInviteCode && inviteCode === adminInviteCode;
-    if (isFirstUser && adminInviteCode && !usingAdminCode) {
-      fail(403, 'The first account needs the admin invite code.');
-    }
-
+    const isAdmin = isFirstUser;
     let invite = null;
-    if (!isFirstUser && !usingAdminCode) {
-      if (!inviteCode) fail(403, 'Sprite Hollow Pet Earn is invite only. Ask the owner for a code.');
+    if (inviteCode) {
       invite = await store.get('SELECT * FROM invites WHERE code = ? AND used_by IS NULL', [inviteCode]);
-      if (!invite) fail(403, 'That invite code is not valid or was already used.');
     }
-
-    const isAdmin = (isFirstUser && !adminInviteCode) || !!usingAdminCode;
     const passwordHash = await hashPassword(password);
     const createdAt = now();
 

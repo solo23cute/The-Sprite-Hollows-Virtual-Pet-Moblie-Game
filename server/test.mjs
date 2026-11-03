@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* End-to-end check for the Sprite Hollow Pet Earn API: accounts, invites, care economy,
+/* End-to-end check for the Sprite Hollow Pet Earn API: open signup, care economy,
    verified minigames, withdrawals, admin review and anti-tamper guards.
    Run against a live dev server:
      node server/dev.mjs 3999 &
@@ -99,16 +99,16 @@ const code = invite.data.codes[0];
 const noInvite = await stranger.call('/api/auth/signup', {
   body: { username: `nope_${Date.now().toString(36).slice(-4)}`, password: 'hollowpass1', petName: 'Nobody' },
 });
-check('signup without invite is refused', noInvite.status === 403, `status=${noInvite.status}`);
+check('signup needs no invite code at all', noInvite.status === 201 && noInvite.data.user.isAdmin === false, `status=${noInvite.status}`);
 
 const playerName = `p_${Date.now().toString(36).slice(-5)}`;
 const playerSignup = await player.call('/api/auth/signup', {
   body: { username: playerName, password: 'hollowpass1', petName: 'Mochi', inviteCode: code },
 });
 check('invited player signs up', playerSignup.status === 201 && playerSignup.data.user.isAdmin === false, JSON.stringify(playerSignup.data));
-check('invite cannot be reused', (await stranger.call('/api/auth/signup', {
+check('a used invite code is ignored, not refused', (await stranger.call('/api/auth/signup', {
   body: { username: `re_${Date.now().toString(36).slice(-4)}`, password: 'hollowpass1', petName: 'Again', inviteCode: code },
-})).status === 403);
+})).status === 201);
 
 /* 3. care economy */
 const care1 = await player.call('/api/pet/care', { body: { action: 'feed' } });
@@ -226,10 +226,8 @@ check('unknown game rejected', (await player.call('/api/games/start', { body: { 
 
 /* 10. leaving for good */
 const quitter = client('quitter');
-const quitInvite = await owner.call('/api/admin/invites', { body: { count: 1, label: 'delete-test' } });
-check('the owner can issue an invite for the test', quitInvite.status === 201 && Array.isArray(quitInvite.data.codes) && !!quitInvite.data.codes[0]);
 const quitSignup = await quitter.call('/api/auth/signup', {
-  body: { username: 'todelete', password: 'hollowpass9', petName: 'Pip', inviteCode: quitInvite.data.codes[0] },
+  body: { username: 'todelete', password: 'hollowpass9', petName: 'Pip' },
 });
 check('a throwaway account can sign up', quitSignup.status === 201, `status=${quitSignup.status}`);
 check('deleting asks for the password', (await quitter.call('/api/account', { method: 'DELETE', body: {} })).status === 400);
