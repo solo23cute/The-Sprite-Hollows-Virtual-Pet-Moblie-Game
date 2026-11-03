@@ -141,7 +141,7 @@ check('a spin on a past day is ready again', boot({ spin: { date: '2026-10-01', 
 /* the real game files must actually expose what the sheet calls */
 const stateSource = readFileSync(resolve(ROOT, 'src/state.js'), 'utf8');
 check('state keeps the spin across reloads', /merged\.spin = parsed\.spin/.test(stateSource) && /spin: null,/.test(stateSource));
-check('state pays the spin through the coin ledger', /spinWheel\(\)[\s\S]{0,400}addCoinsRaw\(prize\)/.test(stateSource));
+check('state pays the spin through the coin ledger', /spinWheel\(\)[\s\S]{0,400}addCoinsRaw\(prize, 'spin'\)/.test(stateSource));
 check('the game loads the screen', readFileSync(resolve(ROOT, 'index.html'), 'utf8').includes('src/economy.js'));
 const mainSource = readFileSync(resolve(ROOT, 'src/main.js'), 'utf8');
 check('the top bar has the button and a handler', mainSource.includes('data-rewards') && /data-rewards\]'\)\?\.addEventListener/.test(mainSource));

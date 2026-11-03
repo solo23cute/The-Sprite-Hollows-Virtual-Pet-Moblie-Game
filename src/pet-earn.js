@@ -146,11 +146,42 @@
     try { localStorage.setItem(OUTBOX_KEY(), JSON.stringify(list.slice(-200))); } catch { /* full or private */ }
   }
   let outboxBusy = null;
+  let flushTimer = null;
+  let flushWaiters = [];
+  /* The server banks at most this much in one award. */
+  const MAX_AWARD = 500;
+
+  const newAwardId = () => {
+    try {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    } catch { /* older webviews */ }
+    return `r${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  };
+
+  /* A reward won before the session existed is saved under the guest bucket,
+     because the session id is not known yet. Adopting those entries means the
+     very first coins a new player earns still reach their wallet. */
+  function adoptGuestOutbox() {
+    if (!S.me?.user?.id) return;
+    try {
+      const guestKey = 'spritehollow.reward-outbox.guest';
+      const raw = localStorage.getItem(guestKey);
+      if (!raw) return;
+      localStorage.removeItem(guestKey);
+      const orphans = JSON.parse(raw);
+      if (!Array.isArray(orphans) || !orphans.length) return;
+      outboxWrite([...orphans, ...outboxRead()]);
+    } catch { /* private mode */ }
+  }
 
   async function flushOutbox() {
     if (outboxBusy) return outboxBusy;
     if (LOCAL_ONLY) return { award: 0, pending: 0 };
     outboxBusy = (async () => {
+      /* /earn needs a session, and the queue may hold wins from before there was
+         one, so the session is established here rather than trusted. */
+      try { await ensureSession(); } catch { return { award: 0, pending: outboxRead().length, offline: true }; }
+      adoptGuestOutbox();
       let list = outboxRead();
       let rewarded = 0;
       while (list.length) {
@@ -159,9 +190,21 @@
           const data = await api('/earn', {
             body: { amount: item.amount, source: item.source, key: item.id },
           });
-          rewarded += Number(data.award || 0);
+          const paid = Math.max(0, Number(data.award) || 0);
+          rewarded += paid;
           if (data.wallet) { S.me.wallet = data.wallet; syncPill(); }
-          list = list.slice(1);
+          if (data.duplicate) {
+            /* already banked under this id: it must not pay again, or block the queue */
+            list = list.slice(1);
+          } else if (paid <= 0) {
+            /* the day's room is gone; keep it and try again later */
+            break;
+          } else if (paid < item.amount) {
+            /* the daily room ran out part-way, so the rest keeps its place */
+            list = [{ ...item, amount: item.amount - paid }, ...list.slice(1)];
+          } else {
+            list = list.slice(1);
+          }
           outboxWrite(list);
         } catch (err) {
           // an award the server will never accept is dropped, anything else waits
@@ -178,13 +221,40 @@
     try { return await outboxBusy; } finally { outboxBusy = null; }
   }
 
+  /* Coins are folded together before they are sent — petting a sprite for one
+     coin should not become its own request — and a win bigger than the server's
+     per-award ceiling is split so no part of it is refused. */
   function enqueue(amount, source) {
     const n = Math.round(Number(amount) || 0);
     if (LOCAL_ONLY || n <= 0) return Promise.resolve({ award: 0, pending: 0 });
     const list = outboxRead();
-    list.push({ id: (crypto.randomUUID ? crypto.randomUUID() : `r${Date.now()}-${list.length}`), amount: n, source, at: Date.now() });
-    outboxWrite(list);
-    return flushOutbox();
+    const tail = list[list.length - 1];
+    if (tail && tail.source === source && Date.now() - (tail.at || 0) < 20000 && tail.amount + n <= MAX_AWARD) {
+      tail.amount += n;
+      tail.at = Date.now();
+      outboxWrite(list);
+    } else {
+      let left = n;
+      while (left > 0) {
+        const chunk = Math.min(MAX_AWARD, left);
+        list.push({ id: newAwardId(), amount: chunk, source, at: Date.now() });
+        left -= chunk;
+      }
+      outboxWrite(list);
+    }
+    /* Sending is debounced so a burst of small wins becomes one award, and the
+       caller still gets the result of the send it triggered. */
+    const settled = new Promise((resolve) => flushWaiters.push(resolve));
+    if (flushTimer) clearTimeout(flushTimer);
+    flushTimer = setTimeout(() => {
+      flushTimer = null;
+      const done = flushWaiters;
+      flushWaiters = [];
+      flushOutbox()
+        .then((result) => done.forEach((fn) => fn(result)))
+        .catch(() => done.forEach((fn) => fn({ award: 0, pending: list.length })));
+    }, 900);
+    return settled;
   }
 
   /* Hollow coins banked into the same wallet the pill shows. Fire-and-forget:

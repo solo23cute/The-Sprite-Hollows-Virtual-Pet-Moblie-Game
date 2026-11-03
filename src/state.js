@@ -1058,10 +1058,16 @@ function weeklyEventMissingCrates(event = activeWeeklyEvent()) {
 }
 
 /* ---------------- economy & growth (raw, no commit) ---------------- */
-function addCoinsRaw(n) {
+/* Every coin the Hollow pays out passes through here, so this is also where the
+   wallet in the database hears about it: one funnel, so a bath, a belly rub, a
+   walk gift, a Vault door and a minigame all bank the same way. Actions that
+   already pay the server through /api/pet/care pass 'local' so the same care is
+   never banked twice. */
+function addCoinsRaw(n, source = 'game') {
   state.coins = Math.max(0, state.coins + n);
   if (n > 0) state.stats.earned += n;
   else state.stats.spent += -n;
+  if (n > 0 && source !== 'local') reportEarn(n, source);
 }
 function addBondRaw(s, amount) {
   const mod = BREEDS[s.breed]?.bondMod || 1;
@@ -1632,7 +1638,8 @@ const Actions = {
     bump('pets');
     state.stats.pets += 1;
     const coins = 1 + (fx.petCoins || 0);
-    addCoinsRaw(coins);
+    /* petting is paid through /api/pet/care ('play') as well */
+    addCoinsRaw(coins, 'local');
     addXpRaw(s, 1);
     Sfx.purr();
     commit('pet', { spriteId: id, coins });
@@ -1777,7 +1784,8 @@ const Actions = {
     s.needs.joy = clamp(s.needs.joy + 5);
     addBondRaw(s, 2.5);
     addXpRaw(s, 8);
-    addCoinsRaw(3);
+    /* /api/pet/care already pays this bath into the wallet */
+    addCoinsRaw(3, 'local');
     bump('baths');
     state.stats.baths += 1;
     Sfx.bath();
@@ -1819,7 +1827,8 @@ const Actions = {
     addBondRaw(s, 6 * (fx.petBond || 1));
     addXpRaw(s, 6);
     const coins = 2 + (fx.petCoins || 0);
-    addCoinsRaw(coins);
+    /* the belly-rub button pays /api/pet/care ('play') alongside this */
+    addCoinsRaw(coins, 'local');
     bump('rubs');
     state.stats.rubs = (state.stats.rubs || 0) + 1;
     Sfx.purr();
@@ -1924,8 +1933,7 @@ const Actions = {
       addBondRaw(s, 4);
       addXpRaw(s, xp);
     }
-    addCoinsRaw(payout);
-    reportEarn(payout, 'game');
+    addCoinsRaw(payout, 'game');
     state.stats.games += 1;
     state.stats.bestGame = Math.max(state.stats.bestGame || 0, score);
     const careGift = grantCarePackageRaw(s);
@@ -2214,8 +2222,7 @@ const Actions = {
     const s = activeSprite();
     const bonusCoins = s ? (spriteEffects(s).taskCoins || 0) : 0;
     const totalReward = task.reward + bonusCoins;
-    addCoinsRaw(totalReward);
-    reportEarn(totalReward, 'quest');
+    addCoinsRaw(totalReward, 'quest');
     state.stats.tasksClaimed = (state.stats.tasksClaimed || 0) + 1;
     if (state.stats.tasksClaimed >= 10) unlockSecret('taskkeeper');
     if (s) addXpRaw(s, task.xp || 15);
@@ -2233,8 +2240,7 @@ const Actions = {
     }
     const prize = SPIN_PRIZES[Math.floor(Math.random() * SPIN_PRIZES.length)];
     state.spin = { date: today, reward: prize };
-    addCoinsRaw(prize);
-    reportEarn(prize, 'spin');
+    addCoinsRaw(prize, 'spin');
     bump('spins');
     Sfx.coin();
     toast(`The wheel landed on +${prize} coins`, '🎡');
@@ -2270,8 +2276,7 @@ const Actions = {
     const bonusCoins = s ? (spriteEffects(s).checkinCoins || 0) : 0;
     const baseReward = firstToday ? 20 + Math.min(streak, 7) * 5 : 8 + Math.min(streak, 7) * 2;
     const reward = Math.round(baseReward * (holiday?.coinMult || 1) * weeklyEventCoinMult()) + bonusCoins;
-    addCoinsRaw(reward);
-    reportEarn(reward, 'checkin');
+    addCoinsRaw(reward, 'checkin');
     if (s) addXpRaw(s, firstToday ? 12 : 5);
     const snackKey = chance(firstToday ? 0.45 : 0.3) ? pick(SNACK_KEYS) : null;
     if (snackKey) addSnackRaw(snackKey, 1);

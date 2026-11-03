@@ -113,6 +113,12 @@ function boot({ packaged = false, apiBase = '', crossOrigin = false, actions = f
     querySelector: (sel) => (sel === '[data-coins]' ? coinPill : null),
     querySelectorAll: () => [],
   };
+  const memory = new Map();
+  ctx.localStorage = {
+    getItem: (key) => (memory.has(key) ? memory.get(key) : null),
+    setItem: (key, value) => { memory.set(key, String(value)); },
+    removeItem: (key) => { memory.delete(key); },
+  };
   ctx.toast = (msg) => state.toasts.push(msg);
   if (actions) {
     ctx.Actions = {
@@ -273,7 +279,32 @@ try {
   const replayKey = dupe && dupe.award === 45 ? await banker.petEarn.earn(45, 'game', `replay-${Date.now()}`) : null;
   check('a second distinct win still pays', replayKey === null || replayKey.award > 0);
   const source = readFileSync(resolve(ROOT, 'src/state.js'), 'utf8');
-  check('the game reports games, quests, the spin and check-ins', ["reportEarn(payout, 'game')", "reportEarn(totalReward, 'quest')", "reportEarn(prize, 'spin')", "reportEarn(reward, 'checkin')"].every((needle) => source.includes(needle)));
+  check('every coin gain in the game reports to the wallet funnel', source.includes("function addCoinsRaw(n, source = 'game')") && source.includes("if (n > 0 && source !== 'local') reportEarn(n, source);"));
+  check('the four named sources keep their labels', ["addCoinsRaw(payout, 'game')", "addCoinsRaw(totalReward, 'quest')", "addCoinsRaw(prize, 'spin')", "addCoinsRaw(reward, 'checkin')"].every((needle) => source.includes(needle)));
+  check('nothing reports twice alongside the funnel', ![ "reportEarn(payout, 'game')", "reportEarn(totalReward, 'quest')", "reportEarn(prize, 'spin')", "reportEarn(reward, 'checkin')"].some((needle) => source.includes(needle)));
+  check('care already paid by the server is not banked twice', source.includes("addCoinsRaw(3, 'local')") && source.includes("addCoinsRaw(coins, 'local')"));
+  check('a Vault door, a walk gift and a hatch are covered by the same funnel', ['addCoinsRaw(door.coins)', 'addCoinsRaw(giftCoins)', 'addCoinsRaw(10)'].every((needle) => source.includes(needle)));
+
+  /* small wins around the Hollow are folded into one award and still land */
+  const beforeFlush = (await banker.petEarn.wallet()).coins;
+  const settled = await Promise.all([
+    banker.petEarn.enqueue(3, 'game'),
+    banker.petEarn.enqueue(4, 'game'),
+    banker.petEarn.enqueue(5, 'game'),
+  ]);
+  const afterFlush = (await banker.petEarn.wallet()).coins;
+  check('coins won around the Hollow bank without a request per coin', afterFlush === beforeFlush + 12, `${beforeFlush} -> ${afterFlush}`);
+  check('the queue drains once the coins land', settled.every((r) => r.pending === 0), JSON.stringify(settled));
+  const flushHistory = await (await banker.ctx.fetch('/api/wallet')).json();
+  check('the folded win is one ledger line, not three', flushHistory.ledger[0]?.amount === 12 && flushHistory.ledger[0]?.kind === 'earn', JSON.stringify(flushHistory.ledger[0]));
+
+  /* a win saved before the session existed still reaches the wallet */
+  const baseline = (await boot({ fresh: true }).petEarn.wallet()).coins;
+  const orphan = boot({ fresh: true });
+  orphan.ctx.localStorage.setItem('spritehollow.reward-outbox.guest', JSON.stringify([{ id: `orphan-${Date.now()}`, amount: 7, source: 'game', at: Date.now() }]));
+  await orphan.petEarn.enqueue(1, 'game');
+  const orphanCoins = (await orphan.petEarn.wallet()).coins;
+  check('a reward saved before the session existed is adopted and paid', orphanCoins === baseline + 8, `${baseline} -> ${orphanCoins}`);
 
   /* ---------- 3b. care in the Hollow pays the wallet ---------- */
   console.log('\ncare in the Hollow (game actions bridged to the wallet)');

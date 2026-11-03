@@ -1,4 +1,14 @@
-## 4.7.3 The tour explains where the money goes (current release)
+## 4.8.0 Every coin won in the Hollow reaches the wallet (current release)
+
+- **One funnel for every payout.** `addCoinsRaw` is the single place the game adds coins, so the wallet now hears about all of it: baths, belly rubs, petting, chats, trail bonuses, walk and sports gifts, arcade bonuses, weekly events, the monthly crate, weekend and holiday gifts, Vault doors, house bonds, hatches, save codes, voyages, rebirth and evolution payouts. Before this only minigames, quests, the spin and check-ins reported, so most coins a player won never reached the balance they can cash out.
+- **No double banking.** Care the server already pays through `POST /api/pet/care` passes `local`, so a bath or a belly rub is not counted twice.
+- **Small wins are folded, not spammed.** Wins from the same source within twenty seconds merge into one award and sending is debounced, so petting a sprite for one coin is not its own request. A win above the server's 500-coin per-award ceiling is split, so a rebirth's 500+ coins are paid in full instead of being refused.
+- **Nothing gets stuck.** When the daily room runs out part-way, the remainder keeps its place for tomorrow; a duplicate id is dropped rather than blocking the queue; and a reward saved before the session existed is adopted from the guest bucket instead of being stranded under a key nothing reads.
+- **Tests:** the wallet suite is 72 checks (was 64) and now runs the queue against a real server — three small wins fold into one twelve-coin ledger line, a reward saved before the session is adopted and paid, and no source reports twice. API 88, payout 27, owner 20, rewards 28, worker schema 9, tour 22.
+- Package: `versionName 4.8.0` / `versionCode 97`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.8.0-v97-release.apk`](SpriteHollow-4.8.0-v97-release.apk) — 784844 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `d01133e486a350cd239f1643f25e6283c07c39b3518590582d23fb3ac2fb5088`. Installs over 4.7.3 in place.
+
+## 4.7.3 The tour explains where the money goes (previous release)
 
 - **The cash-out step was rewritten for the payout system that actually ships.** It now says any amount can be cashed out, that PayPal only pays whole cents so the request rounds down and the leftover coins stay in your balance, and that the server sends the payout itself — no approval step and no owner in the way.
 - **It explains the guarantees:** the PayPal reference is stored on the request so a retried send cannot pay twice, coins are held the moment you ask and come straight back if PayPal refuses, and the ceiling is a rolling seven-day allowance ($5 by default) with anything above it waiting for review.
