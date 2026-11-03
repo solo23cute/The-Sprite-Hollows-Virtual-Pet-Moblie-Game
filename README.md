@@ -1,4 +1,11 @@
-## 4.7.0 Cashing out pays itself, straight to PayPal (current release)
+## 4.7.1 Cash out any amount, down to a single cent (current release)
+
+- **No minimum to reach.** The 100-coin floor is gone; a player can cash out whatever they have, so long as it is worth at least one US cent. The Wallet no longer disables the button or scolds about a minimum.
+- **Nothing is shortchanged.** PayPal pays whole cents, so the coins past the last full cent are simply not charged — ask for 115 coins at 1,000/$1 and the request pays 11 cents and leaves 5 coins in the balance.
+- Package: `versionName 4.7.1` / `versionCode 94`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.7.1-v94-release.apk`](SpriteHollow-4.7.1-v94-release.apk) — 780748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `b72ff8b4050466c8b44ddef3a28fdb80a666d4616cdf809b007224f910d59d60`. Installs over 4.7.0 in place.
+
+## 4.7.0 Cashing out pays itself, straight to PayPal (previous release)
 
 - **The owner is out of the payout path.** A player taps Request payout, the server sends a PayPal Payouts batch to their email, and the request comes back `paid` with the PayPal batch id stored on it. No owner tool, no approval step.
 - **It needs your PayPal keys, not your time.** The worker signs in with `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` (set them in Sites → Secrets, `PAYPAL_MODE=sandbox` first if you want to rehearse). Until they are set the game says cash-outs are not instant and queues requests for review, rather than pretending.

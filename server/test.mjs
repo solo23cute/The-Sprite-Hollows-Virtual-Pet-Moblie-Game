@@ -207,8 +207,13 @@ const summary = (await player.call('/api/wallet')).data.wallet;
 check('the wallet reports available, reserved and paid', typeof summary.available === 'number' && typeof summary.reserved === 'number' && typeof summary.paid === 'number' && summary.available === summary.coins, JSON.stringify(summary).slice(0, 160));
 check('a reviewed payout counts as reserved', summary.reserved === 0 || summary.openRequests > 0, `reserved=${summary.reserved}`);
 const odd = await player.call('/api/wallet/withdraw', { body: { coins: 105, paypalEmail: 'player@example.com' } });
-check('an amount that is not whole US cents is refused', odd.status === 400 && /whole US cents/.test(JSON.stringify(odd.data)), JSON.stringify(odd.data).slice(0, 140));
-check('the refused amount did not hold coins', (await player.call('/api/wallet')).data.wallet.coins === summary.coins);
+check('a fraction of a cent is rounded down, not refused', odd.status === 201 && odd.data.withdrawal.coins === 100 && odd.data.withdrawal.usd_cents === 10, JSON.stringify(odd.data.withdrawal || {}).slice(0, 140));
+check('the coins past the whole cent stay in the balance', (await player.call('/api/wallet')).data.wallet.coins === summary.coins - 100, `summary=${summary.coins}`);
+await owner.call(`/api/admin/withdrawals/${odd.data.withdrawalId}/decide`, { body: { action: 'reject', note: 'Rounding test refund' } });
+check('the rounded request returns its coins', (await player.call('/api/wallet')).data.wallet.coins === balanceNow, `expected=${balanceNow}`);
+/* the rejected request used one of the day's two slots, so lift the cap before
+   asking again, which is what this pair of checks is about */
+await owner.call('/api/admin/settings', { method: 'PUT', body: { dailyWithdrawCap: 5 } });
 const again = await player.call('/api/wallet/withdraw', { body: { coins: 100, paypalEmail: 'player@example.com' } });
 check('second withdrawal allowed after the first closed', again.status === 201);
 check('rejecting without a reason is refused', (await owner.call(`/api/admin/withdrawals/${again.data.withdrawalId}/decide`, { body: { action: 'reject' } })).status === 400);

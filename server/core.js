@@ -27,7 +27,8 @@ export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
 
 export const DEFAULT_SETTINGS = {
   coins_per_dollar: '1000',
-  min_withdraw_coins: '5000',
+  /* Any amount is cashable, down to one cent's worth of coins. */
+  min_withdraw_coins: '1',
   daily_care_coin_cap: '250',
   daily_game_coin_cap: '600',
   daily_care_cap: '40',
@@ -325,7 +326,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
   function publicSettings(map) {
     return {
       coinsPerDollar: positive(map.coins_per_dollar, 1000),
-      minWithdrawCoins: positive(map.min_withdraw_coins, 5000),
+      minWithdrawCoins: positive(map.min_withdraw_coins, 1),
       dailyCareCoinCap: nonNegative(map.daily_care_coin_cap, 250),
       dailyGameCoinCap: nonNegative(map.daily_game_coin_cap, 600),
       dailyCareCap: nonNegative(map.daily_care_cap, 40),
@@ -1006,8 +1007,8 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(paypalEmail) || paypalEmail.length > 120) {
       fail(400, 'Enter the PayPal email that should receive the money.');
     }
-    if (coins < pub.minWithdrawCoins) {
-      fail(400, `The minimum withdrawal is ${pub.minWithdrawCoins.toLocaleString()} coins.`);
+    if (!Number.isFinite(coins) || coins < Math.max(1, pub.minWithdrawCoins)) {
+      fail(400, 'Enter how many coins to cash out.');
     }
     if (coins > 100000000) fail(400, 'That amount is too large.');
 
@@ -1023,12 +1024,12 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       fail(429, 'That is the most withdrawal requests for today.');
     }
 
-    const exactCents = (coins * 100) / Math.max(1, pub.coinsPerDollar);
-    if (exactCents < 1) fail(400, 'That converts to less than one cent.');
-    if (!Number.isSafeInteger(exactCents)) {
-      fail(400, 'That coin amount does not convert to whole US cents. Choose a rounder amount.');
-    }
-    const usdCents = exactCents;
+    /* Any amount is payable. The payout itself is whole US cents, so coins past
+       the last full cent are not charged — they stay in the balance. */
+    const rate = Math.max(1, pub.coinsPerDollar);
+    const usdCents = Math.floor((coins * 100) / rate);
+    if (usdCents < 1) fail(400, 'That is less than one cent — earn a few more coins first.');
+    const payable = Math.min(coins, Math.ceil((usdCents * rate) / 100));
 
     const id = crypto.randomUUID();
     const results = await store.batch([
@@ -1036,13 +1037,13 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
         sql: `INSERT INTO withdrawals (id, user_id, coins, usd_cents, paypal_email, status, created_at)
               SELECT ?, ?, ?, ?, ?, 'pending', ?
                WHERE (SELECT COALESCE(SUM(amount), 0) FROM ledger WHERE user_id = ?) >= ?`,
-        params: [id, user.id, coins, usdCents, paypalEmail, stamp, user.id, coins],
+        params: [id, user.id, payable, usdCents, paypalEmail, stamp, user.id, payable],
       },
       {
         sql: `INSERT INTO ledger (user_id, kind, amount, ref, source, note, created_at)
               SELECT ?, 'withdraw_hold', ?, ?, 'withdrawal', 'Withdrawal request', ?
                WHERE EXISTS (SELECT 1 FROM withdrawals WHERE id = ?)`,
-        params: [user.id, -coins, id, stamp, id],
+        params: [user.id, -payable, id, stamp, id],
       },
       {
         sql: 'UPDATE daily SET withdraw_count = withdraw_count + 1 WHERE user_id = ? AND day = ?',
@@ -1053,7 +1054,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       fail(400, 'Not enough coins for that withdrawal.');
     }
 
-    const sent = await attemptAutoPayout({ id, user, coins, usdCents, paypalEmail, settings });
+    const sent = await attemptAutoPayout({ id, user, coins: payable, usdCents, paypalEmail, settings });
     if (sent.status === 'rejected') fail(400, sent.message);
 
     const withdrawal = await store.get('SELECT * FROM withdrawals WHERE id = ?', [id]);
@@ -1329,7 +1330,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       updates.push({ key, value: String(Math.round(n)) });
     };
     put('coins_per_dollar', body.coinsPerDollar, 50, 100000);
-    put('min_withdraw_coins', body.minWithdrawCoins, 100, 10000000);
+    put('min_withdraw_coins', body.minWithdrawCoins, 1, 10000000);
     put('daily_care_coin_cap', body.dailyCareCoinCap, 0, 100000);
     put('daily_game_coin_cap', body.dailyGameCoinCap, 0, 100000);
     put('daily_care_cap', body.dailyCareCap, 1, 500);

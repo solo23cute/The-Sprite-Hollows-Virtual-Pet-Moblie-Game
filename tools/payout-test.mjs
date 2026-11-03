@@ -123,8 +123,8 @@ try {
   await owner.call('/api/guest', { method: 'POST' });
   const claim = await owner.call('/api/owner/claim', { method: 'POST' });
   check('a session can take the owner seat for settings', claim.status === 201, `status=${claim.status}`);
-  const tuned = await owner.call('/api/admin/settings', { method: 'PUT', body: { minWithdrawCoins: 100, payoutDailyBudgetCents: 50000 } });
-  check('the payout minimum and budget can be set', tuned.status === 200 && tuned.data?.settings?.minWithdrawCoins === 100, JSON.stringify(tuned.data).slice(0, 140));
+  const tuned = await owner.call('/api/admin/settings', { method: 'PUT', body: { minWithdrawCoins: 1, payoutDailyBudgetCents: 50000 } });
+  check('any amount is allowed, and the budget is set', tuned.status === 200 && tuned.data?.settings?.minWithdrawCoins === 1, JSON.stringify(tuned.data).slice(0, 140));
 
   const player = client();
   await player.call('/api/guest', { method: 'POST' });
@@ -144,6 +144,14 @@ try {
   check('the coins left the balance', cashout.data?.wallet?.coins === coinsBefore - 200, `${coinsBefore} -> ${cashout.data?.wallet?.coins}`);
   check('the wallet counts it as paid', cashout.data?.wallet?.paid === 0.2, String(cashout.data?.wallet?.paid));
 
+  const tiny = client();
+  await tiny.call('/api/guest', { method: 'POST' });
+  const tinyCash = await tiny.call('/api/wallet/withdraw', { body: { coins: 11, paypalEmail: 'tiny@example.com' } });
+  check('any amount cashes out — eleven coins is one cent', tinyCash.status === 201 && tinyCash.data?.withdrawal?.usd_cents === 1 && tinyCash.data?.withdrawal?.status === 'paid', `status=${tinyCash.status} ${JSON.stringify(tinyCash.data?.withdrawal || {}).slice(0, 120)}`);
+  const rounded = await tiny.call('/api/wallet/withdraw', { body: { coins: 115, paypalEmail: 'tiny@example.com' } });
+  check('coins past the last whole cent stay in the balance', rounded.data?.withdrawal?.coins === 110 && rounded.data?.withdrawal?.usd_cents === 11, JSON.stringify(rounded.data?.withdrawal || {}).slice(0, 140));
+  const batchesAfterInstant = batches.length;
+
   const history = await player.call('/api/wallet');
   check('the player history shows it paid, with no owner involved', history.data?.withdrawals?.[0]?.status === 'paid' && history.data?.withdrawals?.[0]?.paid_at > 0);
 
@@ -156,7 +164,7 @@ try {
   await second.call('/api/earn', { body: { amount: 300, source: 'game', key: unique('earn') } });
   const capped = await second.call('/api/wallet/withdraw', { body: { coins: 200, paypalEmail: 'second@example.com' } });
   check('over budget, the payout waits instead of sending', capped.status === 202 && capped.data?.withdrawal?.status === 'pending', `status=${capped.status}`);
-  check('no extra batch went out', batches.length === 1, `batches=${batches.length}`);
+  check('no extra batch went out', batches.length === batchesAfterInstant, `batches=${batches.length}, expected ${batchesAfterInstant}`);
 
   console.log('\nPayPal refusals are handled honestly\n');
   await owner.call('/api/admin/settings', { method: 'PUT', body: { payoutDailyBudgetCents: 100000 } });
@@ -184,6 +192,7 @@ try {
   await plainOwner.call('/api/guest', { method: 'POST' });
   await plainOwner.call('/api/owner/claim', { method: 'POST' });
   await plainOwner.call('/api/admin/settings', { method: 'PUT', body: { minWithdrawCoins: 100 } });
+  const batchesBeforePlain = batches.length;
   const plain = client(PLAIN);
   await plain.call('/api/guest', { method: 'POST' });
   await plain.call('/api/earn', { body: { amount: 300, source: 'game', key: unique('earn') } });
@@ -191,7 +200,7 @@ try {
   check('the wallet says payouts are not instant', plainWallet.data?.wallet?.autoPayout === false);
   const plainCash = await plain.call('/api/wallet/withdraw', { body: { coins: 200, paypalEmail: 'plain@example.com' } });
   check('a request is still taken, for review', plainCash.status === 201 && plainCash.data?.withdrawal?.status === 'pending', `status=${plainCash.status}`);
-  check('no payout batch was ever sent from the server without keys', batches.length === 1, `batches=${batches.length}`);
+  check('no payout batch was ever sent from the server without keys', batches.length === batchesBeforePlain, `batches=${batches.length}, before ${batchesBeforePlain}`);
 } catch (err) {
   failures.push(String(err && err.message));
   console.log(`\nFAIL  ${err && err.message}`);
