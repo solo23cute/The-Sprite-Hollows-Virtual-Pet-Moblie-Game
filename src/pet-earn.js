@@ -365,6 +365,64 @@
     return sheet.close;
   }
 
+  /* --- Hollow care pays the wallet ---------------------------------------
+     The game keeps the sprite happy in the local save; this bridge pays server
+     coins for the same care, so the cash pill and the withdrawable balance are
+     the same number. Each game action is wrapped once and never blocked. */
+  const CARE_BRIDGE = {
+    feed: 'feed', feedStock: 'feed', feedSnack: 'feed',
+    bathe: 'clean',
+    pet: 'play', rubBelly: 'play', playCatch: 'play', nap: 'play', tuckIn: 'play',
+  };
+  const BRIDGE_VERB = { feed: 'feeding', clean: 'bathing', play: 'playing' };
+  let bridgeTries = 0;
+
+  const say = (text, icon) => {
+    try { if (typeof toast === 'function') toast(text, icon); } catch { /* no toasts here */ }
+  };
+
+  function payForCare(action) {
+    care(action).then((res) => {
+      if (!res) return;
+      if (res.award > 0) say(`+${res.award} coins for ${BRIDGE_VERB[action] || 'caring'}`, '🪙');
+      else if (res.error && /cap|limit|wait|try again/i.test(res.error)) say(res.error, '🪙');
+    }).catch(() => { /* offline is handled by the wallet sheet */ });
+  }
+
+  function bridgeActions() {
+    let actions = null;
+    try { actions = typeof Actions !== 'undefined' ? Actions : null; } catch { actions = null; }
+    if (!actions) return false;
+    if (actions.__petEarnBridge) return true;
+    for (const [name, mapped] of Object.entries(CARE_BRIDGE)) {
+      const original = actions[name];
+      if (typeof original !== 'function') continue;
+      actions[name] = function bridgedCare(...args) {
+        const result = original.apply(this, args);
+        if (!result || result.ok !== false) payForCare(mapped);
+        return result;
+      };
+    }
+    actions.__petEarnBridge = true;
+    return true;
+  }
+
+  if (!bridgeActions() && typeof document !== 'undefined' && document.addEventListener) {
+    const retry = () => { if (!bridgeActions()) { bridgeTries += 1; if (bridgeTries < 20) setTimeout(retry, 250); } };
+    document.addEventListener('DOMContentLoaded', retry, { once: true });
+    setTimeout(retry, 0);
+  }
+
+  /* The cash pill opens the Wallet on the web and in the app. */
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('click', (event) => {
+      const pill = event.target && event.target.closest ? event.target.closest('[data-coin-pill]') : null;
+      if (!pill) return;
+      event.preventDefault();
+      openWallet();
+    });
+  }
+
   window.PetEarn = {
     available: !LOCAL_ONLY,
     offline: LOCAL_ONLY,
@@ -374,6 +432,7 @@
     openWallet,
     openOwner,
     sync: () => { syncPill(); markReady(); },
+    bridge: bridgeActions,
     _state: S,
   };
 })();

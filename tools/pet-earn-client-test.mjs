@@ -96,8 +96,8 @@ function fakeRoot({ coins = '', email = '' } = {}) {
 }
 
 /* Boots the real client module the way the game would, in a given mode. */
-function boot({ packaged = false, apiBase = '', crossOrigin = false } = {}) {
-  const state = { toasts: [], sheets: [], calls: 0, urls: [], armSheet: true, sheetClosed: false, root: null };
+function boot({ packaged = false, apiBase = '', crossOrigin = false, actions = false, fresh = false } = {}) {
+  const state = { toasts: [], sheets: [], calls: 0, urls: [], armSheet: true, sheetClosed: false, root: null, gameCalls: [], domHandlers: [] };
   const coinPill = { textContent: '' };
   const ctx = {
     console, setTimeout, clearTimeout, Promise, JSON, Math, Number, String, Boolean,
@@ -114,13 +114,21 @@ function boot({ packaged = false, apiBase = '', crossOrigin = false } = {}) {
     querySelectorAll: () => [],
   };
   ctx.toast = (msg) => state.toasts.push(msg);
+  if (actions) {
+    ctx.Actions = {
+      feed(...args) { state.gameCalls.push(['feed', args]); return { ok: true, xp: 4 }; },
+      bathe() { state.gameCalls.push(['bathe']); return { ok: true }; },
+      pet() { state.gameCalls.push(['pet']); return { ok: false }; },
+    };
+    ctx.document.addEventListener = (type, fn) => { state.domHandlers.push([type, fn]); };
+  }
   ctx.openSheet = (opts) => {
     state.sheets.push(opts);
     const close = () => { state.sheetClosed = true; };
     if (state.armSheet && opts.onMount) opts.onMount(state.root.root, close);
     return { close };
   };
-  const requestJar = crossOrigin ? jar() : guestJar;
+  const requestJar = (crossOrigin || fresh) ? jar() : guestJar;
   ctx.fetch = (path, opts = {}) => {
     state.calls++;
     state.urls.push(String(path));
@@ -239,6 +247,34 @@ try {
   check('the Wallet explains the situation instead of erroring', typeof bareSheet === 'function' && /online Hollow/.test(bareBody));
   check('it offers no payout form that could only fail', !bareBody.includes('name="coins"'));
   check('opening the wallet still makes no request', packedBare.state.calls === 0, `calls=${packedBare.state.calls}`);
+
+  /* ---------- 3b. care in the Hollow pays the wallet ---------- */
+  console.log('\ncare in the Hollow (game actions bridged to the wallet)');
+  const bridged = boot({ actions: true, fresh: true });
+  check('the game care actions are bridged', bridged.petEarn.bridge() === true);
+  const beforeBridge = (await bridged.petEarn.wallet()).coins;
+  const gameResult = bridged.ctx.Actions.feed('sprite_1', 'berry');
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  const afterBridge = (await bridged.petEarn.wallet()).coins;
+  check('the game action still returns its own result', gameResult && gameResult.ok === true && gameResult.xp === 4);
+  check('feeding a sprite in the Hollow pays the wallet', afterBridge > beforeBridge, `${beforeBridge} -> ${afterBridge}`);
+  check('the player is told what the care earned', bridged.state.toasts.some((t) => /coins/.test(t)), JSON.stringify(bridged.state.toasts));
+
+  const refusedBefore = (await bridged.petEarn.wallet()).coins;
+  bridged.ctx.Actions.pet();
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  const refusedAfter = (await bridged.petEarn.wallet()).coins;
+  check('a care action the game refuses pays nothing', refusedAfter === refusedBefore, `${refusedBefore} -> ${refusedAfter}`);
+
+  bridged.state.root = fakeRoot();
+  const clickHandler = bridged.state.domHandlers.find(([type]) => type === 'click')?.[1];
+  check('the cash pill has a click handler', typeof clickHandler === 'function');
+  let pillOpened = 0;
+  const realOpenSheet = bridged.ctx.openSheet;
+  bridged.ctx.openSheet = (opts) => { pillOpened += 1; return realOpenSheet(opts); };
+  clickHandler({ preventDefault() {}, target: { closest: (sel) => (sel === '[data-coin-pill]' ? { dataset: {} } : null) } });
+  await new Promise((resolve) => setTimeout(resolve, 700));
+  check('tapping the cash pill opens the Wallet', pillOpened > 0, `sheets=${bridged.state.sheets.length}`);
 
   /* ---------- 4. packaged app talking to a deployed server ---------- */
   console.log('\npackaged build over the network (cross-origin, bearer token)');

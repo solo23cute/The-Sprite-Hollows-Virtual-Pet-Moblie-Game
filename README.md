@@ -1,4 +1,14 @@
-## 4.3.6 The coin server is live, and the APK earns and cashes out on the phone (current release)
+## 4.3.7 Care in the Hollow pays coins, and the cash pill opens the Wallet (current release)
+
+- **The earn loop is connected.** Feeding, bathing, petting, belly rubs, catch, naps and tuck-ins now pay server coins as they happen: the game action still updates the sprite in the local save, and the same care is reported to the server, which decides the award. A toast shows what each act earned, and the daily cap still applies.
+- **The cash pill is a button.** Tapping the coin pill in the top bar opens the Wallet sheet — balance, payout form and payout history. Before this the pill only showed a number and the cash-out could not be reached from the game at all.
+- **Why it looked dead:** the wallet module was loaded and read a balance, but nothing in the game ever called it, so care earned nothing on the site or the phone.
+- **Tests cover the bridge:** new checks drive a real game action through it against a real server (the action's own result survives, coins arrive, the player is told, a refused action pays nothing) and tap the pill through its DOM handler. 54 checks in the wallet suite, all passing, plus 17 tour checks and the game-logic harness.
+- Package: `versionName 4.3.7` / `versionCode 85`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.3.7-v85-release.apk`](SpriteHollow-4.3.7-v85-release.apk) — 776,581 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `3cca6fbb9f33f429267f76966ead08cb138c1f82c654421f39ba3b23e80410ef`. Installs over 4.3.6 in place.
+- The web build is the same code at **https://site-1e7fbfddc3fe4a85b8c0cdfc33949d55.freebuff.page**, so care there earns the same wallet.
+
+## 4.3.6 The coin server is live, and the APK earns and cashes out on the phone (previous release)
 
 - **The server is deployed.** The game and its API run at **https://site-1e7fbfddc3fe4a85b8c0cdfc33949d55.freebuff.page** — open it in a browser and the whole Hollow works, including earning coins and requesting a PayPal payout. Storage is Cloudflare D1, whose tables are created by the first API request, so a fresh deployment needs no manual migration step.
 - **The APK points at it.** `API_BASE` is baked into this build, so the installed game talks to that server instead of failing silently: care pays coins, the coin pill shows the server balance, and the Wallet can request a payout. The "coins need the online Hollow" sheet now only appears when the phone is offline.
