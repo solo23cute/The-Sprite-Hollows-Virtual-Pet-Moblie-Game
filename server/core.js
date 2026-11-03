@@ -13,6 +13,9 @@
      request; only an admin transition can reject (refund) or mark paid. */
 
 export const SESSION_COOKIE = 'cp_session';
+/* The packaged Android build is a different origin (appassets.androidplatform.net),
+   so it cannot rely on a SameSite cookie. Those clients send the session as a
+   bearer token and are allowed through by origin. */
 export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
 
 export const DEFAULT_SETTINGS = {
@@ -90,7 +93,10 @@ async function sha256(text) {
   return hex(await crypto.subtle.digest('SHA-256', encoder.encode(text)));
 }
 
-const PBKDF2_ITERATIONS = 150000;
+/* Cloudflare Workers rejects PBKDF2 above 100,000 iterations, so guest and
+   owner accounts hash at the platform maximum. Stored hashes carry their own
+   iteration count, so older 150,000 hashes keep verifying. */
+const PBKDF2_ITERATIONS = 100000;
 async function hashPassword(password) {
   const salt = new Uint8Array(16);
   crypto.getRandomValues(salt);
@@ -252,6 +258,29 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
   const now = () => clock();
   const isSecure = (request) => new URL(request.url).protocol === 'https:';
   const adminInviteCode = String(env.ADMIN_INVITE_CODE || '').trim();
+  const allowedOrigins = String(env.APP_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (!allowedOrigins.includes('https://appassets.androidplatform.net')) {
+    allowedOrigins.push('https://appassets.androidplatform.net');
+  }
+  const corsOrigin = (request) => {
+    const origin = request.headers.get('origin');
+    return origin && allowedOrigins.includes(origin) ? origin : null;
+  };
+  const corsHeaders = (request) => {
+    const origin = corsOrigin(request);
+    if (!origin) return {};
+    return {
+      'access-control-allow-origin': origin,
+      'access-control-allow-credentials': 'true',
+      'access-control-allow-methods': 'GET, POST, PUT, OPTIONS',
+      'access-control-allow-headers': 'content-type, authorization',
+      'access-control-max-age': '86400',
+      vary: 'Origin',
+    };
+  };
 
   async function readSettings() {
     const rows = await store.all('SELECT key, value FROM settings');
@@ -300,6 +329,12 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     return store.get('SELECT * FROM daily WHERE user_id = ? AND day = ?', [userId, day]);
   }
 
+  function readToken(request) {
+    const header = request.headers.get('authorization') || '';
+    if (/^bearer\s+/i.test(header)) return header.replace(/^bearer\s+/i, '').trim();
+    return readCookie(request, SESSION_COOKIE);
+  }
+
   function readCookie(request, name) {
     const raw = request.headers.get('cookie') || '';
     for (const part of raw.split(';')) {
@@ -315,7 +350,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
   }
 
   async function currentUser(request) {
-    const token = readCookie(request, SESSION_COOKIE);
+    const token = readToken(request);
     if (!token) return null;
     const tokenHash = await sha256(token);
     const row = await store.get(
@@ -353,7 +388,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       'INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)',
       [tokenHash, userId, createdAt, createdAt + SESSION_TTL_MS],
     );
-    return sessionCookie(request, token, Math.floor(SESSION_TTL_MS / 1000));
+    return { cookie: sessionCookie(request, token, Math.floor(SESSION_TTL_MS / 1000)), token };
   }
 
   async function readJson(request) {
@@ -515,17 +550,18 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     }
     await store.batch(signupStatements);
 
-    const cookie = await startSession(request, userId);
+    const session = await startSession(request, userId);
     const settings = await readSettings();
     const { row, pet } = await loadPet(userId, { persist: false });
     return json({
+      token: session.token,
       user: { id: userId, username, isAdmin },
       pet: snapshotPet(row, pet, effectiveStreak(row, now())),
       wallet: await walletSnapshot(userId, settings),
       today: await dailySnapshot(userId, dayKey(now()), settings),
       settings: publicSettings(settings),
       serverTime: now(),
-    }, 201, { 'Set-Cookie': cookie });
+    }, 201, { 'Set-Cookie': session.cookie });
   }
 
   async function login(request) {
@@ -550,21 +586,22 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
 
     await store.run('DELETE FROM login_attempts WHERE username = ?', [username]);
     await store.run('DELETE FROM sessions WHERE expires_at < ?', [now()]);
-    const cookie = await startSession(request, row.id);
+    const session = await startSession(request, row.id);
     const settings = await readSettings();
     const { row: pet, pet: projected } = await loadPet(row.id);
     return json({
+      token: session.token,
       user: { id: row.id, username: row.username, isAdmin: !!row.is_admin },
       pet: snapshotPet(pet, projected, effectiveStreak(pet, now())),
       wallet: await walletSnapshot(row.id, settings),
       today: await dailySnapshot(row.id, dayKey(now()), settings),
       settings: publicSettings(settings),
       serverTime: now(),
-    }, 200, { 'Set-Cookie': cookie });
+    }, 200, { 'Set-Cookie': session.cookie });
   }
 
   async function logout(request) {
-    const token = readCookie(request, SESSION_COOKIE);
+    const token = readToken(request);
     if (token) await store.run('DELETE FROM sessions WHERE token_hash = ?', [await sha256(token)]);
     return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(request, '', 0) });
   }
@@ -1135,17 +1172,18 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       },
     ]);
 
-    const cookie = await startSession(request, userId);
+    const session = await startSession(request, userId);
     const settings = await readSettings();
     const { row, pet } = await loadPet(userId, { persist: false });
     return json({
+      token: session.token,
       user: { id: userId, username, isAdmin: false },
       pet: snapshotPet(row, pet, effectiveStreak(row, now())),
       wallet: await walletSnapshot(userId, settings),
       today: await dailySnapshot(userId, dayKey(now()), settings),
       settings: publicSettings(settings),
       serverTime: now(),
-    }, 201, { 'Set-Cookie': cookie });
+    }, 201, { 'Set-Cookie': session.cookie });
   }
 
   async function bootstrap(request) {
@@ -1187,7 +1225,11 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return null;
 
-    if (request.method !== 'GET' && !sameOrigin(request)) {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: corsHeaders(request) });
+    }
+
+    if (request.method !== 'GET' && !sameOrigin(request) && !corsOrigin(request)) {
       return json({ error: 'Cross-origin request refused.' }, 403);
     }
 
@@ -1196,13 +1238,22 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       if (!match) continue;
       if (method !== request.method) continue;
       try {
-        return await handler(request, ...match.slice(1));
+        const response = await handler(request, ...match.slice(1));
+        const extra = corsHeaders(request);
+        if (!Object.keys(extra).length) return response;
+        const headers = new Headers(response.headers);
+        Object.entries(extra).forEach(([key, value]) => headers.set(key, value));
+        return new Response(response.body, { status: response.status, headers });
       } catch (err) {
         if (err instanceof ApiError) {
           return json({ error: err.message, ...err.extra }, err.status);
         }
         console.error('[pet-earn]', err);
-        return json({ error: 'Something went wrong on the server.' }, 500);
+        const extra = corsHeaders(request);
+        return json({
+          error: 'Something went wrong on the server.',
+          detail: String((err && err.message) || '').slice(0, 200),
+        }, 500, extra);
       }
     }
     return json({ error: 'Not found.' }, 404);

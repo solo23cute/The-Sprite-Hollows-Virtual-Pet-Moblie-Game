@@ -96,7 +96,7 @@ function fakeRoot({ coins = '', email = '' } = {}) {
 }
 
 /* Boots the real client module the way the game would, in a given mode. */
-function boot({ packaged = false, apiBase = '' } = {}) {
+function boot({ packaged = false, apiBase = '', crossOrigin = false } = {}) {
   const state = { toasts: [], sheets: [], calls: 0, urls: [], armSheet: true, sheetClosed: false, root: null };
   const coinPill = { textContent: '' };
   const ctx = {
@@ -120,10 +120,13 @@ function boot({ packaged = false, apiBase = '' } = {}) {
     if (state.armSheet && opts.onMount) opts.onMount(state.root.root, close);
     return { close };
   };
+  const requestJar = crossOrigin ? jar() : guestJar;
   ctx.fetch = (path, opts = {}) => {
     state.calls++;
     state.urls.push(String(path));
-    return guestJar.fetch(path, opts);
+    const headers = { ...(opts.headers || {}) };
+    if (crossOrigin) headers.origin = 'https://appassets.androidplatform.net';
+    return requestJar.fetch(path, { ...opts, headers });
   };
   vm.createContext(ctx);
   vm.runInContext(readFileSync(resolve(ROOT, 'src/pet-earn.js'), 'utf8'), ctx, { filename: 'src/pet-earn.js' });
@@ -236,6 +239,34 @@ try {
   check('the Wallet explains the situation instead of erroring', typeof bareSheet === 'function' && /online Hollow/.test(bareBody));
   check('it offers no payout form that could only fail', !bareBody.includes('name="coins"'));
   check('opening the wallet still makes no request', packedBare.state.calls === 0, `calls=${packedBare.state.calls}`);
+
+  /* ---------- 4. packaged app talking to a deployed server ---------- */
+  console.log('\npackaged build over the network (cross-origin, bearer token)');
+  const xo = boot({ packaged: true, apiBase: BASE, crossOrigin: true });
+  check('a bare server address becomes the API root', xo.petEarn.apiBase === `${BASE}/api`, xo.petEarn.apiBase);
+
+  const xoCare = await xo.petEarn.care('feed');
+  check('care works cross-origin on a bearer session', xoCare.award > 0, JSON.stringify(xoCare).slice(0, 160));
+  const xoWallet = await xo.petEarn.wallet();
+  check('the cross-origin wallet reads the balance', xoWallet.coins > 0, `coins=${xoWallet.coins}`);
+
+  const preflight = await fetch(`${BASE}/api/pet/care`, {
+    method: 'OPTIONS',
+    headers: { origin: 'https://appassets.androidplatform.net' },
+  });
+  check('the browser preflight is answered', preflight.status === 204
+    && preflight.headers.get('access-control-allow-origin') === 'https://appassets.androidplatform.net',
+    `status=${preflight.status}`);
+
+  const evil = await fetch(`${BASE}/api/pet/care`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'https://evil.example' },
+    body: JSON.stringify({ action: 'play' }),
+  });
+  check('an unknown origin is still refused', evil.status === 403, `status=${evil.status}`);
+
+  const noToken = await fetch(`${BASE}/api/wallet`, { headers: { origin: 'https://appassets.androidplatform.net' } });
+  check('the cross-origin API still needs a session', noToken.status === 401, `status=${noToken.status}`);
 } catch (err) {
   failures.push(String(err && err.message));
   console.log(`\nFAIL  ${err && err.message}`);

@@ -1,3 +1,6 @@
+// The live site runs on Freebuff Sites: D1 binding DB, assets from the game
+// bundle, deployed after `bash tools/deploy-bundle.sh`. This file remains for
+// `wrangler dev` and self-hosting; fill in a real database_id to use it.
 {
   "name": "sprite-hollow-coin-pets",
   "private": true,
@@ -13,7 +16,7 @@
     {
       "binding": "DB",
       "database_name": "coin-pets",
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+      "database_id": "not-used-by-the-live-site"
     }
   ],
   "observability": { "enabled": true }

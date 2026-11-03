@@ -8,8 +8,21 @@
   /* The coin server is same-origin in the web build. A packaged build is
      served from appassets.androidplatform.net, where /api would be answered by
      the local asset reader, so it bakes an absolute URL into src/api-base.js. */
-  const CONFIGURED = String((window.SPRITE_HOLLOW_API || '')).trim().replace(/\/+$/, '');
+  const RAW_BASE = String((window.SPRITE_HOLLOW_API || '')).trim().replace(/\/+$/, '');
+  const CONFIGURED = RAW_BASE ? (/\/api$/.test(RAW_BASE) ? RAW_BASE : `${RAW_BASE}/api`) : '';
   const API = CONFIGURED || '/api';
+  /* A packaged build talks to another origin, where the session cookie is not
+     sent, so the server hands out a bearer token instead. */
+  const TOKEN_KEY = 'spritehollow.api.token';
+  const readToken = () => {
+    try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; }
+  };
+  const writeToken = (token) => {
+    try {
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      else localStorage.removeItem(TOKEN_KEY);
+    } catch { /* private mode */ }
+  };
   const PACKAGED = location.protocol === 'https:' && location.hostname === 'appassets.androidplatform.net';
   const LOCAL_ONLY = PACKAGED && !CONFIGURED;
   const S = { me: null, busy: false };
@@ -27,7 +40,10 @@
     try {
       res = await fetch(API + path, {
         method: method || (body ? 'POST' : 'GET'),
-        headers: body ? { 'content-type': 'application/json' } : undefined,
+        headers: {
+          ...(body ? { 'content-type': 'application/json' } : {}),
+          ...(readToken() ? { authorization: `Bearer ${readToken()}` } : {}),
+        },
         body: body ? JSON.stringify(body) : undefined,
         credentials: 'same-origin',
         cache: 'no-store',
@@ -76,6 +92,7 @@
     if (LOCAL_ONLY) throw new Error('Coins need the online Hollow.');
     if (S.me) return S.me;
     S.me = await api('/guest', { method: 'POST' });
+    writeToken(S.me.token);
     syncPill();
     return S.me;
   }
@@ -305,6 +322,7 @@
             S.busy = true;
             try {
               const res = await api(needsSetup ? '/auth/signup' : '/auth/login', { body: payload });
+              writeToken(res.token);
               S.me = res;
               syncPill();
               close();
@@ -337,6 +355,7 @@
 
         root.querySelector('[data-signout]')?.addEventListener('click', async () => {
           try { await api('/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
+          writeToken('');
           S.me = null;
           close();
           toast('Signed out of the owner account.', '👋');

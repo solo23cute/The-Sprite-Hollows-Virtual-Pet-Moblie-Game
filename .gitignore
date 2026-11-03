@@ -27,3 +27,6 @@ android/legacy-*.bin
 android/signing/*.keystore
 android/signing/*.jks
 android/signing/.pass
+
+# generated hosting bundle
+deploy/
