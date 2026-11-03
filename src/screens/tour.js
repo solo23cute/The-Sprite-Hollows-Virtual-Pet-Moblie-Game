@@ -226,10 +226,83 @@ const TOUR_STEPS = [
     points: [
       'Start with the care dock in the Hollow, a Wild Egg in the Nest, or a trail walk from the Walk button.',
       'The induction tour can be replayed from Studio at any time.',
+      'Care pays coins and the Wallet cashes them out; Repair Hollow keeps older saves healthy.',
     ],
     tip: 'Finishing this step awards the first secret and opens the rest of the Secret Vault clues.',
   },
 ];
+
+/* Newer systems go in as one block so the tour keeps reading in the order
+   things unlock. The translation tables are shifted by the same amount, so
+   every existing language keeps its place and the new steps read in English
+   until they are translated. */
+const TOUR_NEW_STEPS_AT = 3;
+const TOUR_NEW_STEPS = [
+  {
+    icon: '🪙', kicker: 'COINS & CASH OUT',
+    title: 'Care pays coins you can cash out',
+    text: `Caring in the Hollow now pays real coins. The pill beside your name is your balance, and it is the same number the wallet pays out. Tap the 💵 Cash out chip on the Hollow, or open Studio → Coins & wallet, to read the rate, request a payout to your PayPal email, and follow each request from pending to paid.`,
+    points: [
+      'Coins are a ledger on the Hollow server: care and games add, a request holds its coins the moment you send it, and a rejection puts them straight back.',
+      'One payout can be open at a time. The form shows the minimum and keeps its button disabled until you have enough.',
+      'Shop coins, which buy eggs, and wallet coins, which turn into money, are separate balances — the wallet never touches your egg money.',
+      'The wallet needs the online Hollow. A packaged copy with no server beside it says so plainly instead of pretending care paid.',
+    ],
+    tip: 'Studio → Payout review is where the owner approves, marks paid, rejects, or exports the payout CSV.',
+  },
+  {
+    icon: '❓', kicker: 'MYSTERY SHOP',
+    title: 'Buy a shell that tells you nothing',
+    text: `The Mystery Shop sells eggs with an unknown element, breed, colorway, and a chance at a mutation. Only the price and the mutation chance are printed; you meet the sprite itself when it hatches in the Nest.`,
+    points: [
+      'Open the shop from the Hollow and pay from your shop coin balance.',
+      'Every egg lands in the Nest, so warm it and hatch it like any other egg.',
+      'Higher tiers cost more coins and carry a bigger mutation chance.',
+    ],
+    tip: 'Try a cheap tier first to see how the roll feels before saving for the top shelf.',
+  },
+  {
+    icon: '🩹', kicker: 'STUCK SPRITES & REPAIR',
+    title: 'Nothing stays stuck at 30 any more',
+    text: `Sprites used to stop growing at level 30 and retire themselves there, which froze them for good: a retired sprite earns no XP, and without XP they could never climb out. The cap is 1,000 now, retirement opens at Elderly level 100 only, and an old save heals itself the moment it loads — any retired sprite below level 100 wakes up and keeps growing.`,
+    points: [
+      'A sprite at level 1,000 stays in the Hollow after you bring it back; further XP no longer retires it again.',
+      'Every retired window on the Sprite Homes screen has a 🌿 Bring back button beside Visit biome.',
+      'Studio → Hollow health → 🩹 Repair Hollow fixes the rest in one tap: waking stranded sprites, realigning age stages with levels, banking XP stuck above a threshold, tidying retirement flags, and restoring an active sprite that points at an egg or a retired friend.',
+      'Repair reports exactly what it changed and never removes a sprite or resets progress. On a healthy Hollow it says there was nothing to fix.',
+    ],
+    tip: 'After restoring a save code, run Repair Hollow once, then open that sprite’s NEXT EVOLUTION card.',
+  },
+  {
+    icon: '💾', kicker: 'SAVE BACKUP',
+    title: 'Carry your Hollow to a new phone',
+    text: `Studio → Save backup & restore turns everything into a save code: a text copy of your sprites, coins, and settings. Paste it into the same screen on another device to move the Hollow, or to bring it back after a reinstall.`,
+    points: [
+      'Copy the code somewhere safe — it is the whole Hollow in plain text.',
+      'Restoring replaces what is on the device, so restore before you start hatching again.',
+      'A reinstall wipes the phone storage, so take a fresh code before any clean install.',
+    ],
+    tip: 'Keep your latest code in a note or an email to yourself; it costs nothing and saves everything.',
+  },
+];
+TOUR_STEPS.splice(TOUR_NEW_STEPS_AT, 0, ...TOUR_NEW_STEPS);
+
+(function keepTranslationsAligned(at, count) {
+  if (typeof TOUR_I18N !== 'object' || !TOUR_I18N) return;
+  Object.keys(TOUR_I18N).forEach((lang) => {
+    const entries = TOUR_I18N[lang];
+    if (Array.isArray(entries)) {
+      entries.splice(at, 0, ...Array.from({ length: count }, () => null));
+    } else if (entries && typeof entries === 'object') {
+      const shifted = {};
+      Object.keys(entries).forEach((key) => {
+        const index = Number(key);
+        shifted[Number.isInteger(index) && index >= at ? index + count : key] = entries[key];
+      });
+      TOUR_I18N[lang] = shifted;
+    }
+  });
+})(TOUR_NEW_STEPS_AT, TOUR_NEW_STEPS.length);
 
 /* The tour reads the live game data, so new age tiers, biomes, and sprite waves
    appear here automatically with no hand-maintained counts. */

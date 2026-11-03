@@ -81,6 +81,19 @@ function openStudioSheet(opts = {}) {
     <div class="style-picker" data-climates></div>
     <p class="tiny muted" data-world-note style="margin-top:8px"></p>
 
+    <div class="section-title"><h2>Coins &amp; wallet</h2><span>earn · cash out</span></div>
+    <div class="card" style="display:grid;gap:8px">
+      <p class="tiny muted" style="margin:0 0 2px">Every bit of care in the Hollow earns coins. Cash them out to PayPal whenever you like — no account needed.</p>
+      <button class="btn btn-primary btn-block" data-pet-earn="wallet">👛 Wallet &amp; PayPal cash out</button>
+      <button class="btn btn-soft btn-block" data-pet-earn="owner">🛠️ Payout review</button>
+    </div>
+
+    <div class="section-title"><h2>Hollow health</h2><span>repair a save</span></div>
+    <div class="card" style="display:grid;gap:8px">
+      <p class="tiny muted" style="margin:0 0 2px">Wakes sprites stranded by old level caps, realigns age stages, banks XP that was stuck above a threshold and restores an active sprite. Nothing is reset and no sprite is removed.</p>
+      <button class="btn btn-soft btn-block" data-repair-hollow>🩹 Repair Hollow</button>
+    </div>
+
     <div class="section-title"><h2>Game feel</h2></div>
     <div>
       <div class="toggle-row"><div><h4>Sound effects</h4><p>Little synths for pets, coins and games.</p></div><button class="switch" data-toggle="sound" aria-label="Toggle sound"></button></div>
@@ -115,6 +128,28 @@ function openStudioSheet(opts = {}) {
     body,
     onMount: (root, close) => {
       const getTarget = () => (targetId ? findSprite(targetId) : activeSprite());
+      root.querySelectorAll('[data-pet-earn]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!window.PetEarn) { toast('The wallet is still loading.', '🪙'); return; }
+          close();
+          if (btn.dataset.petEarn === 'owner') window.PetEarn.openOwner();
+          else window.PetEarn.openWallet();
+        });
+      });
+
+      root.querySelector('[data-repair-hollow]')?.addEventListener('click', () => {
+        const r = Actions.repairHollow();
+        const parts = [];
+        if (r.retired) parts.push(`${r.retired} stranded sprite${r.retired === 1 ? '' : 's'} woken`);
+        if (r.stage) parts.push(`${r.stage} stage${r.stage === 1 ? '' : 's'} realigned`);
+        if (r.xp) parts.push(`${r.xp} XP pocket${r.xp === 1 ? '' : 's'} banked`);
+        if (r.flags) parts.push(`${r.flags} flag${r.flags === 1 ? '' : 's'} tidied`);
+        if (r.active) parts.push('active sprite restored');
+        toast(r.total ? `🩹 ${parts.join(' · ')}.` : '🩹 Nothing needed repair — this Hollow is healthy.', '🩹');
+        Sfx.pop();
+        if (r.total) close();
+        App.refresh();
+      });
       const ownsGear = (k) => !ACCESSORIES[k].price || state.wardrobe.includes(k);
       const paintCustomSections = () => {
         const t = getTarget();

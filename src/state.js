@@ -138,6 +138,11 @@ function freshState() {
 function normalizeSprite(raw) {
   const s = raw || {};
   const level = clamp(Number(s.level) || 1, 1, MAX_LEVEL);
+  /* Older builds capped growth at level 30 and auto-retired anyone who hit the
+     cap. The cap is 1,000 now and retirement requires Elderly (100), so a
+     retired sprite below 100 can only be one of those stranded saves: wake it
+     up so it can keep growing. */
+  const strandedRetire = !!s.retired && level < 100;
   return {
     id: s.id || uid('sp'),
     name: s.name || null,
@@ -192,8 +197,8 @@ function normalizeSprite(raw) {
     restUntil: Number(s.restUntil) || 0,
     lineage: s.lineage || null,
     starter: !!s.starter,
-    retired: !!s.retired,
-    retiredAt: Number(s.retiredAt) || 0,
+    retired: !!s.retired && !strandedRetire,
+    retiredAt: strandedRetire ? 0 : Number(s.retiredAt) || 0,
     eggLabel: s.eggLabel || null,
     rebirths: Math.max(0, Number(s.rebirths) || 0),
     atHome: !!s.atHome,
@@ -1077,18 +1082,12 @@ function stageFeastRaw(s) {
 
 function addXpRaw(s, amount) {
   if (!s || s.stage === 'egg' || s.retired) return 0;
+  /* Already at the cap: nothing to grow, but do not retire them again. A
+     player who brings a MAX sprite back keeps it in the Hollow until they
+     choose a Rebirth Meal or retire it by hand. */
   if (s.level >= MAX_LEVEL) {
     s.xp = 0;
     unlockSecret('summitspirit');
-    unlockSecret('elderkeeper');
-    if (!s.retired) {
-      s.retired = true;
-      s.retiredAt = Date.now();
-      if (state.activeId === s.id) {
-        state.activeId = state.sprites.find((x) => x.id !== s.id && x.stage !== 'egg' && !x.retired)?.id || null;
-      }
-      toast(`${displayName(s)} reached MAX and retired. Feed a Rebirth Meal to begin a new life.`, '🌱');
-    }
     return 0;
   }
   const breed = BREEDS[s.breed] || {};
@@ -1491,6 +1490,47 @@ const Actions = {
     s.retiredAt = 0;
     commit('unretire', { spriteId: s.id });
     return { ok: true };
+  },
+
+  /* Repairs an existing save in place: wakes sprites stranded by the old
+     level-30 cap, realigns age stages with levels, banks XP parked above a
+     threshold, and restores an active sprite that points at an egg or a
+     retired friend. Nothing is reset and no sprite is removed. */
+  repairHollow() {
+    const report = { retired: 0, stage: 0, xp: 0, flags: 0, active: 0 };
+    state.sprites.forEach((s) => {
+      if (s.retired && s.level < STAGE_LEVEL.elder) {
+        s.retired = false;
+        s.retiredAt = 0;
+        report.retired += 1;
+      }
+      if (s.stage !== 'egg') {
+        const aligned = stageForLevel(s.level);
+        if (aligned !== s.stage) { s.stage = aligned; report.stage += 1; }
+      }
+      if (!s.retired && s.stage !== 'egg' && s.level < MAX_LEVEL && s.xp >= xpNeeded(s.level)) {
+        while (s.level < MAX_LEVEL && s.xp >= xpNeeded(s.level)) {
+          s.xp -= xpNeeded(s.level);
+          s.level += 1;
+        }
+        if (s.level >= MAX_LEVEL) s.xp = 0;
+        s.stage = stageForLevel(s.level);
+        report.xp += 1;
+      }
+      if (!s.retired && s.retiredAt) { s.retiredAt = 0; report.flags += 1; }
+      if (s.retired && !s.retiredAt) { s.retiredAt = Date.now(); report.flags += 1; }
+    });
+    const current = findSprite(state.activeId);
+    if (!current || current.stage === 'egg' || current.retired) {
+      const next = state.sprites.find((s) => s.stage !== 'egg' && !s.retired) || null;
+      if ((next?.id || null) !== (current?.id || null)) {
+        state.activeId = next ? next.id : null;
+        report.active += 1;
+      }
+    }
+    const total = report.retired + report.stage + report.xp + report.flags + report.active;
+    if (total) commit('repair', { report });
+    return { ...report, total };
   },
 
   reincarnate(id, foodId = 'rebirthmeal') {

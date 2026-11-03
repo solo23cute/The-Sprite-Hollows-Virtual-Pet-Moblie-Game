@@ -19,3 +19,6 @@ verify9.cjs
 # a restored legacy key and its password notes must never be committed
 android/*-key.properties
 android/legacy-*.bin
+
+# Sprite Hollow Pet Earn local database
+.coinpets/

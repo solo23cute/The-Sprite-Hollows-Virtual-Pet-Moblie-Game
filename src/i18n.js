@@ -90,9 +90,9 @@ const TOUR_I18N = {
       tip: 'Empieza con un Huevo Salvaje de 45 monedas o ahorra para un huevo de tipo cuando quieras una especie exacta.',
     },
     {
-      kicker: 'SPRITES Y CRECIMIENTO', title: 'Llévalos al nivel 30',
+      kicker: 'SPRITES Y CRECIMIENTO', title: 'Llévalos al nivel 1.000',
       text: 'Todo lo que hacéis juntos da XP. Comer, juegos, charlas, baños, siestas y caricias cuentan, y el hábitat adecuado multiplica la ganancia. Los sprites crecen en los niveles 1, 5, 10 y 20, y se detienen en el 30.',
-      points: ['Alimentar sube las afinidades de dieta Corazón, Dulce, Espeluznante y Salvaje.', 'Al nivel 10, doce puntos en una dieta desbloquean una evolución permanente.', 'Al nivel 30 un sprite se retira. Una Comida de Renacimiento lo devuelve a un huevo con bonificaciones permanentes.'],
+      points: ['Alimentar sube las afinidades de dieta Corazón, Dulce, Espeluznante y Salvaje.', 'Al nivel 10, doce puntos en una dieta desbloquean una evolución permanente.', 'La retirada se abre a los 100, en la etapa Anciano. Una Comida de Renacimiento lo devuelve a un huevo con bonificaciones permanentes.'],
       tip: 'Los sprites retirados cuentan para la Bóveda y pueden fusionarse. La Comida de Renacimiento empieza su siguiente vida con ventajas.',
     },
     {
@@ -146,7 +146,7 @@ const TOUR_I18N = {
     {
       kicker: 'SECRETOS Y EXÓTICOS', title: 'Algunas puertas no están en el Nido',
       text: 'Los sprites secretos no se venden en el Nido. Abre la Bóveda para ver cada guardián desbloqueado, sus tipos padres, híbridos y una vista previa. Hay puertas de hitos, doce guardianes mensuales y ocho relevos dos veces por semana. Los guardianes exóticos son distintos: pueden eclosionar de sus huevos de tipo.',
-      points: ['Termina este tour para ganar el primer secreto, el Guía del Hogar.', 'Alcanza el nivel 30, visita los dieciocho biomas, llega a 100 de vínculo, eclosiona 25 huevos y descifra el nombre Maestro.', 'Abre la Bóveda durante una ventana mensual o de lunes a miércoles / jueves a domingo, y reclama al guardián antes de que rote.', 'Los sprites retirados cuentan para la Bóveda y sirven como padres.'],
+      points: ['Termina este tour para ganar el primer secreto, el Guía del Hogar.', 'Alcanza el nivel 1.000, visita los dieciocho biomas, llega a 100 de vínculo, eclosiona 25 huevos y descifra el nombre Maestro.', 'Abre la Bóveda durante una ventana mensual o de lunes a miércoles / jueves a domingo, y reclama al guardián antes de que rote.', 'Los sprites retirados cuentan para la Bóveda y sirven como padres.'],
       tip: 'La bóveda guarda cada pista, así que ábrela cuando un hito esté cerca.',
     },
     {
@@ -182,9 +182,9 @@ const TOUR_I18N = {
       tip: 'Commencez avec un Œuf Sauvage à 45 pièces, ou économisez pour un œuf de type quand vous voulez une espèce précise.',
     },
     {
-      kicker: 'SPRITES ET CROISSANCE', title: 'Élevez-les jusqu’au niveau 30',
+      kicker: 'SPRITES ET CROISSANCE', title: 'Élevez-les jusqu’au niveau 1 000',
       text: 'Tout ce que vous faites ensemble donne de l’XP. Nourrir, jouer, discuter, laver, dormir et caresser comptent, et l’habitat correspondant multiplie le gain. Les sprites grandissent aux niveaux 1, 5, 10 et 20, puis s’arrêtent au 30.',
-      points: ['Nourrir développe les affinités Copieux, Sucré, Étrange et Sauvage.', 'Au niveau 10, douze points dans une voie débloquent une évolution permanente.', 'Au niveau 30, un sprite prend sa retraite. Un Repas de Renaissance le ramène à l’œuf avec des bonus permanents.'],
+      points: ['Nourrir développe les affinités Copieux, Sucré, Étrange et Sauvage.', 'Au niveau 10, douze points dans une voie débloquent une évolution permanente.', 'La retraite s’ouvre au niveau 100, à l’étape Ancien. Un Repas de Renaissance le ramène à l’œuf avec des bonus permanents.'],
       tip: 'Les sprites retraités comptent pour le Coffre et peuvent fusionner. Le Repas de Renaissance offre une nouvelle vie boostée.',
     },
     {
@@ -238,7 +238,7 @@ const TOUR_I18N = {
     {
       kicker: 'SECRETS ET EXOTIQUES', title: 'Certaines portes ne sont pas dans le Nid',
       text: 'Les sprites secrets ne sont pas vendus dans le Nid. Ouvrez le Coffre pour voir chaque gardien débloqué, ses types parents, ses hybrides et un aperçu. Il y a des portes de paliers, douze gardiens mensuels et huit relais deux fois par semaine. Les gardiens exotiques sont différents : ils peuvent éclore de leurs œufs de type.',
-      points: ['Terminez cette visite pour gagner le premier secret, le Guide du Foyer.', 'Atteignez le niveau 30, visitez les dix-huit biomes, 100 de lien, éclosez 25 œufs et déchiffrez le nom Maître.', 'Ouvrez le Coffre pendant une fenêtre mensuelle ou du lundi au mercredi / jeudi au dimanche, et réclamez le gardien avant la rotation.', 'Les sprites retraités comptent pour le Coffre et servent de parents.'],
+      points: ['Terminez cette visite pour gagner le premier secret, le Guide du Foyer.', 'Atteignez le niveau 1 000, visitez les dix-huit biomes, 100 de lien, éclosez 25 œufs et déchiffrez le nom Maître.', 'Ouvrez le Coffre pendant une fenêtre mensuelle ou du lundi au mercredi / jeudi au dimanche, et réclamez le gardien avant la rotation.', 'Les sprites retraités comptent pour le Coffre et servent de parents.'],
       tip: 'Le coffre garde chaque indice; ouvrez-le quand un palier approche.',
     },
     {

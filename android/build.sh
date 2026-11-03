@@ -12,10 +12,14 @@ AJ="${ANDROID_JAR:-$SDK/platforms/android-35/android.jar}"
 OUT="${1:-$ROOT/SpriteHollow.apk}"
 MANIFEST="${MANIFEST:-$HERE/AndroidManifest.xml}"
 MIN_SDK="${MIN_SDK:-24}"
-VERSION_CODE="${VERSION_CODE:-78}"
-VERSION_NAME="${VERSION_NAME:-4.3.0}"
+VERSION_CODE="${VERSION_CODE:-82}"
+VERSION_NAME="${VERSION_NAME:-4.3.4}"
 SIGN_V1="${SIGN_V1:-false}"
-KEYSTORE="${KEYSTORE:-$HERE/debug.keystore}"
+# The project signing key. Committed (see android/signing/README.md) so every
+# build from any machine carries the same certificate and installs over the
+# previous one, keeping the player's save.
+SIGNING_KEYSTORE="$HERE/signing/spritehollow-release.keystore"
+KEYSTORE="${KEYSTORE:-$SIGNING_KEYSTORE}"
 KEYPASS="${KEYPASS:-spritehollow}"
 KS_ALIAS="${KS_ALIAS:-spritehollow}"
 PYTHON="${PYTHON:-python}"
@@ -34,6 +38,14 @@ rm -rf "$HERE/assets/www"
 mkdir -p "$HERE/assets/www"
 cp "$ROOT/index.html" "$ROOT/styles.css" "$ROOT/styles-arcade.css" "$ROOT/styles-hollow-home.css" "$ROOT/manifest.webmanifest" "$ROOT/icon.svg" "$HERE/assets/www/"
 cp -R "$ROOT/src" "$HERE/assets/www/src"
+
+# A packaged build has no server behind /api, so bake in the coin server when
+# one is given:  API_BASE=https://sprite-hollow.example.workers.dev bash android/build.sh
+API_BASE="${API_BASE:-}"
+if [ -n "$API_BASE" ]; then
+  printf 'window.SPRITE_HOLLOW_API = "%s";\n' "${API_BASE%/}" > "$HERE/assets/www/src/api-base.js"
+  echo "==> Coin server: ${API_BASE%/}"
+fi
 
 echo "==> Compiling Android resources"
 rm -rf "$HERE/build"
@@ -77,7 +89,7 @@ echo "==> Aligning"
 "$BT/zipalign$EXE" -f 4 "$HERE/build/app-unsigned.apk" "$HERE/build/app-aligned.apk"
 
 if [ ! -f "$KEYSTORE" ]; then
-  if [ "$KEYSTORE" != "$HERE/debug.keystore" ]; then
+  if [ "$KEYSTORE" != "$HERE/debug.keystore" ] && [ "$KEYSTORE" != "$SIGNING_KEYSTORE" ]; then
     echo "Missing release keystore: $KEYSTORE" >&2
     exit 1
   fi

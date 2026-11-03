@@ -67,4 +67,5 @@ function introScreen(root, onStart) {
       openSaveBackup();
     });
   }
+
 }
