@@ -224,6 +224,31 @@ const goodLogin = await client('back').call('/api/auth/login', { body: { usernam
 check('login restores the same account', goodLogin.status === 200 && goodLogin.data.pet.name === 'Mochi');
 check('unknown game rejected', (await player.call('/api/games/start', { body: { game: 'cheat-mode' } })).status === 400);
 
+/* 10. leaving for good */
+const quitter = client('quitter');
+const quitInvite = await owner.call('/api/admin/invites', { body: { count: 1, label: 'delete-test' } });
+check('the owner can issue an invite for the test', quitInvite.status === 201 && Array.isArray(quitInvite.data.codes) && !!quitInvite.data.codes[0]);
+const quitSignup = await quitter.call('/api/auth/signup', {
+  body: { username: 'todelete', password: 'hollowpass9', petName: 'Pip', inviteCode: quitInvite.data.codes[0] },
+});
+check('a throwaway account can sign up', quitSignup.status === 201, `status=${quitSignup.status}`);
+check('deleting asks for the password', (await quitter.call('/api/account', { method: 'DELETE', body: {} })).status === 400);
+check('a wrong password cannot delete an account', (await quitter.call('/api/account', { method: 'DELETE', body: { password: 'nope' } })).status === 403);
+const deleted = await quitter.call('/api/account', { method: 'DELETE', body: { password: 'hollowpass9' } });
+check('the right password deletes the account', deleted.status === 200 && deleted.data.ok === true, `status=${deleted.status} ${deleted.text?.slice(0, 90)}`);
+check('its session is gone', (await quitter.call('/api/me')).status === 401);
+check('it can no longer sign in', (await client('gone').call('/api/auth/login', { body: { username: 'todelete', password: 'hollowpass9' } })).status === 401);
+check('the pet row is gone with it', (await quitter.call('/api/wallet')).status === 401);
+
+const guest2 = client('guestdelete');
+const guestJoin = await guest2.call('/api/guest', { method: 'POST' });
+check('a guest has a session', guestJoin.status === 201 && typeof guestJoin.data.token === 'string');
+check('a guest leaves without a password', (await guest2.call('/api/account', { method: 'DELETE', body: {} })).status === 200);
+check('the guest session is dead', (await guest2.call('/api/wallet')).status === 401);
+
+/* the owner still exists after all of that */
+check('existing accounts are untouched', (await client('still').call('/api/auth/login', { body: { username: playerName, password: 'hollowpass1' } })).status === 200);
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 if (failures.length) {
   console.log('\nFailures:');

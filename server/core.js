@@ -606,6 +606,37 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(request, '', 0) });
   }
 
+  /* Leaving for good: sessions, pet, ledger and payout history go with the
+     account. A real account confirms its password; a guest only ever had the
+     session token it was handed. */
+  async function deleteAccount(request) {
+    const user = await requireUser(request);
+    const body = await readJson(request);
+    const guestAccount = String(user.username || '').startsWith('guest_');
+    if (!guestAccount) {
+      const password = String(body.password || '');
+      if (!password) fail(400, 'Confirm your password to delete this account.');
+      const row = await store.get('SELECT password_hash FROM users WHERE id = ?', [user.id]);
+      if (!(await verifyPassword(password, row?.password_hash || ''))) fail(403, 'That password is not right.');
+    }
+    const pending = await store.get(
+      "SELECT COUNT(*) AS n FROM withdrawals WHERE user_id = ? AND status IN ('pending', 'approved')",
+      [user.id],
+    );
+    if (toInt(pending?.n) > 0) fail(400, 'Settle your payouts before leaving.');
+    await store.batch([
+      { sql: 'DELETE FROM sessions WHERE user_id = ?', params: [user.id] },
+      { sql: 'DELETE FROM ledger WHERE user_id = ?', params: [user.id] },
+      { sql: 'DELETE FROM withdrawals WHERE user_id = ?', params: [user.id] },
+      { sql: 'DELETE FROM daily WHERE user_id = ?', params: [user.id] },
+      { sql: 'DELETE FROM game_runs WHERE user_id = ?', params: [user.id] },
+      { sql: 'DELETE FROM pets WHERE user_id = ?', params: [user.id] },
+      { sql: 'DELETE FROM login_attempts WHERE username = ?', params: [user.username] },
+      { sql: 'DELETE FROM users WHERE id = ?', params: [user.id] },
+    ]);
+    return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(request, '', 0) });
+  }
+
   async function care(request, user) {
     const body = await readJson(request);
     const action = String(body.action || '');
@@ -1206,6 +1237,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     ['POST', /^\/api\/auth\/signup$/, (req) => signup(req)],
     ['POST', /^\/api\/auth\/login$/, (req) => login(req)],
     ['POST', /^\/api\/auth\/logout$/, (req) => logout(req)],
+    ['DELETE', /^\/api\/account$/, (req) => deleteAccount(req)],
     ['GET', /^\/api\/me$/, async (req) => json(await mePayload(await requireUser(req)))],
     ['POST', /^\/api\/pet\/care$/, async (req) => care(req, await requireUser(req))],
     ['POST', /^\/api\/games\/start$/, async (req) => startGame(req, await requireUser(req))],
