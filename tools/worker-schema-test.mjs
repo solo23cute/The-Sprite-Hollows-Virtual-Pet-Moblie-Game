@@ -50,7 +50,8 @@ const upgraded = fakeDb({ existingTables: ['ledger'] });
 const upgradedRes = await boot(upgraded);
 check('an existing database still answers the API', upgradedRes.status === 200, `status=${upgradedRes.status}`);
 check('migrations run when the tables already exist', upgraded.ran.some((sql) => /ALTER TABLE withdrawals ADD COLUMN payment_reference/i.test(sql)), upgraded.ran.join(' | ').slice(0, 200));
-check('tables are not re-created on an existing database', !upgraded.ran.some((sql) => /^CREATE TABLE/i.test(sql)), upgraded.ran.join(' | ').slice(0, 200));
+check('existing tables are not re-created bare', !upgraded.ran.some((sql) => /^CREATE TABLE(?!\s+IF\s+NOT\s+EXISTS)/i.test(sql)), upgraded.ran.join(' | ').slice(0, 200));
+check('a table added later is created on an existing database', upgraded.ran.some((sql) => /CREATE TABLE IF NOT EXISTS earn_claims/i.test(sql)), upgraded.ran.join(' | ').slice(0, 200));
 
 const fresh = fakeDb({ existingTables: [] });
 const freshRes = await boot(fresh);

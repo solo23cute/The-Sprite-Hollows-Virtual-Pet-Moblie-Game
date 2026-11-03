@@ -203,6 +203,12 @@ check('player cannot export payouts', (await player.call('/api/admin/withdrawals
 
 /* 8. rejection refunds the ledger */
 const balanceNow = (await player.call('/api/wallet')).data.wallet.coins;
+const summary = (await player.call('/api/wallet')).data.wallet;
+check('the wallet reports available, reserved and paid', typeof summary.available === 'number' && typeof summary.reserved === 'number' && typeof summary.paid === 'number' && summary.available === summary.coins, JSON.stringify(summary).slice(0, 160));
+check('a reviewed payout counts as reserved', summary.reserved === 0 || summary.openRequests > 0, `reserved=${summary.reserved}`);
+const odd = await player.call('/api/wallet/withdraw', { body: { coins: 105, paypalEmail: 'player@example.com' } });
+check('an amount that is not whole US cents is refused', odd.status === 400 && /whole US cents/.test(JSON.stringify(odd.data)), JSON.stringify(odd.data).slice(0, 140));
+check('the refused amount did not hold coins', (await player.call('/api/wallet')).data.wallet.coins === summary.coins);
 const again = await player.call('/api/wallet/withdraw', { body: { coins: 100, paypalEmail: 'player@example.com' } });
 check('second withdrawal allowed after the first closed', again.status === 201);
 check('rejecting without a reason is refused', (await owner.call(`/api/admin/withdrawals/${again.data.withdrawalId}/decide`, { body: { action: 'reject' } })).status === 400);

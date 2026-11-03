@@ -183,7 +183,7 @@ try {
   check('the PayPal email field is present', body.includes('name="paypalEmail"'));
   check('the estimate is shown in dollars', /\$\d+\.\d{2}/.test(body));
   const prefilled = Number(body.match(/name="coins"[^>]*value="(\d+)"/)?.[1] || 0);
-  check('the pre-fill is a whole 100 coins', prefilled > 0 && prefilled % 100 === 0, `value=${prefilled}`);
+  check('the pre-fill converts to whole US cents', prefilled > 0 && (prefilled * 100) % 1000 === 0, `value=${prefilled}`);
 
   const coinsBefore = (await guestJar.call('/api/wallet')).data.wallet.coins;
   web.state.armSheet = false;

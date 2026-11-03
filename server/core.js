@@ -293,14 +293,28 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     return map;
   }
 
+  /* A stored zero or a negative would quietly switch a limit off, so every
+     economy number falls back to its default unless it is a positive number. */
+  function positive(value, fallback) {
+    const n = num(value, fallback);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  }
+
+  /* A cap of zero is a deliberate "not today" and only ever pays out less, so
+     it is kept; a negative or nonsense cap falls back to the default. */
+  function nonNegative(value, fallback) {
+    const n = num(value, fallback);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  }
+
   function publicSettings(map) {
     return {
-      coinsPerDollar: num(map.coins_per_dollar, 1000),
-      minWithdrawCoins: num(map.min_withdraw_coins, 5000),
-      dailyCareCoinCap: num(map.daily_care_coin_cap, 250),
-      dailyGameCoinCap: num(map.daily_game_coin_cap, 600),
-      dailyCareCap: num(map.daily_care_cap, 40),
-      dailyGameCap: num(map.daily_game_cap, 20),
+      coinsPerDollar: positive(map.coins_per_dollar, 1000),
+      minWithdrawCoins: positive(map.min_withdraw_coins, 5000),
+      dailyCareCoinCap: nonNegative(map.daily_care_coin_cap, 250),
+      dailyGameCoinCap: nonNegative(map.daily_game_coin_cap, 600),
+      dailyCareCap: nonNegative(map.daily_care_cap, 40),
+      dailyGameCap: nonNegative(map.daily_game_cap, 20),
     };
   }
 
@@ -463,15 +477,32 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       'SELECT COALESCE(SUM(amount), 0) AS total FROM ledger WHERE user_id = ? AND amount > 0',
       [userId],
     );
-    const pending = await store.get(
-      "SELECT COUNT(*) AS n FROM withdrawals WHERE user_id = ? AND status IN ('pending', 'approved')",
+    const held = await store.get(
+      "SELECT COALESCE(SUM(coins), 0) AS coins, COUNT(*) AS n FROM withdrawals WHERE user_id = ? AND status IN ('pending', 'approved')",
       [userId],
     );
+    const paidUsd = await store.get(
+      "SELECT COALESCE(SUM(usd_cents), 0) AS cents FROM withdrawals WHERE user_id = ? AND status = 'paid'",
+      [userId],
+    );
+    const verified = await store.get(
+      "SELECT COALESCE(SUM(amount), 0) AS total FROM ledger WHERE user_id = ? AND amount > 0 AND kind <> 'withdraw_refund'",
+      [userId],
+    );
+    const reserved = toInt(held?.coins);
     return {
       coins,
       usd: round2(coins / Math.max(1, pub.coinsPerDollar)),
       lifetimeEarned: toInt(earned?.total),
-      hasOpenWithdrawal: toInt(pending?.n) > 0,
+      /* Earnings drop straight into the balance, so nothing is ever waiting to
+         be verified; what is held is coins already committed to a payout. */
+      verified: toInt(verified?.total),
+      pending: 0,
+      reserved,
+      available: Math.max(0, coins),
+      paid: round2(toInt(paidUsd?.cents) / 100),
+      openRequests: toInt(held?.n),
+      hasOpenWithdrawal: toInt(held?.n) > 0,
       coinsPerDollar: pub.coinsPerDollar,
       minWithdrawCoins: pub.minWithdrawCoins,
     };
@@ -994,8 +1025,12 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       fail(429, 'That is the most withdrawal requests for today.');
     }
 
-    const usdCents = Math.floor((coins * 100) / Math.max(1, pub.coinsPerDollar));
-    if (usdCents < 1) fail(400, 'That converts to less than one cent.');
+    const exactCents = (coins * 100) / Math.max(1, pub.coinsPerDollar);
+    if (exactCents < 1) fail(400, 'That converts to less than one cent.');
+    if (!Number.isSafeInteger(exactCents)) {
+      fail(400, 'That coin amount does not convert to whole US cents. Choose a rounder amount.');
+    }
+    const usdCents = exactCents;
 
     const id = crypto.randomUUID();
     const results = await store.batch([
@@ -1166,6 +1201,20 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
 
     if (action === 'approve') {
       if (row.status !== 'pending') fail(409, `Only pending requests can be approved.`);
+      const pub = publicSettings(await readSettings());
+      if (row.coins < pub.minWithdrawCoins) {
+        fail(400, `That request is below the ${pub.minWithdrawCoins.toLocaleString()} coin minimum. Reject it and ask the player to request more.`);
+      }
+      const wallet = await walletSnapshot(row.user_id, await readSettings());
+      if (row.coins > wallet.verified) {
+        fail(400, 'Not enough banked earnings cover this request. Review the earnings first, or reject it.');
+      }
+      if (!Number.isSafeInteger((row.coins * 100) / pub.coinsPerDollar)) {
+        fail(400, 'This coin amount does not convert to whole US cents. Reject it and ask the player for a whole-cent amount.');
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(row.paypal_email || '').trim())) {
+        fail(400, 'A valid PayPal email is required.');
+      }
       const res = await store.run(
         "UPDATE withdrawals SET status = 'approved', decided_at = ?, decided_by = ?, note = ? WHERE id = ? AND status = 'pending'",
         [stamp, user.id, note || row.note, id],

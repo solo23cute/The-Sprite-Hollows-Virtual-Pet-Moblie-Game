@@ -165,19 +165,26 @@
     const w = data.wallet;
     const rate = Math.max(1, w.coinsPerDollar || 1000);
     const min = w.minWithdrawCoins || 5000;
+    /* Only whole US cents can be requested, so the offer is rounded down to one. */
+    const offer = Math.floor((Math.floor((w.coins * 100) / rate) * rate) / 100);
     return `
       <div class="between">
         <span class="chip">🪙 <b>${fmt(w.coins)}</b> coins</span>
         <span class="tiny muted">≈ ${money(Math.floor((w.coins * 100) / rate))} at ${fmt(rate)} coins / $1</span>
       </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <span class="chip" style="font-size:10px">Available ${fmt(w.available ?? w.coins)}</span>
+        <span class="chip" style="font-size:10px">In review ${fmt(w.reserved || 0)}</span>
+        <span class="chip" style="font-size:10px">Paid ${money(Math.round((w.paid || 0) * 100))}</span>
+      </div>
       <div class="section-title" style="margin-top:14px"><h2>Cash out to PayPal</h2><span>owner reviews each one</span></div>
       <form data-withdraw>
         <label class="tiny muted" style="display:block;margin:0 2px 5px">Coins to withdraw</label>
-        <input name="coins" type="number" inputmode="numeric" min="${min}" step="100" placeholder="${fmt(min)}" value="${w.coins >= min ? Math.floor(w.coins / 100) * 100 : ''}" style="${fieldStyle}">
+        <input name="coins" type="number" inputmode="numeric" min="${min}" step="100" placeholder="${fmt(min)}" value="${w.coins >= min ? offer : ''}" style="${fieldStyle}">
         <label class="tiny muted" style="display:block;margin:10px 2px 5px">PayPal email</label>
         <input name="paypalEmail" type="email" inputmode="email" placeholder="you@example.com" style="${fieldStyle}">
         <p class="tiny muted" data-est style="margin:8px 2px 0">${w.coins >= min
-          ? `${fmt(Math.floor(w.coins / 100) * 100)} coins ≈ ${money(Math.floor((Math.floor(w.coins / 100) * 100 * 100) / rate))} via PayPal.`
+          ? `${fmt(offer)} coins ≈ ${money(Math.floor((offer * 100) / rate))} via PayPal.`
           : `Minimum ${fmt(min)} coins ≈ ${money(Math.floor((min * 100) / rate))}.`}</p>
         <button class="btn btn-primary btn-block" type="submit" style="margin-top:10px" ${w.coins < min ? 'disabled' : ''}>Request payout</button>
       </form>

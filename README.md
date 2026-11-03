@@ -1,4 +1,13 @@
-## 4.5.0 Coins earned in the game land in the real wallet (current release)
+## 4.5.1 Every payout is re-checked before it is approved (current release)
+
+- **Approval no longer trusts the moment the request was made.** Approving a payout re-checks that it is still pending, that it still meets the withdrawal minimum, that the player's banked earnings cover it, that the coins convert to a whole number of US cents, and that the stored PayPal email is still valid — each with its own message, as in the pasted `approvePayout`.
+- **Whole US cents or nothing.** A request that would previously have been silently rounded down (for example 5,105 coins at 1,000 per dollar) is now refused with "does not convert to whole US cents", and the cash-out form pre-fills the largest whole-cent amount instead of one that will bounce.
+- **The wallet says what is where.** The sheet shows three chips — **Available**, **In review** and **Paid** — backed by new `available`, `reserved`, `paid`, `verified`, `pending` and `openRequests` fields from `/api/wallet`.
+- **A stored zero cannot switch a limit off.** The withdrawal rate and minimum fall back to their defaults unless they are positive numbers; the daily caps keep a deliberate `0` (which can only pay out less) but reject nonsense values.
+- Package: `versionName 4.5.1` / `versionCode 90`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.5.1-v90-release.apk`](SpriteHollow-4.5.1-v90-release.apk) — 780,748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `a1ea8b8f4f2e15ed7044eca915324bcedc5ed6ffad231bc1ec8b0ce644242697`. Installs over 4.5.0 in place.
+
+## 4.5.0 Coins earned in the game land in the real wallet (previous release)
 
 - **The two balances are connected.** Winning a minigame, claiming a quest, taking the daily spin and checking in now bank the same coins into the wallet the cash pill and the Wallet sheet show — so what a player wins in the Hollow is part of the balance they can cash out, not a separate number in the shop.
 - **One award, one payment.** Every award is posted with an id derived from the game's own lifetime counter, and the server stores it in `earn_claims`. A retry, a double tap or a reload sends the same id and the server answers `award: 0` instead of paying twice.
