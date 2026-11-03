@@ -271,6 +271,8 @@
         <b style="font-size:13.5px">${money(w.usd_cents)} · ${fmt(w.coins)} coins</b>
         <div class="tiny muted" style="margin-top:2px">${esc(w.paypal_email)} · ${esc(w.username || 'player')} · ${dateShort(w.created_at)}</div>
         <div class="row" style="gap:6px;margin-top:9px;flex-wrap:wrap">
+          <input data-note placeholder="Reason (needed to reject)" maxlength="200" style="${fieldStyle};padding:9px 11px;font-size:13px">
+          <input data-reference placeholder="PayPal reference (needed to mark paid)" maxlength="120" style="${fieldStyle};padding:9px 11px;font-size:13px">
           <button class="btn btn-sm btn-primary" data-decide="approve" data-id="${esc(w.id)}">Approve</button>
           <button class="btn btn-sm btn-soft" data-decide="paid" data-id="${esc(w.id)}">Mark paid</button>
           <button class="btn btn-sm btn-ghost" data-decide="reject" data-id="${esc(w.id)}" style="color:var(--bad)">Reject</button>
@@ -342,8 +344,14 @@
             if (S.busy) return;
             S.busy = true;
             try {
-              await api(`/admin/withdrawals/${btn.dataset.id}/decide`, { body: { action: btn.dataset.decide } });
-              toast(`Payout ${btn.dataset.decide === 'reject' ? 'rejected' : btn.dataset.decide === 'paid' ? 'marked paid' : 'approved'}.`, '✅');
+              const card = btn.closest ? btn.closest('.card') : null;
+              const note = card?.querySelector('[data-note]')?.value?.trim() || '';
+              const reference = card?.querySelector('[data-reference]')?.value?.trim() || '';
+              const action = btn.dataset.decide;
+              if (action === 'reject' && !note) { toast('Add a reason so the player knows why.', '✍️'); return; }
+              if (action === 'paid' && !reference) { toast('Enter the PayPal transaction reference.', '🧾'); return; }
+              await api(`/admin/withdrawals/${btn.dataset.id}/decide`, { body: { action, note, reference } });
+              toast(`Payout ${action === 'reject' ? 'rejected' : action === 'paid' ? 'marked paid' : 'approved'}.`, '✅');
               close();
               openOwner();
             } catch (err) {

@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   created_at INTEGER NOT NULL,
   decided_at INTEGER,
   decided_by INTEGER,
-  paid_at INTEGER
+  paid_at INTEGER,
+  payment_reference TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawals(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_withdrawals_user ON withdrawals(user_id, created_at);

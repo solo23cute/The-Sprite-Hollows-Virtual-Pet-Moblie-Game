@@ -663,6 +663,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       [user.id],
     );
     if (toInt(pending?.n) > 0) fail(400, 'Settle your payouts before leaving.');
+    const adminsLeft = await store.get('SELECT COUNT(*) AS n FROM users WHERE is_admin = 1 AND id <> ?', [user.id]);
     await store.batch([
       { sql: 'DELETE FROM sessions WHERE user_id = ?', params: [user.id] },
       { sql: 'DELETE FROM ledger WHERE user_id = ?', params: [user.id] },
@@ -673,7 +674,10 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       { sql: 'DELETE FROM login_attempts WHERE username = ?', params: [user.username] },
       { sql: 'DELETE FROM users WHERE id = ?', params: [user.id] },
     ]);
-    return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(request, '', 0) });
+    if (toInt(adminsLeft?.n) === 0) {
+      await store.run('DELETE FROM settings WHERE key = ?', [OWNER_PASSCODE_KEY]);
+    }
+    return json({ ok: true, unclaimed: toInt(adminsLeft?.n) === 0 }, 200, { 'Set-Cookie': sessionCookie(request, '', 0) });
   }
 
   async function care(request, user) {
@@ -1031,7 +1035,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     const filter = allowed.includes(status) ? status : null;
     const rows = await store.all(
       `SELECT w.id, w.user_id, w.coins, w.usd_cents, w.paypal_email, w.status, w.note,
-              w.created_at, w.decided_at, w.paid_at, u.username, p.name AS pet_name
+              w.created_at, w.decided_at, w.paid_at, w.payment_reference, u.username, p.name AS pet_name
          FROM withdrawals w
          JOIN users u ON u.id = w.user_id
          LEFT JOIN pets p ON p.user_id = w.user_id
@@ -1092,6 +1096,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     const body = await readJson(request);
     const action = String(body.action || '');
     const note = cut(body.note, 200);
+    const reference = cut(body.reference, 120);
     const stamp = now();
 
     const row = await store.get('SELECT * FROM withdrawals WHERE id = ?', [id]);
@@ -1108,6 +1113,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       );
       if (!res.changes) fail(409, 'That request changed while you were deciding.');
     } else if (action === 'reject') {
+      if (!note) fail(400, 'Add a reason so the player knows why the request was rejected.');
       const res = await store.run(
         "UPDATE withdrawals SET status = 'rejected', decided_at = ?, decided_by = ?, note = ? WHERE id = ? AND status IN ('pending', 'approved')",
         [stamp, user.id, note, id],
@@ -1123,9 +1129,10 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       );
     } else if (action === 'paid') {
       if (row.status !== 'approved') fail(409, 'Approve the request before marking it paid.');
+      if (!reference) fail(400, 'Enter the PayPal transaction reference after sending the payment.');
       const res = await store.run(
-        "UPDATE withdrawals SET status = 'paid', paid_at = ?, note = ? WHERE id = ? AND status = 'approved'",
-        [stamp, note || row.note, id],
+        "UPDATE withdrawals SET status = 'paid', paid_at = ?, note = ?, payment_reference = ? WHERE id = ? AND status = 'approved'",
+        [stamp, note || row.note, reference, id],
       );
       if (!res.changes) fail(409, 'That request changed while you were deciding.');
     } else {

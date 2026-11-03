@@ -1,4 +1,14 @@
-## 4.3.9 Players earn without signing in, and the owner reviews payouts with a passcode (current release)
+## 4.4.0 Payout review leaves a paper trail: a reason to reject, a reference to pay (current release)
+
+- **Rejecting needs a reason.** The server refuses a rejection with no note, so the player always sees why their request came back instead of a silent refund.
+- **Marking paid needs the PayPal transaction reference.** A request must be approved first (unchanged), and now it also needs the reference from the payment you actually sent; without one the server answers `400`. The reference is stored on the payout (`payment_reference`) and shown in the owner queue and the CSV export.
+- **The owner sheet matches the rules.** Each payout row has a reason field and a reference field, and the buttons validate before calling the API, so the same mistake is caught on the phone as on the server.
+- **Databases upgrade themselves.** `payment_reference` ships in the schema and also as a re-runnable migration (`server/migrations.sql`) applied by the dev server and the Worker on first request, so an existing database gains the column without a manual step.
+- **Deleting the last owner frees the seat.** Otherwise a deleted owner would leave a Hollow whose passcode nobody knows; now the passcode is cleared and the seat can be claimed again.
+- Package: `versionName 4.4.0` / `versionCode 88`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.4.0-v88-release.apk`](SpriteHollow-4.4.0-v88-release.apk) — 780,748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `859953b931b6295a81d5e5eda98c86c61e7402c013c4b9f5742807c5fb4f5b6b`. Installs over 4.3.9 in place.
+
+## 4.3.9 Players earn without signing in, and the owner reviews payouts with a passcode (previous release)
 
 - **Nothing to sign up for.** A player who opens the Hollow is a guest: care pays coins and the Wallet takes a payout request with a PayPal email. No name, no password, no email, no invite code.
 - **The owner needs only a passcode.** Opening payout review the first time asks for a passcode the owner chooses on the spot; after that the same passcode unlocks the queue from any session. There is no owner account, and review runs on the guest session the game already made, so approving and paying payouts never requires signing in.

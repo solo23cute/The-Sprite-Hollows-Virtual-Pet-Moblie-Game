@@ -23,9 +23,13 @@ body = '\n'.join(line for line in sql.splitlines() if not line.strip().startswit
 statements = [chunk.strip() + ';' for chunk in body.split(';') if chunk.strip()]
 statements = [s for s in statements if s.lstrip().upper().startswith('CREATE')]
 assert len(statements) >= 12, f'only {len(statements)} statements parsed from schema.sql'
+migration_sql = open(f'{root}/server/migrations.sql', encoding='utf-8').read()
+migration_body = '\n'.join(line for line in migration_sql.splitlines() if not line.strip().startswith('--'))
+migrations = [chunk.strip() + ';' for chunk in migration_body.split(';') if chunk.strip()]
 open(f'{root}/deploy/schema.js', 'w', encoding='utf-8').write(
-    '/* Generated from server/schema.sql by tools/deploy-bundle.sh. */\n'
+    '/* Generated from server/schema.sql and server/migrations.sql by tools/deploy-bundle.sh. */\n'
     'export const SCHEMA_STATEMENTS = ' + json.dumps(statements, ensure_ascii=False) + ';\n'
+    'export const MIGRATIONS = ' + json.dumps(migrations, ensure_ascii=False) + ';\n'
 )
 PY
 
@@ -36,7 +40,7 @@ cat > "$OUT/worker.js" <<'JS'
 
 import { createCore } from './core.js';
 import { d1Store } from './store.js';
-import { SCHEMA_STATEMENTS } from './schema.js';
+import { MIGRATIONS, SCHEMA_STATEMENTS } from './schema.js';
 
 let schemaReady = null;
 
@@ -59,6 +63,13 @@ function ensureSchema(env) {
           await env.DB.prepare(statement).run();
         } catch (err) {
           if (!/already exists/i.test(String((err && err.message) || ''))) throw err;
+        }
+      }
+      for (const migration of MIGRATIONS) {
+        try {
+          await env.DB.prepare(migration).run();
+        } catch (err) {
+          if (!/duplicate column/i.test(String((err && err.message) || ''))) throw err;
         }
       }
     })().catch((err) => {

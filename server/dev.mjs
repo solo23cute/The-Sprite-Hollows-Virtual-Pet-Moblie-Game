@@ -21,6 +21,13 @@ const DB_PATH = process.env.COIN_PETS_DB || join(ROOT, '.coinpets', 'coinpets.sq
 mkdirSync(dirname(DB_PATH), { recursive: true });
 const db = new DatabaseSync(DB_PATH);
 db.exec(readFileSync(join(ROOT, 'server', 'schema.sql'), 'utf8'));
+for (const migration of readFileSync(join(ROOT, 'server', 'migrations.sql'), 'utf8').split(';')) {
+  const sql = migration.trim();
+  if (!sql) continue;
+  try { db.exec(sql); } catch (err) {
+    if (!/duplicate column/i.test(String(err && err.message))) throw err;
+  }
+}
 db.exec('PRAGMA journal_mode = WAL;');
 db.exec('PRAGMA foreign_keys = ON;');
 

@@ -184,8 +184,11 @@ const id = withdraw.data.withdrawalId;
 check('mark paid before approve is refused', (await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'paid' } })).status === 409);
 const approve = await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'approve' } });
 check('admin approves', approve.status === 200 && approve.data.withdrawal.status === 'approved');
-const paid = await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'paid', note: 'PayPal sent' } });
-check('admin marks paid', paid.status === 200 && paid.data.withdrawal.status === 'paid' && paid.data.withdrawal.paid_at > 0);
+check('marking paid needs a transaction reference', (await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'paid' } })).status === 400);
+const paid = await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'paid', note: 'PayPal sent', reference: 'PAYPAL-8N4K21' } });
+check('admin marks paid with a reference', paid.status === 200 && paid.data.withdrawal.status === 'paid' && paid.data.withdrawal.paid_at > 0, JSON.stringify(paid.data).slice(0, 120));
+const paidRow = (await owner.call('/api/admin/withdrawals?status=paid')).data.withdrawals.find((w) => w.id === id);
+check('the PayPal reference is kept on the payout', paidRow?.payment_reference === 'PAYPAL-8N4K21', JSON.stringify(paidRow || {}).slice(0, 120));
 check('paid request cannot be rejected', (await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'reject' } })).status === 409);
 check('player sees paid status', (await player.call('/api/wallet')).data.withdrawals[0].status === 'paid');
 
@@ -202,6 +205,7 @@ check('player cannot export payouts', (await player.call('/api/admin/withdrawals
 const balanceNow = (await player.call('/api/wallet')).data.wallet.coins;
 const again = await player.call('/api/wallet/withdraw', { body: { coins: 100, paypalEmail: 'player@example.com' } });
 check('second withdrawal allowed after the first closed', again.status === 201);
+check('rejecting without a reason is refused', (await owner.call(`/api/admin/withdrawals/${again.data.withdrawalId}/decide`, { body: { action: 'reject' } })).status === 400);
 await owner.call(`/api/admin/withdrawals/${again.data.withdrawalId}/decide`, { body: { action: 'reject', note: 'Test refund' } });
 const refunded = (await player.call('/api/wallet')).data.wallet.coins;
 check('rejection returns the coins', refunded === balanceNow, `before=${balanceNow} after=${refunded}`);
