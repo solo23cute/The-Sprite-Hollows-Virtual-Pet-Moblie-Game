@@ -1444,16 +1444,16 @@ function rollTrailBonus(s, info, payout) {
 /* ---------------- actions ---------------- */
 /* Daily spin prizes, in Hollow coins. The screen lists them in this order. */
 /* Coins won inside the Hollow also land in the wallet the cash pill shows.
-   The award's id is derived from the game's own lifetime counter, so a retry
-   re-sends the same id and the server cannot pay the same win twice. */
+   The win is handed to the outbox, which saves it on the phone before sending,
+   so a lost connection delays the coins instead of dropping them. */
 function reportEarn(amount, source) {
   const n = Math.round(Number(amount) || 0);
   if (n <= 0) return;
   try {
     const api = typeof window !== 'undefined' ? window.PetEarn : null;
     if (!api || typeof api.earn !== 'function' || api.offline) return;
-    const key = `${source}:${state.createdAt || 0}:${state.stats.earned || 0}:${n}`;
-    api.earn(n, source, key).catch(() => {});
+    const send = typeof api.enqueue === 'function' ? api.enqueue(n, source) : api.earn(n, source, `${source}:${state.createdAt || 0}:${state.stats.earned || 0}:${n}`);
+    send.catch(() => {});
   } catch { /* offline */ }
 }
 

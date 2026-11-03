@@ -1,4 +1,13 @@
-## 4.5.1 Every payout is re-checked before it is approved (current release)
+## 4.5.2 A win survives a dead connection (current release)
+
+- **Rewards are saved before they are sent.** Every coin win — minigame, quest, spin, check-in — is written to a per-device outbox first, then posted to `/api/earn`. Lose signal mid-game and the win waits on the phone instead of vanishing.
+- **Retrying cannot double-pay.** Each queued entry keeps its own id, which is the `earn_claims` key on the server, so replaying the queue after a crash or a reconnect pays each win exactly once.
+- **It retries by itself.** The queue flushes when the phone reports it is online and again whenever the Wallet opens; an award the server will never accept is dropped rather than wedging the queue behind it.
+- **The wallet shows the backlog:** "⏳ N rewards saved on this phone, syncing automatically" appears while anything is waiting.
+- Package: `versionName 4.5.2` / `versionCode 91`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.5.2-v91-release.apk`](SpriteHollow-4.5.2-v91-release.apk) — 780,748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `ea7f2209a4c5fd8142e9e87d1248abf7fff7af367cb91691039ca29fb26c02ca`. Installs over 4.5.1 in place.
+
+## 4.5.1 Every payout is re-checked before it is approved (previous release)
 
 - **Approval no longer trusts the moment the request was made.** Approving a payout re-checks that it is still pending, that it still meets the withdrawal minimum, that the player's banked earnings cover it, that the coins convert to a whole number of US cents, and that the stored PayPal email is still valid — each with its own message, as in the pasted `approvePayout`.
 - **Whole US cents or nothing.** A request that would previously have been silently rounded down (for example 5,105 coins at 1,000 per dollar) is now refused with "does not convert to whole US cents", and the cash-out form pre-fills the largest whole-cent amount instead of one that will bounce.

@@ -72,6 +72,10 @@
   }
 
   /* The top-bar "cash" pill is the server balance. */
+  try {
+    window.addEventListener('online', () => { flushOutbox().catch(() => {}); });
+  } catch { /* no window */ }
+
   function syncPill() {
     const coins = S.me?.wallet?.coins;
     if (typeof coins !== 'number') return;
@@ -126,6 +130,61 @@
     } catch (err) {
       return { award: 0, error: err.message, retryAfter: err.data?.retryAfter };
     }
+  }
+
+  /* A win is saved on the phone before it is sent, so losing signal mid-game
+     keeps the reward and pays it in later instead of dropping it. Each entry
+     keeps its own id, so replaying the queue can never pay a win twice. */
+  const OUTBOX_KEY = () => `spritehollow.reward-outbox.${S.me?.user?.id || 'guest'}`;
+  function outboxRead() {
+    try {
+      const list = JSON.parse(localStorage.getItem(OUTBOX_KEY()) || '[]');
+      return Array.isArray(list) ? list : [];
+    } catch { return []; }
+  }
+  function outboxWrite(list) {
+    try { localStorage.setItem(OUTBOX_KEY(), JSON.stringify(list.slice(-200))); } catch { /* full or private */ }
+  }
+  let outboxBusy = null;
+
+  async function flushOutbox() {
+    if (outboxBusy) return outboxBusy;
+    if (LOCAL_ONLY) return { award: 0, pending: 0 };
+    outboxBusy = (async () => {
+      let list = outboxRead();
+      let rewarded = 0;
+      while (list.length) {
+        const item = list[0];
+        try {
+          const data = await api('/earn', {
+            body: { amount: item.amount, source: item.source, key: item.id },
+          });
+          rewarded += Number(data.award || 0);
+          if (data.wallet) { S.me.wallet = data.wallet; syncPill(); }
+          list = list.slice(1);
+          outboxWrite(list);
+        } catch (err) {
+          // an award the server will never accept is dropped, anything else waits
+          if (/not a coin source|cannot be banked|needs an id/.test(String(err && err.message))) {
+            list = list.slice(1);
+            outboxWrite(list);
+            continue;
+          }
+          break;
+        }
+      }
+      return { award: rewarded, pending: list.length };
+    })();
+    try { return await outboxBusy; } finally { outboxBusy = null; }
+  }
+
+  function enqueue(amount, source) {
+    const n = Math.round(Number(amount) || 0);
+    if (LOCAL_ONLY || n <= 0) return Promise.resolve({ award: 0, pending: 0 });
+    const list = outboxRead();
+    list.push({ id: (crypto.randomUUID ? crypto.randomUUID() : `r${Date.now()}-${list.length}`), amount: n, source, at: Date.now() });
+    outboxWrite(list);
+    return flushOutbox();
   }
 
   /* Hollow coins banked into the same wallet the pill shows. Fire-and-forget:
@@ -188,6 +247,7 @@
           : `Minimum ${fmt(min)} coins ≈ ${money(Math.floor((min * 100) / rate))}.`}</p>
         <button class="btn btn-primary btn-block" type="submit" style="margin-top:10px" ${w.coins < min ? 'disabled' : ''}>Request payout</button>
       </form>
+      ${(() => { const waiting = outboxRead().length; return waiting ? `<p class="tiny muted" style="margin:10px 2px 0">⏳ ${waiting} reward${waiting === 1 ? '' : 's'} saved on this phone, syncing automatically.</p>` : ''; })()}
       <div class="section-title"><h2>Your requests</h2></div>
       ${historyHTML(data.withdrawals)}
       <button class="btn btn-soft btn-block" data-owner style="margin-top:14px">🛠️ Owner tools</button>`;
@@ -199,6 +259,7 @@
   }
 
   async function openWallet() {
+    if (!LOCAL_ONLY) flushOutbox().catch(() => {});
     if (LOCAL_ONLY) {
       const sheet = openSheet({
         title: 'Wallet',
@@ -464,6 +525,9 @@
     apiBase: API,
     care,
     earn,
+    enqueue,
+    flushOutbox,
+    pendingRewards: () => outboxRead().length,
     wallet,
     openWallet,
     openOwner,
