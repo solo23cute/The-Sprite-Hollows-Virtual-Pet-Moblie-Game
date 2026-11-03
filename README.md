@@ -1,4 +1,14 @@
-## 4.7.2 The payout budget is a seven-day allowance (current release)
+## 4.7.3 The tour explains where the money goes (current release)
+
+- **The cash-out step was rewritten for the payout system that actually ships.** It now says any amount can be cashed out, that PayPal only pays whole cents so the request rounds down and the leftover coins stay in your balance, and that the server sends the payout itself — no approval step and no owner in the way.
+- **It explains the guarantees:** the PayPal reference is stored on the request so a retried send cannot pay twice, coins are held the moment you ask and come straight back if PayPal refuses, and the ceiling is a rolling seven-day allowance ($5 by default) with anything above it waiting for review.
+- **And the code-free owner seat:** Studio → Payout review asks for no code and has no account — the first session to open it owns the Hollow.
+- **The wallet copy matches.** The estimate line no longer talks about a minimum; it says any amount is cashable down to one cent, and submitting nothing says "Enter how many coins to cash out."
+- **Tests:** the tour suite is 22 checks now and fails if the tour stops mentioning any amount, the missing approval step, the seven-day allowance, or the code-free seat, or if a minimum creeps back in. API 88, payout 27, client wallet 64, owner 20, rewards 28, worker schema 9.
+- Package: `versionName 4.7.3` / `versionCode 96`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.7.3-v96-release.apk`](SpriteHollow-4.7.3-v96-release.apk) — 780748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `66639a8d7aa0e4c87be7e282905cb6bdc8991b78159aeb18720bc269afa1d9ed`. Installs over 4.7.2 in place.
+
+## 4.7.2 The payout budget is a seven-day allowance (previous release)
 
 - **The ceiling rolls instead of resetting at midnight.** Every cent already paid in the last seven days counts against the next cash-out, so waiting for a new day no longer opens fresh budget.
 - **Same setting, longer window.** `payout_weekly_budget_cents` defaults to 500 — $5 for the whole week, owner-adjustable, and `0` still stops every automatic payout. A deployment that already stored `payout_daily_budget_cents` keeps its number: the old name is still read, and still accepted on write.

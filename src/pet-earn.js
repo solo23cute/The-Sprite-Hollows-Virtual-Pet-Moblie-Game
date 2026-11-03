@@ -244,7 +244,7 @@
         <input name="paypalEmail" type="email" inputmode="email" placeholder="you@example.com" style="${fieldStyle}">
         <p class="tiny muted" data-est style="margin:8px 2px 0">${w.coins >= min
           ? `${fmt(offer)} coins ≈ ${money(Math.floor((offer * 100) / rate))} via PayPal.`
-          : `Minimum ${fmt(min)} coins ≈ ${money(Math.floor((min * 100) / rate))}.`}</p>
+          : `Any amount is cashable, down to one cent.`}</p>
         <button class="btn btn-primary btn-block" type="submit" style="margin-top:10px" ${w.coins < min ? 'disabled' : ''}>Request payout</button>
       </form>
       ${(() => { const waiting = outboxRead().length; return waiting ? `<p class="tiny muted" style="margin:10px 2px 0">⏳ ${waiting} reward${waiting === 1 ? '' : 's'} saved on this phone, syncing automatically.</p>` : ''; })()}
@@ -292,7 +292,7 @@
           const coins = Number(input.value || 0);
           est.textContent = coins >= min
             ? `${fmt(coins)} coins ≈ ${money(Math.floor((coins * 100) / rate))} via PayPal.`
-            : `Minimum ${fmt(min)} coins ≈ ${money(Math.floor((min * 100) / rate))}.`;
+            : `Any amount is cashable, down to one cent.`;
         };
         input.addEventListener('input', paintEstimate);
         paintEstimate();
@@ -302,7 +302,7 @@
           if (S.busy) return;
           const coins = Number(input.value || 0);
           const paypalEmail = form.querySelector('[name="paypalEmail"]').value.trim();
-          if (!coins || coins < min) { toast(`The minimum payout is ${fmt(min)} coins.`, '🪙'); return; }
+          if (!coins || coins < min) { toast('Enter how many coins to cash out.', '🪙'); return; }
           if (!paypalEmail) { toast('Add the PayPal email for the payout.', '✉️'); return; }
           S.busy = true;
           try {

@@ -89,6 +89,7 @@ const probe = `
     collect(steps.filter((s) => s.kicker !== 'STUCK SPRITES & REPAIR'), 'steps');
     collect(TOUR_I18N, 'i18n');
 
+    const coinStep = TOUR_STEPS.find((s) => s.kicker === 'COINS & CASH OUT');
     const growth = TOUR_STEPS.find((s) => s.kicker === 'SPRITES & GROWTH');
     return {
       total: steps.length,
@@ -99,6 +100,8 @@ const probe = `
       window: kickers.slice(2, 8),
       languages,
       growthTitle: growth ? growth.title : null,
+      coinPoints: coinStep ? coinStep.points.join(' ') : '',
+      coinTip: coinStep ? coinStep.tip : '',
       staleCapWording: stale.slice(0, 6),
       staleCapCount: stale.length,
       newStepPoints: steps.filter((s) => ['COINS & CASH OUT', 'MYSTERY SHOP', 'STUCK SPRITES & REPAIR', 'SAVE BACKUP'].includes(s.kicker)).map((s) => [s.kicker, s.points.length]),
@@ -149,6 +152,11 @@ check(
 check('the growth step still tracks MAX_LEVEL', /1,000/.test(r.growthTitle || ''), r.growthTitle);
 
 check('no step still describes the old level-30 cap', r.staleCapCount === 0, `${r.staleCapCount}: ${r.staleCapWording.join(', ')}`);
+check('the cash-out step says any amount can go', /any amount/i.test(r.coinPoints), r.coinPoints.slice(0, 120));
+check('the cash-out step says there is no approval step', /no approval/i.test(r.coinPoints), r.coinPoints.slice(0, 120));
+check('the cash-out step names the rolling seven-day allowance', /seven-day/i.test(r.coinPoints), r.coinPoints.slice(0, 120));
+check('the cash-out step says the owner seat needs no code', /no code/i.test(r.coinTip), r.coinTip.slice(0, 120));
+check('the cash-out step never mentions a minimum', !/minimum/i.test(r.coinPoints + r.coinTip), (r.coinPoints + r.coinTip).slice(0, 140));
 check('each new step carries at least three points', r.newStepPoints.every(([, n]) => n >= 3), JSON.stringify(r.newStepPoints));
 
 for (const lang of r.languages) {

@@ -241,14 +241,17 @@ const TOUR_NEW_STEPS = [
   {
     icon: '🪙', kicker: 'COINS & CASH OUT',
     title: 'Care pays coins you can cash out',
-    text: `Caring in the Hollow now pays real coins. The pill beside your name is your balance, and it is the same number the wallet pays out. Tap the 💵 Cash out chip on the Hollow, or open Studio → Coins & wallet, to read the rate, request a payout to your PayPal email, and follow each request from pending to paid.`,
+    text: `Caring in the Hollow now pays real coins. The pill beside your name is your balance, and it is the same number the wallet pays out. Tap the 💵 Cash out chip on the Hollow, or open Studio → Coins & wallet, to read the rate, type any amount, and send it to your PayPal email. Nothing asks for a code, a signup, or an approval: when PayPal is wired up on the server the money leaves straight from your request, and that request turns paid in the list under the form.`,
     points: [
-      'Coins are a ledger on the Hollow server: care and games add, a request holds its coins the moment you send it, and a rejection puts them straight back.',
-      'One payout can be open at a time. The form shows the minimum and keeps its button disabled until you have enough.',
+      'Coins are a ledger on the Hollow server: care and games add, a request holds its coins the moment you send it, and a refusal puts them straight back.',
+      'Any amount cashes out. PayPal only pays whole cents, so the request rounds down to the last full cent and the leftover coins stay in your balance instead of being refused.',
+      'There is no approval step. The server sends the PayPal batch itself, and its reference is stored on the request so a retried send can never pay twice.',
+      'One payout can be open at a time, and the day\u2019s request cap still applies.',
+      'The payout ceiling is a rolling seven-day allowance (500 cents, $5 a week by default): anything above what is left waits for review and says so.',
       'Shop coins, which buy eggs, and wallet coins, which turn into money, are separate balances — the wallet never touches your egg money.',
       'The wallet needs the online Hollow. A packaged copy with no server beside it says so plainly instead of pretending care paid.',
     ],
-    tip: 'Studio → Payout review is where the owner approves, marks paid, rejects, or exports the payout CSV.',
+    tip: 'Studio → Payout review asks for no code and has no account: the first session to open it owns the Hollow, and reviews, marks paid, rejects, or exports the CSV for whatever the weekly allowance left waiting.',
   },
   {
     icon: '❓', kicker: 'MYSTERY SHOP',
