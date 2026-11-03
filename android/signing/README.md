@@ -1,23 +1,33 @@
-# Project signing key
+# Signing key
 
-`spritehollow-release.keystore` is the key every Sprite Hollow build is signed
-with. It is committed on purpose: Android only installs an update over an app
-signed with the *same* certificate, so keeping the key in the repository is what
-lets a new APK replace the old one and keep the player's saved Hollow. If the
-key is lost, every installed copy has to be uninstalled (which clears saves)
-before another build can be installed.
+The APK signing key is **not** in this repository. It is a local file at
+`android/signing/spritehollow-release.keystore` with its password in
+`android/signing/.pass`; both are gitignored. `android/build.sh` reads them
+automatically and falls back to `KEYSTORE` / `KEYPASS` from the environment.
 
-- alias: `spritehollow`
-- store and key password: `spritehollow`
-- RSA 2048, validity 10,000 days
-- SHA-256: `40b1de4951c631ec8349687ed9d3065984677a050f91bb96710c745620a15d37`
+Why: 4.3.4 accidentally published a keystore together with its password. Anyone
+could have signed an APK that installs over it, so that key is retired. 4.3.5
+is signed with a fresh RSA-3072 key.
 
-This is a sideloaded game, not a Play Store app, so the key is not used to prove
-identity to anyone — it exists so updates chain. Do not reuse it for anything
-else, and do not publish builds signed with any other key under the same
-package name.
+## The lineage
 
-`android/build.sh` picks this file up automatically. To sign with something else
-(for example to match a phone that still trusts an older key):
+`lineage.bin` is public and safe to commit. It is an apksigner
+SigningCertificateLineage recording that the new key descends from the old one,
+which lets a device that trusts the old certificate accept builds signed by the
+new one (Android 9+, via APK Signature Scheme v3). Every build signed here
+passes `--lineage android/signing/lineage.bin`.
 
-    KEYSTORE=/path/other.keystore KEYPASS=secret bash android/build.sh out.apk
+If you rotate again:
+
+    apksigner rotate --in android/signing/lineage.bin \
+      --out android/signing/lineage.bin \
+      --old-signer --ks <current>.keystore --ks-pass pass:<pass> --ks-key-alias spritehollow \
+      --new-signer --ks <new>.keystore --ks-pass pass:<pass2> --ks-key-alias spritehollow
+
+Then sign with the newest key and the same lineage file.
+
+## Back it up
+
+Losing the keystore means every installed copy must be uninstalled (clearing
+saves) before another build can be installed. Keep `spritehollow-release.keystore`
+and `.pass` in a password manager or private backup, never in this repository.
