@@ -14,7 +14,8 @@ is signed with a fresh RSA-3072 key.
 `lineage.bin` is public and safe to commit. It is an apksigner
 SigningCertificateLineage recording that the new key descends from the old one,
 which lets a device that trusts the old certificate accept builds signed by the
-new one (Android 9+, via APK Signature Scheme v3). Every build signed here
+new one. apksigner applies it by API level: phones on Android 7-12 (API
+24-32) keep the old certificate, Android 13+ (API 33+) get the new one. Every build signed here
 passes `--lineage android/signing/lineage.bin`.
 
 If you rotate again:
