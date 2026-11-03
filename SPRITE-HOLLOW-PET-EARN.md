@@ -30,9 +30,11 @@ no name, no password, no invite code. Its coins, care streak and payout history
 follow that browser's session cookie, and every action is still recorded in the
 server-side ledger.
 
-**The owner account** is separate and optional: Wallet → Owner access creates it
-(the first one) or signs in. It is only needed to review payouts, change payout
-settings and mint invite codes for older account-based signups.
+**The owner seat needs no account and no code.** The first session to open
+Wallet → Owner tools takes it, and every session after that is an ordinary
+player. It is only needed to review payouts, change payout settings and mint
+invite codes for older account-based signups. Deleting the owner's guest account
+frees the seat for the next session.
 
 Set `ADMIN_INVITE_CODE` before boot if you would rather protect the first admin
 account with a secret:
@@ -141,7 +143,9 @@ static game files, excluding `server/`, `.coinpets/` and the APK archives.
 | Method | Path | Who |
 | --- | --- | --- |
 | GET | `/api/bootstrap` | anyone |
-| POST | `/api/auth/signup` | invite / first owner |
+| POST | `/api/auth/signup` | anyone (the first account becomes owner) |
+| POST | `/api/owner/claim` | player (takes a free owner seat; no body) |
+| POST | `/api/owner/login` | alias of `/api/owner/claim` for older installs |
 | POST | `/api/auth/login`, `/api/auth/logout` | anyone |
 | GET | `/api/me` | player |
 | POST | `/api/pet/care` | player |

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-/* Owner access by passcode: claiming the Hollow, unlocking payout review from a
-   guest session, refusing the wrong passcode and rate-limiting guesses.
-   Run: node server/test-owner.mjs */
+/* Owner access with no account and no code: the first session to open payout
+   review takes the seat, everyone after that is a player, and the seat frees
+   itself when the owner leaves. Run: node server/test-owner.mjs */
 import { spawn } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -58,48 +58,53 @@ try {
     await sleep(120);
   }
 
-  console.log('\nOwner passcode checks\n');
+  console.log('\nOwner seat without a code\n');
   const boot = await client().call('/api/bootstrap');
   check('a fresh Hollow has no owner seat taken', boot.data?.needsSetup === true && boot.data?.ownerClaimed === false, JSON.stringify(boot.data).slice(0, 90));
 
-  const early = client();
-  check('payout review needs a session first', (await early.call('/api/admin/withdrawals')).status === 401);
+  check('payout review needs a session first', (await client().call('/api/admin/withdrawals')).status === 401);
 
   const owner = client();
   const join = await owner.call('/api/guest', { method: 'POST' });
   check('the owner can arrive as an ordinary guest', join.status === 201 && !!join.data?.token);
-  check('a guest is not an owner yet', join.data?.user?.isAdmin === false);
-  check('a short passcode is refused', (await owner.call('/api/owner/login', { body: { passcode: 'short' } })).status === 400);
+  check('a brand-new guest is not an owner yet', join.data?.user?.isAdmin === false);
 
-  const claim = await owner.call('/api/owner/login', { body: { passcode: 'hollow-owner-9' } });
-  check('the first passcode claims the Hollow', claim.status === 201 && claim.data?.claimed === true, `status=${claim.status}`);
+  /* the whole claim: no body, no passcode, no account */
+  const claim = await owner.call('/api/owner/claim', { method: 'POST' });
+  check('the first session claims the Hollow with nothing at all', claim.status === 201 && claim.data?.claimed === true, `status=${claim.status}`);
   check('the claimer becomes the owner', claim.data?.owner?.isAdmin === true);
 
+  const again = await owner.call('/api/owner/claim', { method: 'POST' });
+  check('claiming again is idempotent, not a second seat', again.status === 200 && again.data?.claimed === false, `status=${again.status}`);
+
   const queue = await owner.call('/api/admin/withdrawals?status=pending');
-  check('payout review opens with no sign-up', queue.status === 200 && Array.isArray(queue.data?.withdrawals), `status=${queue.status}`);
+  check('payout review opens with no sign-up and no code', queue.status === 200 && Array.isArray(queue.data?.withdrawals), `status=${queue.status}`);
   check('the overview opens too', (await owner.call('/api/admin/overview')).status === 200);
+
   const boot2 = await client().call('/api/bootstrap');
   check('the Hollow reports itself claimed', boot2.data?.needsSetup === false && boot2.data?.ownerClaimed === true);
 
   const other = client();
   await other.call('/api/guest', { method: 'POST' });
   check('a player cannot review payouts', (await other.call('/api/admin/withdrawals')).status === 403);
-  check('the wrong passcode is refused', (await other.call('/api/owner/login', { body: { passcode: 'not-the-code' } })).status === 403);
-  check('the right passcode unlocks another session', (await other.call('/api/owner/login', { body: { passcode: 'hollow-owner-9' } })).status === 200);
-  check('that session can review payouts', (await other.call('/api/admin/withdrawals')).status === 200);
-  check('a second claim cannot seize the seat', (await client().call('/api/owner/login', { body: { passcode: 'hijack-attempt' } })).status === 401);
+  check('a player cannot claim the seat', (await other.call('/api/owner/claim', { method: 'POST' })).status === 403);
+  check('posting a passcode-shaped body changes nothing', (await other.call('/api/owner/claim', { body: { passcode: 'hijack-attempt' } })).status === 403);
+  check('an old build knocking on /owner/login is refused too', (await other.call('/api/owner/login', { body: { passcode: 'hijack-attempt' } })).status === 403);
+  check('that player still cannot review payouts', (await other.call('/api/admin/withdrawals')).status === 403);
 
-  /* the owner can still claim their own payout path: settings + a review */
   check('the owner can tune the payout minimum', (await owner.call('/api/admin/settings', { method: 'PUT', body: { minWithdrawCoins: 100 } })).status === 200);
 
-  const guesser = client();
-  await guesser.call('/api/guest', { method: 'POST' });
-  let limited = false;
-  for (let i = 0; i < 12; i++) {
-    const attempt = await guesser.call('/api/owner/login', { body: { passcode: `wrong-guess-${i}` } });
-    if (attempt.status === 429) { limited = true; break; }
-  }
-  check('repeated wrong passcodes are rate limited', limited);
+  const left = await owner.call('/api/account', { method: 'DELETE', body: { confirm: 'DELETE' } });
+  check('the owner can delete their guest account', left.status === 200 && left.data?.unclaimed === true, JSON.stringify(left.data));
+
+  const boot3 = await client().call('/api/bootstrap');
+  check('the seat is free again, with no code left behind', boot3.data?.ownerClaimed === false && boot3.data?.needsSetup === true);
+
+  const next = client();
+  await next.call('/api/guest', { method: 'POST' });
+  const reclaim = await next.call('/api/owner/claim', { method: 'POST' });
+  check('the next session takes the free seat with no code', reclaim.status === 201 && reclaim.data?.claimed === true, `status=${reclaim.status}`);
+  check('and can review payouts straight away', (await next.call('/api/admin/withdrawals?status=pending')).status === 200);
 } catch (err) {
   failures.push(String(err && err.message));
   console.log(`\nFAIL  ${err && err.message}`);

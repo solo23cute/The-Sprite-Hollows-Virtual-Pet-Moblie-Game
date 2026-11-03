@@ -1,4 +1,14 @@
-## 4.5.2 A win survives a dead connection (current release)
+## 4.6.0 Earn and cash out with no code at all (current release)
+
+- **No passcode, no signup, no invite.** A player opens the Hollow, earns coins by caring and playing, and asks for a PayPal payout from the Wallet with an email address. Nothing in that path asks for a code.
+- **The owner seat claims itself.** The first session to open Wallet → Owner tools becomes the payout owner. Everyone after that is a player and sees only "Another session owns this Hollow" — there is no secret to type, and nothing to forget.
+- **The seat frees itself.** Deleting the owner's guest account releases the seat, and the next session to open payout review takes it. An older install that still posts a passcode to `/api/owner/login` claims the same seat; its body is read and ignored.
+- **Guarded where the money is.** Reviewing payouts, changing payout settings and exporting the CSV stay behind the owner seat: a player calling those routes gets `403`, and approving a payout still re-checks it against the live rules.
+- **Tests:** owner suite 20 checks (claim with no body at all, an idempotent second claim, a player refused the seat, a passcode-shaped body ignored, the seat freed on delete, the next session claiming it), API 87, client wallet 64, rewards 28, tour 17, worker schema 9. `node --check` passes on every changed source.
+- Package: `versionName 4.6.0` / `versionCode 92`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.6.0-v92-release.apk`](SpriteHollow-4.6.0-v92-release.apk) — 780,748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `cf4e80f9651c1b060c49c60318e7f07003ca2c979afba34616d231021337c2de`. Installs over 4.5.2 in place.
+
+## 4.5.2 A win survives a dead connection (previous release)
 
 - **Rewards are saved before they are sent.** Every coin win — minigame, quest, spin, check-in — is written to a per-device outbox first, then posted to `/api/earn`. Lose signal mid-game and the win waits on the phone instead of vanishing.
 - **Retrying cannot double-pay.** Each queued entry keeps its own id, which is the `earn_claims` key on the server, so replaying the queue after a crash or a reconnect pays each win exactly once.

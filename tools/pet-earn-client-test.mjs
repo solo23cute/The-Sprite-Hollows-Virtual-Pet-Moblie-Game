@@ -248,16 +248,17 @@ try {
   check('it offers no payout form that could only fail', !bareBody.includes('name="coins"'));
   check('opening the wallet still makes no request', packedBare.state.calls === 0, `calls=${packedBare.state.calls}`);
 
-  /* ---------- 2b. payout review asks for a passcode, not an account ---------- */
+  /* ---------- 2b. payout review asks for no code and no account ---------- */
   console.log('\npayout review access');
   const reviewer = boot();
-  reviewer.state.armSheet = false; /* only the rendered form matters here */
+  reviewer.state.armSheet = false; /* only the rendered sheet matters here */
   await reviewer.petEarn.openOwner();
   const reviewerBody = reviewer.state.sheets.at(-1)?.body || '';
-  check('payout review asks for a passcode', /Owner passcode/.test(reviewerBody), reviewerBody.slice(0, 120));
+  check('payout review asks for no code at all', !/passcode|name="code"/i.test(reviewerBody), reviewerBody.slice(0, 140));
+  check('it renders no input to type into', !/<input/.test(reviewerBody), reviewerBody.slice(0, 140));
   check('it never asks for a username or email', !/name="username"/.test(reviewerBody) && !/E-mail|email/i.test(reviewerBody));
-  check('the sheet talks to the passcode endpoint', readFileSync(resolve(ROOT, 'src/pet-earn.js'), 'utf8').includes("'/owner/login'"));
-  check('the server offers the same door', readFileSync(resolve(ROOT, 'server/core.js'), 'utf8').includes("api\\/owner\\/login"));
+  check('the sheet claims the seat with no secret', readFileSync(resolve(ROOT, 'src/pet-earn.js'), 'utf8').includes("'/owner/claim'"));
+  check('the server offers the same door', readFileSync(resolve(ROOT, 'server/core.js'), 'utf8').includes("api\\/owner\\/claim"));
 
   /* ---------- 2c. game coins bank into the wallet ---------- */
   console.log('\nbanking game coins');

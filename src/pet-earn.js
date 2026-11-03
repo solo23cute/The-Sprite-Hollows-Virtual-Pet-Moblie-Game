@@ -328,19 +328,6 @@
     return sheet.close;
   }
 
-  function ownerForm({ claiming = false } = {}) {
-    return `
-      <p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">Players earn without signing in. ${claiming
-        ? 'Choose an owner passcode to review payouts — no account, no email.'
-        : 'Enter the owner passcode to review payouts.'}</p>
-      <form data-owner-form>
-        <label class="tiny muted" style="display:block;margin:0 2px 5px">Owner passcode</label>
-        <input name="passcode" type="password" autocomplete="${claiming ? 'new-password' : 'current-password'}" placeholder="at least 8 characters" required minlength="8" style="${fieldStyle}">
-        <button class="btn btn-primary btn-block" type="submit" style="margin-top:12px">${claiming ? 'Claim this Hollow' : 'Unlock payout review'}</button>
-      </form>
-      <p class="tiny muted" style="margin:10px 2px 0;line-height:1.6">Keep it safe — this passcode is the only thing in front of other players' payouts.</p>`;
-  }
-
   async function adminBody() {
     const [overview, pending] = await Promise.all([
       api('/admin/overview'),
@@ -378,54 +365,36 @@
       });
       return sheet.close;
     }
-    let needsSetup = false;
-    let ownerClaimed = true;
-    try {
-      const boot = await api('/bootstrap');
-      needsSetup = !!boot.needsSetup;
-      ownerClaimed = boot.ownerClaimed !== false;
-    } catch { /* offline: still offer the passcode form */ }
-
-    const isOwner = !!S.me?.user?.isAdmin;
-    const claiming = !ownerClaimed && needsSetup;
-    let body = '';
-    if (isOwner) {
+    /* Nothing to type. The first session to open payout review takes the seat;
+       anyone after that is a player and only sees who reviews the payouts. */
+    if (!S.me?.user?.isAdmin) {
       try {
-        body = await adminBody();
+        const res = await api('/owner/claim', { method: 'POST' });
+        S.me = { ...(S.me || {}), user: res.owner || { ...(S.me?.user || {}), isAdmin: true } };
+        if (res.claimed) toast('This Hollow is yours — payouts are reviewed here.', '🔑');
       } catch (err) {
-        body = `<p class="tiny muted">${esc(err.message)}</p>`;
+        const sheet = openSheet({
+          title: 'Payout review',
+          sub: 'Another session owns this Hollow.',
+          body: `<p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">${esc(err.message)}</p>
+            <p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">There is nothing to type: earning coins and cashing out work exactly the same from the Wallet.</p>`,
+        });
+        return sheet.close;
       }
-    } else {
-      body = ownerForm({ claiming });
+    }
+
+    let body = '';
+    try {
+      body = await adminBody();
+    } catch (err) {
+      body = `<p class="tiny muted">${esc(err.message)}</p>`;
     }
 
     const sheet = openSheet({
-      title: isOwner ? 'Payout review' : (claiming ? 'Claim this Hollow' : 'Owner access'),
-      sub: isOwner ? 'Approve, pay or reject PayPal payouts.' : 'A passcode is all the owner needs.',
+      title: 'Payout review',
+      sub: 'Approve, pay or reject PayPal payouts.',
       body,
       onMount: (root, close) => {
-        const form = root.querySelector('[data-owner-form]');
-        if (form) {
-          form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            if (S.busy) return;
-            const payload = Object.fromEntries(new FormData(form).entries());
-            S.busy = true;
-            try {
-              const res = await api('/owner/login', { body: payload });
-              S.me = { ...(S.me || {}), user: res.owner || { ...(S.me?.user || {}), isAdmin: true } };
-              toast(res.claimed ? 'This Hollow is yours. Keep the passcode safe.' : 'Owner passcode accepted.', '🔑');
-              close();
-              openOwner();
-            } catch (err) {
-              toast(err.message, '😕');
-            } finally {
-              S.busy = false;
-            }
-          });
-          return;
-        }
-
         root.querySelectorAll('[data-decide]').forEach((btn) => {
           btn.addEventListener('click', async () => {
             if (S.busy) return;
