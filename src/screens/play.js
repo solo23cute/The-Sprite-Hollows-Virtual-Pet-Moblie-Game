@@ -152,9 +152,11 @@ function playScreen(root) {
           <span class="chip">Energy ${Math.round(s.needs.energy)}</span>
           <span class="chip">Joy ${Math.round(s.needs.joy)}</span>
           <span class="chip">Bond ${Math.round(s.bond)}</span>
+          <span class="chip">${careBonusText(s)}</span>
           ${rarityChip(s)}
         </div>
         ${s.needs.energy < 20 ? '<div class="tiny" style="color:var(--warn);margin-top:6px">Sleepy — a nap in the Hollow will perk them up.</div>' : ''}
+        ${careCoinMultiplier(s) < 1.5 ? '<div class="tiny muted" style="margin-top:6px">Games pay this bonus. Feed, play and rest above 90 to reach ×1.50.</div>' : ''}
       </span>
     </div>`;
   }

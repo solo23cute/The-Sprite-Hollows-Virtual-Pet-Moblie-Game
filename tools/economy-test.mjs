@@ -142,6 +142,9 @@ check('a spin on a past day is ready again', boot({ spin: { date: '2026-10-01', 
 const stateSource = readFileSync(resolve(ROOT, 'src/state.js'), 'utf8');
 check('state keeps the spin across reloads', /merged\.spin = parsed\.spin/.test(stateSource) && /spin: null,/.test(stateSource));
 check('state pays the spin through the coin ledger', /spinWheel\(\)[\s\S]{0,400}addCoinsRaw\(prize, 'spin'\)/.test(stateSource));
+check('care raises a multiplier from joy, hunger and energy', /function careCoinMultiplier[\s\S]{0,260}n\.joy\) > 90[\s\S]{0,120}n\.hunger\) > 90[\s\S]{0,120}n\.energy\) > 90/.test(stateSource));
+check('the care multiplier reaches the game payout itself', /const care = s \? careCoinMultiplier\(s\) : 1;[\s\S]{0,140}\* care\);/.test(stateSource) && /care: reward\.care/.test(stateSource));
+check('the screens tell the player the care bonus', readFileSync(resolve(ROOT, 'src/screens/play.js'), 'utf8').includes('careBonusText(s)') && readFileSync(resolve(ROOT, 'src/games.js'), 'utf8').includes('care bonus'));
 check('the game loads the screen', readFileSync(resolve(ROOT, 'index.html'), 'utf8').includes('src/economy.js'));
 const mainSource = readFileSync(resolve(ROOT, 'src/main.js'), 'utf8');
 check('the top bar has the button and a handler', mainSource.includes('data-rewards') && /data-rewards\]'\)\?\.addEventListener/.test(mainSource));

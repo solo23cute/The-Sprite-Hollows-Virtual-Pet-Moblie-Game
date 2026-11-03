@@ -12,8 +12,8 @@ AJ="${ANDROID_JAR:-$SDK/platforms/android-35/android.jar}"
 OUT="${1:-$ROOT/SpriteHollow.apk}"
 MANIFEST="${MANIFEST:-$HERE/AndroidManifest.xml}"
 MIN_SDK="${MIN_SDK:-24}"
-VERSION_CODE="${VERSION_CODE:-97}"
-VERSION_NAME="${VERSION_NAME:-4.8.0}"
+VERSION_CODE="${VERSION_CODE:-98}"
+VERSION_NAME="${VERSION_NAME:-4.9.0}"
 SIGN_V1="${SIGN_V1:-false}"
 # The project signing key. Committed (see android/signing/README.md) so every
 # build from any machine carries the same certificate and installs over the

@@ -643,6 +643,20 @@ function rollSize() {
 function specialCombo(s) {
   return s?.special ? COMBOS.find((c) => c.id === s.special) || null : null;
 }
+/* Care is the loop the whole game is built around: a fed, joyful, rested sprite
+   earns more from every game. All three needs above 90 add up to x1.50. */
+function careCoinMultiplier(s = activeSprite()) {
+  if (!s || !s.needs) return 1;
+  const n = s.needs;
+  let bonus = 0;
+  if (Number(n.joy) > 90) bonus += 0.25;
+  if (Number(n.hunger) > 90) bonus += 0.15;
+  if (Number(n.energy) > 90) bonus += 0.10;
+  return Math.round((1 + bonus) * 100) / 100;
+}
+function careBonusText(s = activeSprite()) {
+  return `×${careCoinMultiplier(s).toFixed(2)} care bonus`;
+}
 function gameCoinPayout(baseCoins = 0) {
   const s = activeSprite();
   let payout = Math.max(0, Number(baseCoins) || 0);
@@ -657,8 +671,9 @@ function gameCoinPayout(baseCoins = 0) {
   const rarityBonus = s ? spriteRarityBonus(s) : 0;
   const holiday = typeof holidayCoinMult === 'function' ? holidayCoinMult() : 1;
   const weekly = weeklyEventCoinMult();
-  payout = Math.round((payout + effectCoins + rarityBonus) * holiday * weekly);
-  return { payout, effectCoins, rarityBonus, holiday, weekly };
+  const care = s ? careCoinMultiplier(s) : 1;
+  payout = Math.round((payout + effectCoins + rarityBonus) * holiday * weekly * care);
+  return { payout, effectCoins, rarityBonus, holiday, weekly, care };
 }
 function formOf(s) {
   return s?.form ? EVOLUTION_FORMS[s.form] || null : null;
@@ -1947,7 +1962,7 @@ const Actions = {
     }
     bump('games');
     commit('game', { game, score, rarityBonus: reward.rarityBonus, arcade, careGift: !!careGift });
-    return { sprite: s, coins: payout, rarityBonus: reward.rarityBonus, effectCoins: reward.effectCoins, arcade, careGift };
+    return { sprite: s, coins: payout, rarityBonus: reward.rarityBonus, effectCoins: reward.effectCoins, care: reward.care, arcade, careGift };
   },
 
   finishWalk({ route = 'walk', score = 0, distance = 0, coins = 0, xp = 0, bond = 0, joy = 12, giftTokens = 0 } = {}) {

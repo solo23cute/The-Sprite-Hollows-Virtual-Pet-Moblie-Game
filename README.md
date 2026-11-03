@@ -1,4 +1,15 @@
-## 4.8.0 Every coin won in the Hollow reaches the wallet (current release)
+## 4.9.0 Care pays: a happy sprite earns up to ×1.50 (current release)
+
+- **Care is now the multiplier the game always described.** Three needs above 90 add to every game payout: joy +25%, hunger +15%, energy +10% — all three together pay **×1.50**. Below that the sprite still earns, just at its normal rate.
+- **The bonus is in the payout, not the label.** `gameCoinPayout` multiplies the finished number, so the result screen, the wallet award and arcade progress all agree: what the game previews is exactly what gets banked and what the server records.
+- **You can see the number.** The play screen shows the current multiplier beside Energy, Joy and Bond and says what to do to raise it; the end-of-game screen shows the care chip and, when it is short of the maximum, which care is missing.
+- **Nothing about cashing out changed.** No signup, no owner code, no minimum, no approval: the multiplier only changes how quickly coins arrive, and every one of them still banks through the wallet.
+- **Decay is unchanged** — the server still fades hunger, cleanliness and happiness by the hour even while the app is closed, so the bonus is something to keep up rather than set once.
+- **Tests:** rewards suite is 31 checks (was 28) and now fails if the multiplier stops feeding the real payout or leaves the screens; wallet 72, API 88, payout 27, owner 20, worker schema 9, tour 22.
+- Package: `versionName 4.9.0` / `versionCode 98`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.9.0-v98-release.apk`](SpriteHollow-4.9.0-v98-release.apk) — 784844 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `9c75e4dd3c049a30769815b3b1db8ad01c9c4ed1873e8d0f5b750dbca5784dc8`. Installs over 4.8.0 in place.
+
+## 4.8.0 Every coin won in the Hollow reaches the wallet (previous release)
 
 - **One funnel for every payout.** `addCoinsRaw` is the single place the game adds coins, so the wallet now hears about all of it: baths, belly rubs, petting, chats, trail bonuses, walk and sports gifts, arcade bonuses, weekly events, the monthly crate, weekend and holiday gifts, Vault doors, house bonds, hatches, save codes, voyages, rebirth and evolution payouts. Before this only minigames, quests, the spin and check-ins reported, so most coins a player won never reached the balance they can cash out.
 - **No double banking.** Care the server already pays through `POST /api/pet/care` passes `local`, so a bath or a belly rub is not counted twice.
