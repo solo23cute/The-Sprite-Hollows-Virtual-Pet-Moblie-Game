@@ -1,4 +1,13 @@
-## 4.3.7 Care in the Hollow pays coins, and the cash pill opens the Wallet (current release)
+## 4.3.8 A Rewards screen: your numbers, the daily spin and every quest (current release)
+
+- **One place for the economy.** A star button in the top bar opens **Rewards**: coins, check-in streak, best sprite level and quest progress as four cards, then every quest the game already tracks — today, this week and this month — each with a real progress bar, its coin reward and a Claim button that pays through the same `Actions.claimTask` the rest of the game uses.
+- **A daily spin.** One spin a day pays 25–500 Hollow coins. It is decided on the device, stored in the saved game state so reloading or reinstalling cannot grant a second spin, and paid through the normal coin ledger.
+- **Native, not a port.** The design arrived as a React + Tailwind component; the app has no React, Tailwind or lucide, so the screen is rebuilt with the Hollow's own sheet, cards, chips, bars and icons, and every number comes from live state instead of the demo values.
+- **Tests:** `tools/economy-test.mjs` covers 28 behaviours — real coins/streak/level/hatch counts, quests from the real task buckets, unfinished quests refusing a claim, claims routed to `Actions.claimTask`, the spin routed to `Actions.spinWheel`, a used spin reading "Spun today" with its prize, and the state/index/main wiring that makes the screen reachable.
+- Package: `versionName 4.3.8` / `versionCode 86`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.3.8-v86-release.apk`](SpriteHollow-4.3.8-v86-release.apk) — 780,748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `d2d12cbc38ca95120efb784019481bfb543f97d464bea44ead280b517a442e32`. Installs over 4.3.7 in place.
+
+## 4.3.7 Care in the Hollow pays coins, and the cash pill opens the Wallet (previous release)
 
 - **The earn loop is connected.** Feeding, bathing, petting, belly rubs, catch, naps and tuck-ins now pay server coins as they happen: the game action still updates the sprite in the local save, and the same care is reported to the server, which decides the award. A toast shows what each act earned, and the daily cap still applies.
 - **The cash pill is a button.** Tapping the coin pill in the top bar opens the Wallet sheet — balance, payout form and payout history. Before this the pill only showed a number and the cash-out could not be reached from the game at all.

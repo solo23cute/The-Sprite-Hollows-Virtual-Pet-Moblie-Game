@@ -122,6 +122,7 @@ function renderShell() {
         <div class="top-actions">
           <div class="coin-pill" data-coin-pill title="Withdrawable coins — cash out to PayPal"><span class="coin-tag">cash</span>${icon('coin')}<span data-coins>…</span></div>
           <div class="coin-pill shop-pill" data-game-coin-pill title="Hollow coins — spend these in the shop"><span class="coin-tag">shop</span>${icon('coin')}<span data-game-coins>${state.coins}</span></div>
+          <button class="icon-btn" data-rewards aria-label="Open rewards">${icon('star')}</button>
           <button class="icon-btn" data-studio-btn aria-label="Open Studio">${icon('palette')}</button>
         </div>
       </header>
@@ -142,6 +143,7 @@ function renderShell() {
     btn.addEventListener('click', () => App.go(btn.dataset.tab));
   });
   app.querySelector('[data-studio-btn]').addEventListener('click', () => App.openStudio());
+  app.querySelector('[data-rewards]')?.addEventListener('click', () => window.Economy?.open?.());
   app.querySelector('[data-settings-btn]').addEventListener('click', () => App.openStudio());
   if (window.PetEarn?.wallet) window.PetEarn.wallet().catch(() => {});
   applyLanguage();

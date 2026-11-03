@@ -113,6 +113,7 @@ function freshState() {
     vaultDoors: [],
     guardiansBeaten: {},
     gift: null,
+    spin: null,
     care: { tokens: 0, gifts: 0 },
     journal: [],
     stats: {
@@ -225,6 +226,9 @@ function loadState() {
     if (!SCENES[merged.theme.scene]) merged.theme.scene = 'grove';
     merged.stats = { ...base.stats, ...(parsed.stats || {}) };
     merged.checkin = { ...base.checkin, ...(parsed.checkin || {}) };
+    merged.spin = parsed.spin && parsed.spin.date
+      ? { date: String(parsed.spin.date), reward: Math.max(0, Math.floor(Number(parsed.spin.reward) || 0)) }
+      : null;
     merged.checkin.slots = Array.isArray(parsed.checkin?.slots) ? parsed.checkin.slots : [];
     merged.checkin.weekClaims = Array.isArray(parsed.checkin?.weekClaims) ? parsed.checkin.weekClaims : [];
     merged.checkin.monthClaims = Array.isArray(parsed.checkin?.monthClaims) ? parsed.checkin.monthClaims : [];
@@ -1438,6 +1442,13 @@ function rollTrailBonus(s, info, payout) {
 }
 
 /* ---------------- actions ---------------- */
+/* Daily spin prizes, in Hollow coins. The screen lists them in this order. */
+const SPIN_PRIZES = [25, 50, 100, 250, 500];
+
+function spinAvailable() {
+  return state.spin?.date !== dayKey();
+}
+
 const Actions = {
   startGame(element, breed) {
     state.started = true;
@@ -2196,6 +2207,22 @@ const Actions = {
     toast(`${period === 'daily' ? 'Task' : period === 'weekly' ? 'Weekly goal' : 'Monthly quest'} complete +${totalReward} coins${bonusCoins ? ` · pony +${bonusCoins}` : ''}`, '✅');
     commit('task', { taskId, period, reward: totalReward, bonusCoins });
     return { ok: true, reward: totalReward, bonusCoins };
+  },
+
+  /* One spin a day, decided on the device so the wheel feels instant. */
+  spinWheel() {
+    const today = dayKey();
+    if (state.spin?.date === today) {
+      return { ok: false, reason: 'spun', reward: Math.max(0, Number(state.spin.reward) || 0) };
+    }
+    const prize = SPIN_PRIZES[Math.floor(Math.random() * SPIN_PRIZES.length)];
+    state.spin = { date: today, reward: prize };
+    addCoinsRaw(prize);
+    bump('spins');
+    Sfx.coin();
+    toast(`The wheel landed on +${prize} coins`, '🎡');
+    commit('spin', { reward: prize });
+    return { ok: true, reward: prize };
   },
 
   checkIn() {
