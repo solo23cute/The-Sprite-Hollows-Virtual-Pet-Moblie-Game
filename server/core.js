@@ -35,9 +35,9 @@ export const DEFAULT_SETTINGS = {
   daily_game_cap: '20',
   daily_withdraw_cap: '2',
   /* Cash-outs are sent by the server itself when PayPal payouts are configured,
-     with a daily budget so a public Hollow cannot drain the account. */
+     with a weekly budget so a public Hollow cannot drain the account. */
   auto_payout: 'on',
-  payout_daily_budget_cents: '500',
+  payout_weekly_budget_cents: '500',
 };
 
 const CARE = {
@@ -1072,17 +1072,26 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
      the deployment and the daily budget allows it, the money is sent right here.
      A refusal that will never succeed refunds the coins; a temporary failure
      leaves the request pending, where the owner can still review it. */
+  /* The budget is a rolling seven-day allowance rather than a calendar day: every
+     cent already sent in the last week counts against the next cash-out, so the
+     ceiling cannot be reset by waiting for midnight. */
+  const PAYOUT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+  function payoutBudgetCents(settings) {
+    /* deployments that stored the budget under its old daily name keep working */
+    const stored = settings.payout_weekly_budget_cents ?? settings.payout_daily_budget_cents;
+    return nonNegative(stored, 500);
+  }
+
   async function attemptAutoPayout({ id, user, coins, usdCents, paypalEmail, settings }) {
     if (!autoPayoutOn(settings)) return { status: 'idle', message: '' };
 
-    const budget = nonNegative(settings.payout_daily_budget_cents, 500);
-    const since = Date.parse(`${dayKey(now())}T00:00:00Z`);
+    const budget = payoutBudgetCents(settings);
     const spent = await store.get(
       "SELECT COALESCE(SUM(usd_cents), 0) AS cents FROM withdrawals WHERE status = 'paid' AND paid_at >= ?",
-      [since],
+      [now() - PAYOUT_WINDOW_MS],
     );
     if (usdCents + toInt(spent?.cents) > budget) {
-      return { status: 'pending', message: `Today's payout budget is used up, so this one waits for review.` };
+      return { status: 'pending', message: `This week's payout budget is used up, so this one waits for review.` };
     }
 
     try {
@@ -1336,7 +1345,8 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     put('daily_care_cap', body.dailyCareCap, 1, 500);
     put('daily_game_cap', body.dailyGameCap, 1, 200);
     put('daily_withdraw_cap', body.dailyWithdrawCap, 1, 20);
-    put('payout_daily_budget_cents', body.payoutDailyBudgetCents, 0, 1000000);
+    /* the old daily name is still accepted so an outdated owner build cannot fail */
+    put('payout_weekly_budget_cents', body.payoutWeeklyBudgetCents ?? body.payoutDailyBudgetCents, 0, 1000000);
     if (body.autoPayout !== undefined) {
       updates.push({ key: 'auto_payout', value: body.autoPayout ? 'on' : 'off' });
     }
@@ -1352,7 +1362,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
         ...publicSettings(saved),
         dailyWithdrawCap: toInt(saved.daily_withdraw_cap, 2),
         autoPayout: autoPayoutOn(saved),
-        payoutDailyBudgetCents: nonNegative(saved.payout_daily_budget_cents, 500),
+        payoutWeeklyBudgetCents: payoutBudgetCents(saved),
       },
     });
   }

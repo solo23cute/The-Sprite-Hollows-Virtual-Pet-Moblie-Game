@@ -1,4 +1,13 @@
-## 4.7.1 Cash out any amount, down to a single cent (current release)
+## 4.7.2 The payout budget is a seven-day allowance (current release)
+
+- **The ceiling rolls instead of resetting at midnight.** Every cent already paid in the last seven days counts against the next cash-out, so waiting for a new day no longer opens fresh budget.
+- **Same setting, longer window.** `payout_weekly_budget_cents` defaults to 500 — $5 for the whole week, owner-adjustable, and `0` still stops every automatic payout. A deployment that already stored `payout_daily_budget_cents` keeps its number: the old name is still read, and still accepted on write.
+- **Over the allowance nothing breaks.** The request waits for review with its coins held, and says "This week's payout budget is used up" instead of pretending it was sent.
+- **Tests:** the payout suite proves money sent earlier in the week counts — it sets the allowance to exactly the cents already paid, and the next cent waits instead of sending (27 checks). API suite 88.
+- Package: `versionName 4.7.2` / `versionCode 95`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.7.2-v95-release.apk`](SpriteHollow-4.7.2-v95-release.apk) — 780748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `67d11a86685b2762a1318438f0d32e8c752e6ee83e94416370f9c904c6d4e4e6`. Installs over 4.7.1 in place.
+
+## 4.7.1 Cash out any amount, down to a single cent (previous release)
 
 - **No minimum to reach.** The 100-coin floor is gone; a player can cash out whatever they have, so long as it is worth at least one US cent. The Wallet no longer disables the button or scolds about a minimum.
 - **Nothing is shortchanged.** PayPal pays whole cents, so the coins past the last full cent are simply not charged — ask for 115 coins at 1,000/$1 and the request pays 11 cents and leaves 5 coins in the balance.

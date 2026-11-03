@@ -123,8 +123,8 @@ try {
   await owner.call('/api/guest', { method: 'POST' });
   const claim = await owner.call('/api/owner/claim', { method: 'POST' });
   check('a session can take the owner seat for settings', claim.status === 201, `status=${claim.status}`);
-  const tuned = await owner.call('/api/admin/settings', { method: 'PUT', body: { minWithdrawCoins: 1, payoutDailyBudgetCents: 50000 } });
-  check('any amount is allowed, and the budget is set', tuned.status === 200 && tuned.data?.settings?.minWithdrawCoins === 1, JSON.stringify(tuned.data).slice(0, 140));
+  const tuned = await owner.call('/api/admin/settings', { method: 'PUT', body: { minWithdrawCoins: 1, payoutWeeklyBudgetCents: 50000 } });
+  check('any amount is allowed, and the weekly budget is set', tuned.status === 200 && tuned.data?.settings?.minWithdrawCoins === 1 && tuned.data?.settings?.payoutWeeklyBudgetCents === 50000, JSON.stringify(tuned.data).slice(0, 160));
 
   const player = client();
   await player.call('/api/guest', { method: 'POST' });
@@ -155,9 +155,9 @@ try {
   const history = await player.call('/api/wallet');
   check('the player history shows it paid, with no owner involved', history.data?.withdrawals?.[0]?.status === 'paid' && history.data?.withdrawals?.[0]?.paid_at > 0);
 
-  console.log('\nthe daily budget is a real ceiling\n');
-  const budget = await owner.call('/api/admin/settings', { method: 'PUT', body: { payoutDailyBudgetCents: 0 } });
-  check('the owner can set the payout budget', budget.status === 200 && budget.data?.settings?.payoutDailyBudgetCents === 0, JSON.stringify(budget.data).slice(0, 140));
+  console.log('\nthe weekly budget is a real ceiling\n');
+  const budget = await owner.call('/api/admin/settings', { method: 'PUT', body: { payoutWeeklyBudgetCents: 0 } });
+  check('the owner can set the weekly payout budget', budget.status === 200 && budget.data?.settings?.payoutWeeklyBudgetCents === 0, JSON.stringify(budget.data).slice(0, 140));
 
   const second = client();
   await second.call('/api/guest', { method: 'POST' });
@@ -166,8 +166,18 @@ try {
   check('over budget, the payout waits instead of sending', capped.status === 202 && capped.data?.withdrawal?.status === 'pending', `status=${capped.status}`);
   check('no extra batch went out', batches.length === batchesAfterInstant, `batches=${batches.length}, expected ${batchesAfterInstant}`);
 
+  /* what was already sent in the last seven days has to count, not just what was
+     sent since midnight: the allowance is set to exactly the cents already paid */
+  const paidSoFar = batches.reduce((sum, b) => sum + Math.round(Number(b.items[0].amount.value) * 100), 0);
+  const window = await owner.call('/api/admin/settings', { method: 'PUT', body: { payoutWeeklyBudgetCents: paidSoFar } });
+  check('the allowance is the rolling seven-day total, not a fresh day', window.status === 200 && window.data?.settings?.payoutWeeklyBudgetCents === paidSoFar, JSON.stringify(window.data?.settings || {}).slice(0, 140));
+  const weekSpent = client();
+  await weekSpent.call('/api/guest', { method: 'POST' });
+  const oneCent = await weekSpent.call('/api/wallet/withdraw', { body: { coins: 11, paypalEmail: 'week@example.com' } });
+  check('a cent past this week\'s allowance waits instead of sending', oneCent.status === 202 && oneCent.data?.withdrawal?.status === 'pending', `status=${oneCent.status} paid=${paidSoFar}`);
+
   console.log('\nPayPal refusals are handled honestly\n');
-  await owner.call('/api/admin/settings', { method: 'PUT', body: { payoutDailyBudgetCents: 100000 } });
+  await owner.call('/api/admin/settings', { method: 'PUT', body: { payoutWeeklyBudgetCents: 100000 } });
   const broken = client();
   await broken.call('/api/guest', { method: 'POST' });
   await broken.call('/api/earn', { body: { amount: 300, source: 'game', key: unique('earn') } });

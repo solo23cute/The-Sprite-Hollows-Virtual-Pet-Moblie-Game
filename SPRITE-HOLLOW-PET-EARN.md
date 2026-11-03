@@ -146,7 +146,9 @@ npx wrangler secret put PAYPAL_CLIENT_SECRET
 npx wrangler secret put PAYPAL_MODE       # sandbox
 ```
 
-The daily ceiling is the `payout_daily_budget_cents` setting (default 500 = $5).
+The ceiling is a rolling seven-day allowance, the `payout_weekly_budget_cents`
+setting (default 500 = $5 for the week); the old `payout_daily_budget_cents`
+name is still read and written if a deployment already stored one.
 A payout above the remaining budget waits for review; an address PayPal refuses
 for good is rejected and the coins are refunded; an outage leaves the request
 pending. Without the keys the Wallet takes requests for review and says so.
