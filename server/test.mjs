@@ -228,6 +228,27 @@ const goodLogin = await client('back').call('/api/auth/login', { body: { usernam
 check('login restores the same account', goodLogin.status === 200 && goodLogin.data.pet.name === 'Mochi');
 check('unknown game rejected', (await player.call('/api/games/start', { body: { game: 'cheat-mode' } })).status === 400);
 
+/* 9b. Hollow coins reach the real wallet */
+const earner = client('earner');
+await earner.call('/api/guest', { method: 'POST' });
+const walletBefore = (await earner.call('/api/wallet')).data.wallet.coins;
+const banked = await earner.call('/api/earn', { body: { amount: 60, source: 'game', key: 'game-1' } });
+check('coins earned in the game reach the wallet', banked.status === 200 && banked.data.award === 60 && banked.data.wallet.coins === walletBefore + 60, JSON.stringify(banked.data).slice(0, 140));
+const replay = await earner.call('/api/earn', { body: { amount: 60, source: 'game', key: 'game-1' } });
+check('the same win is never paid twice', replay.status === 200 && replay.data.award === 0 && replay.data.wallet.coins === walletBefore + 60);
+const questBank = await earner.call('/api/earn', { body: { amount: 40, source: 'quest', key: 'quest-1' } });
+check('quest rewards bank too', questBank.status === 200 && questBank.data.award === 40 && questBank.data.wallet.coins === walletBefore + 100);
+check('the ledger records the source', (await earner.call('/api/wallet')).data.ledger.some((l) => l.kind === 'earn' && l.source === 'quest'));
+check('an unknown source is refused', (await earner.call('/api/earn', { body: { amount: 10, source: 'cheat', key: 'bad-1' } })).status === 400);
+check('a zero amount is refused', (await earner.call('/api/earn', { body: { amount: 0, source: 'game', key: 'bad-2' } })).status === 400);
+check('an absurd amount is refused', (await earner.call('/api/earn', { body: { amount: 5000, source: 'game', key: 'bad-3' } })).status === 400);
+check('a bank request needs an id', (await earner.call('/api/earn', { body: { amount: 10, source: 'game' } })).status === 400);
+check('banking needs a session', (await client('anon-earn').call('/api/earn', { body: { amount: 10, source: 'game', key: 'bad-4' } })).status === 401);
+const fill = await earner.call('/api/earn', { body: { amount: 500, source: 'game', key: 'game-fill' } });
+check('banking tops the wallet up to the daily room', fill.status === 200 && fill.data.award === 500, JSON.stringify(fill.data).slice(0, 120));
+const overCap = await earner.call('/api/earn', { body: { amount: 50, source: 'game', key: 'game-over' } });
+check('the daily game coin cap is enforced', overCap.status === 429, `status=${overCap.status}`);
+
 /* 10. leaving for good */
 const quitter = client('quitter');
 const quitSignup = await quitter.call('/api/auth/signup', {

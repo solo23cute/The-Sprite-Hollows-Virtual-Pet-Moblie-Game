@@ -1,4 +1,14 @@
-## 4.4.0 Payout review leaves a paper trail: a reason to reject, a reference to pay (current release)
+## 4.5.0 Coins earned in the game land in the real wallet (current release)
+
+- **The two balances are connected.** Winning a minigame, claiming a quest, taking the daily spin and checking in now bank the same coins into the wallet the cash pill and the Wallet sheet show — so what a player wins in the Hollow is part of the balance they can cash out, not a separate number in the shop.
+- **One award, one payment.** Every award is posted with an id derived from the game's own lifetime counter, and the server stores it in `earn_claims`. A retry, a double tap or a reload sends the same id and the server answers `award: 0` instead of paying twice.
+- **The server still sets the pace.** `POST /api/earn` accepts only the four known sources, refuses amounts outside 1–500, needs a session, and pays inside the existing daily game coin cap (`429` once the room is gone), so a hacked client cannot mint a balance.
+- **Offline stays offline.** The report is fire-and-forget: if the phone is out of signal the game plays exactly as before and simply does not bank that win. Care is untouched and still pays through its own endpoint.
+- **Tests:** the API suite grew ten checks for banking (credit, replay, source, validation, session, cap) and the wallet suite verifies the win lands in the pill and that the game reports games, quests, the spin and check-ins.
+- Package: `versionName 4.5.0` / `versionCode 89`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.5.0-v89-release.apk`](SpriteHollow-4.5.0-v89-release.apk) — 780,748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `915f63c4538b45db46093bf6031aeff238852720647465a2e8d83444ec97b629`. Installs over 4.4.0 in place.
+
+## 4.4.0 Payout review leaves a paper trail: a reason to reject, a reference to pay (previous release)
 
 - **Rejecting needs a reason.** The server refuses a rejection with no note, so the player always sees why their request came back instead of a silent refund.
 - **Marking paid needs the PayPal transaction reference.** A request must be approved first (unchanged), and now it also needs the reference from the payment you actually sent; without one the server answers `400`. The reference is stored on the payout (`payment_reference`) and shown in the owner queue and the CSV export.

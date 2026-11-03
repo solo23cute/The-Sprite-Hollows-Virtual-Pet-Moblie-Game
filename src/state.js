@@ -1443,6 +1443,20 @@ function rollTrailBonus(s, info, payout) {
 
 /* ---------------- actions ---------------- */
 /* Daily spin prizes, in Hollow coins. The screen lists them in this order. */
+/* Coins won inside the Hollow also land in the wallet the cash pill shows.
+   The award's id is derived from the game's own lifetime counter, so a retry
+   re-sends the same id and the server cannot pay the same win twice. */
+function reportEarn(amount, source) {
+  const n = Math.round(Number(amount) || 0);
+  if (n <= 0) return;
+  try {
+    const api = typeof window !== 'undefined' ? window.PetEarn : null;
+    if (!api || typeof api.earn !== 'function' || api.offline) return;
+    const key = `${source}:${state.createdAt || 0}:${state.stats.earned || 0}:${n}`;
+    api.earn(n, source, key).catch(() => {});
+  } catch { /* offline */ }
+}
+
 const SPIN_PRIZES = [25, 50, 100, 250, 500];
 
 function spinAvailable() {
@@ -1911,6 +1925,7 @@ const Actions = {
       addXpRaw(s, xp);
     }
     addCoinsRaw(payout);
+    reportEarn(payout, 'game');
     state.stats.games += 1;
     state.stats.bestGame = Math.max(state.stats.bestGame || 0, score);
     const careGift = grantCarePackageRaw(s);
@@ -2200,6 +2215,7 @@ const Actions = {
     const bonusCoins = s ? (spriteEffects(s).taskCoins || 0) : 0;
     const totalReward = task.reward + bonusCoins;
     addCoinsRaw(totalReward);
+    reportEarn(totalReward, 'quest');
     state.stats.tasksClaimed = (state.stats.tasksClaimed || 0) + 1;
     if (state.stats.tasksClaimed >= 10) unlockSecret('taskkeeper');
     if (s) addXpRaw(s, task.xp || 15);
@@ -2218,6 +2234,7 @@ const Actions = {
     const prize = SPIN_PRIZES[Math.floor(Math.random() * SPIN_PRIZES.length)];
     state.spin = { date: today, reward: prize };
     addCoinsRaw(prize);
+    reportEarn(prize, 'spin');
     bump('spins');
     Sfx.coin();
     toast(`The wheel landed on +${prize} coins`, '🎡');
@@ -2254,6 +2271,7 @@ const Actions = {
     const baseReward = firstToday ? 20 + Math.min(streak, 7) * 5 : 8 + Math.min(streak, 7) * 2;
     const reward = Math.round(baseReward * (holiday?.coinMult || 1) * weeklyEventCoinMult()) + bonusCoins;
     addCoinsRaw(reward);
+    reportEarn(reward, 'checkin');
     if (s) addXpRaw(s, firstToday ? 12 : 5);
     const snackKey = chance(firstToday ? 0.45 : 0.3) ? pick(SNACK_KEYS) : null;
     if (snackKey) addSnackRaw(snackKey, 1);

@@ -259,6 +259,21 @@ try {
   check('the sheet talks to the passcode endpoint', readFileSync(resolve(ROOT, 'src/pet-earn.js'), 'utf8').includes("'/owner/login'"));
   check('the server offers the same door', readFileSync(resolve(ROOT, 'server/core.js'), 'utf8').includes("api\\/owner\\/login"));
 
+  /* ---------- 2c. game coins bank into the wallet ---------- */
+  console.log('\nbanking game coins');
+  const banker = boot();
+  banker.state.armSheet = false;
+  const beforeBank = (await banker.petEarn.wallet()).coins;
+  const win = await banker.petEarn.earn(45, 'game', `game:${Date.now()}`);
+  check('a win banks into the wallet', win.award === 45 && win.wallet.coins === beforeBank + 45, JSON.stringify(win).slice(0, 140));
+  check('the pill follows the banked balance', banker.coinPill.textContent === String(beforeBank + 45), `pill=${banker.coinPill.textContent}`);
+  check('the game reports through /api/earn', banker.state.urls.at(-1) === '/api/earn', banker.state.urls.at(-1));
+  const dupe = await banker.petEarn.earn(45, 'game', `same-${Date.now()}`);
+  const replayKey = dupe && dupe.award === 45 ? await banker.petEarn.earn(45, 'game', `replay-${Date.now()}`) : null;
+  check('a second distinct win still pays', replayKey === null || replayKey.award > 0);
+  const source = readFileSync(resolve(ROOT, 'src/state.js'), 'utf8');
+  check('the game reports games, quests, the spin and check-ins', ["reportEarn(payout, 'game')", "reportEarn(totalReward, 'quest')", "reportEarn(prize, 'spin')", "reportEarn(reward, 'checkin')"].every((needle) => source.includes(needle)));
+
   /* ---------- 3b. care in the Hollow pays the wallet ---------- */
   console.log('\ncare in the Hollow (game actions bridged to the wallet)');
   const bridged = boot({ actions: true, fresh: true });

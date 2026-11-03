@@ -128,6 +128,25 @@
     }
   }
 
+  /* Hollow coins banked into the same wallet the pill shows. Fire-and-forget:
+     the game stays playable offline and the server decides how much is payable
+     today, answering with the wallet so the pill never drifts. */
+  async function earn(amount, source, key) {
+    const n = Math.round(Number(amount) || 0);
+    if (LOCAL_ONLY || n <= 0) return { award: 0 };
+    try {
+      await ensureSession();
+      const data = await api('/earn', { body: { amount: n, source, key } });
+      if (data.wallet) {
+        S.me.wallet = data.wallet;
+        syncPill();
+      }
+      return data;
+    } catch (err) {
+      return { award: 0, error: err.message };
+    }
+  }
+
   function historyHTML(list) {
     if (!list?.length) {
       return '<p class="tiny muted" style="margin:8px 2px">No payouts yet. Keep caring for your sprite and the coins add up.</p>';
@@ -437,6 +456,7 @@
     offline: LOCAL_ONLY,
     apiBase: API,
     care,
+    earn,
     wallet,
     openWallet,
     openOwner,

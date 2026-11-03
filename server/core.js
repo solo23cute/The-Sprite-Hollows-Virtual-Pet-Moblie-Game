@@ -607,6 +607,65 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
   /* Leaving for good: sessions, pet, ledger and payout history go with the
      account. A real account confirms its password; a guest only ever had the
      session token it was handed. */
+  /* Coins earned inside the Hollow land in the same wallet the pill and the
+     Wallet sheet show, so what a player wins becomes their cashable balance.
+     Every award carries an id, so a retry or a reload cannot pay it twice. */
+  const EARN_SOURCES = ['game', 'quest', 'spin', 'checkin'];
+
+  async function earn(request, user) {
+    const body = await readJson(request);
+    const source = String(body.source || '').trim().toLowerCase();
+    const key = cut(body.key, 80);
+    const amount = toInt(body.amount);
+
+    if (!EARN_SOURCES.includes(source)) fail(400, 'That is not a coin source in the Hollow.');
+    if (!key) fail(400, 'A coin sync needs an id.');
+    if (amount < 1 || amount > 500) fail(400, 'That amount cannot be banked.');
+
+    const settings = await readSettings();
+    const pub = publicSettings(settings);
+    const day = dayKey(now());
+    const daily = await dailyRow(user.id, day);
+
+    const already = await store.get('SELECT amount FROM earn_claims WHERE key = ? AND user_id = ?', [key, user.id]);
+    if (already) {
+      return json({
+        ok: true,
+        duplicate: true,
+        award: 0,
+        wallet: await walletSnapshot(user.id, settings),
+        today: await dailySnapshot(user.id, day, settings),
+      });
+    }
+
+    const room = Math.max(0, pub.dailyGameCoinCap - toInt(daily?.game_coins));
+    if (!room) fail(429, 'Daily coin limit reached. Come back tomorrow.');
+    const award = Math.min(amount, room);
+    const stamp = now();
+    await store.batch([
+      {
+        sql: 'INSERT INTO earn_claims (key, user_id, amount, source, created_at) VALUES (?, ?, ?, ?, ?)',
+        params: [key, user.id, award, source, stamp],
+      },
+      {
+        sql: `INSERT INTO ledger (user_id, kind, amount, source, note, created_at)
+              VALUES (?, 'earn', ?, ?, ?, ?)`,
+        params: [user.id, award, source, `Earned in the Hollow (${source})`, stamp],
+      },
+      {
+        sql: 'UPDATE daily SET game_coins = COALESCE(game_coins, 0) + ? WHERE user_id = ? AND day = ?',
+        params: [award, user.id, day],
+      },
+    ]);
+    return json({
+      ok: true,
+      award,
+      capped: award < amount,
+      wallet: await walletSnapshot(user.id, settings),
+      today: await dailySnapshot(user.id, day, settings),
+    });
+  }
+
   /* The owner never needs an account: the first person to claim sets a passcode
      and everyone after that unlocks with it. Payout review then runs from an
      ordinary guest session, so nothing has to be signed up for. */
@@ -1291,6 +1350,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     ['POST', /^\/api\/games\/start$/, async (req) => startGame(req, await requireUser(req))],
     ['POST', /^\/api\/games\/claim$/, async (req) => claimGame(req, await requireUser(req))],
     ['GET', /^\/api\/wallet$/, async (req) => wallet(req, await requireUser(req))],
+    ['POST', /^\/api\/earn$/, async (req) => earn(req, await requireUser(req))],
     ['POST', /^\/api\/wallet\/withdraw$/, async (req) => requestWithdrawal(req, await requireUser(req))],
     ['GET', /^\/api\/admin\/overview$/, (req) => adminOverview(req)],
     ['GET', /^\/api\/admin\/withdrawals$/, (req) => adminWithdrawals(req)],
