@@ -207,7 +207,7 @@ try {
   const queue = await ownerJar.call('/api/admin/withdrawals?status=pending');
   check('the payout lands in the owner queue', queue.data.withdrawals.some((w) => w.id === pending.id));
   check('the owner approves it', (await ownerJar.call(`/api/admin/withdrawals/${pending.id}/decide`, { body: { action: 'approve' } })).data.withdrawal.status === 'approved');
-  const paid = await ownerJar.call(`/api/admin/withdrawals/${pending.id}/decide`, { body: { action: 'paid', note: 'Sent by PayPal' } });
+  const paid = await ownerJar.call(`/api/admin/withdrawals/${pending.id}/decide`, { body: { action: 'paid', reference: 'PAYPAL-TEST-77', note: 'Sent by PayPal' } });
   check('the owner marks it paid', paid.status === 200 && paid.data.withdrawal.status === 'paid');
 
   const history = (await guestJar.call('/api/wallet')).data.withdrawals[0];
