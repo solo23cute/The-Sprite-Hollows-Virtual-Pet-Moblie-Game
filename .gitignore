@@ -30,3 +30,8 @@ android/signing/.pass
 
 # generated hosting bundle
 deploy/
+
+# credentials never belong in the repo: the server reads PayPal keys from the host
+.env
+.env.*
+!.env.example
