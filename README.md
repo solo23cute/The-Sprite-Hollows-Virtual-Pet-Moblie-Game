@@ -1007,3 +1007,19 @@ The Guardian and The Voidblade are the two original Chapter 7 Season 3 headliner
 - Spritepedia refresh: a new **Animal field notes** guide links all 12 animal species, and species files continue to generate from the same live element data.
 - The check-in guide now documents the guaranteed daily pantry food and the monthly crate (coins, three pantry items, and one new monthly food).
 - The food guide now lists all 265 foods (264 market foods plus the Starpath Feast) and 32 free snacks across all seven categories. The current Anime & Trainer pack adds 60 dishes and 16 snacks.
+
+## Where the PayPal credentials live
+
+The server reads the account from three environment variables and holds no credential in source; `server/payouts.js` is the only reader of them.
+
+| Variable | What it is | Local development | Deployed |
+|---|---|---|---|
+| `PAYPAL_CLIENT_ID` | the app's client id | `.env` in the project root | Sites -> Sprite Hollow -> Secrets |
+| `PAYPAL_CLIENT_SECRET` | the secret that authorises payouts | same `.env` | same |
+| `PAYPAL_MODE` | `sandbox` while testing, `live` for real money (the default) | same `.env` | same |
+
+- **Locally**, copy `.env.example` to `.env` and fill it in. `.env` is listed in `.gitignore`, and `server/dev.mjs` reads it at startup, so nothing is exported by hand and nothing lands in a commit. A variable already present in the environment wins, so `PAYPAL_CLIENT_SECRET= node server/dev.mjs` still means "no secret".
+- **Deployed**, the same three names are set as secrets on the Sites environment, which injects them as `env.*` into the worker. They are never written into `deploy/manifest.json`, which carries only the worker modules and asset directory.
+- **The client never sees them.** No file under `src/`, nor `index.html`, references `PAYPAL_` at all; the wallet asks the server for a sign-in URL instead. The payout suite checks this the hard way: it runs with pinned credentials and fails if either value appears in an `/api/health`, `/api/wallet` or `/api/settings` response, in the sign-in URL, or in `index.html`, `pet-earn.js`, `util.js` or `styles.css`.
+
+**In this workspace they are currently unset**, which is why the live deployment answers `503 PayPal is not set up on this server yet` when a player taps Connect PayPal. Until `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` are added to the Sites secrets (with `PAYPAL_MODE=sandbox` for testing), nothing is stored and no money moves.

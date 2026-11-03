@@ -245,6 +245,26 @@ try {
   const afterUnlink = await linker.call('/api/wallet/withdraw', { body: { coins: 10 } });
   check('after disconnecting an address is needed again', afterUnlink.status === 400, `status=${afterUnlink.status}`);
 
+  console.log('\nthe credentials stay on the server\n');
+  /* the harness pins these, so they are safe to look for: if either appears in a
+     response or a shipped asset, a real secret would too */
+  const SECRET = 'test-client-secret';
+  const CLIENT_ID = 'test-client-id';
+  for (const path of ['/api/health', '/api/wallet', '/api/settings']) {
+    const r = await linker.call(path);
+    if (r.status !== 200) continue;
+    check(`no credentials in the ${path} response`, !r.text.includes(SECRET) && !/PAYPAL_CLIENT_SECRET/.test(r.text), `${r.status} ${r.text.slice(0, 120)}`);
+  }
+  const linkAgain = await linker.call('/api/paypal/link', { method: 'POST', body: {} });
+  check('the sign-in URL carries the id but never the secret', String(linkAgain.data?.url || '').includes(`client_id=${CLIENT_ID}`) && !String(linkAgain.data?.url || '').includes(SECRET), String(linkAgain.data?.url || '').slice(0, 120));
+
+  for (const path of ['/index.html', '/src/pet-earn.js', '/src/util.js', '/styles.css']) {
+    const res = await fetch(BASE + path);
+    if (!res.ok) continue;
+    const text = await res.text();
+    check(`the shipped ${path} holds no PayPal credentials`, !text.includes(SECRET) && !text.includes(CLIENT_ID) && !/PAYPAL_CLIENT_(ID|SECRET)/.test(text), `${res.status} ${path}`);
+  }
+
   console.log('\nthe weekly budget is a real ceiling\n');
   const budget = await owner.call('/api/admin/settings', { method: 'PUT', body: { payoutWeeklyBudgetCents: 0 } });
   check('the owner can set the weekly payout budget', budget.status === 200 && budget.data?.settings?.payoutWeeklyBudgetCents === 0, JSON.stringify(budget.data).slice(0, 140));

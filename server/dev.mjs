@@ -14,6 +14,32 @@ import { createCore } from './core.js';
 import { sqliteStore } from './store.js';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
+
+/* Local development reads a .env file in the project root, so the keys never have
+   to be typed into source or a command line. A variable that is already set wins
+   -- including an empty one -- so `PAYPAL_CLIENT_SECRET= node server/dev.mjs`
+   still means "no secret", and the test harness can pin blank values without this
+   file quietly filling them back in. Deployed workers never reach this code: the
+   platform injects the same names as secrets. */
+function loadEnvFile(path) {
+  let text;
+  try { text = readFileSync(path, 'utf8'); } catch { return; }
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq < 1) continue;
+    const key = trimmed.slice(0, eq).trim().replace(/^export\s+/, '');
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+    let value = trimmed.slice(eq + 1).trim();
+    if (value.length > 1 && ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))) {
+      value = value.slice(1, -1);
+    }
+    if (Object.prototype.hasOwnProperty.call(process.env, key)) continue;
+    process.env[key] = value;
+  }
+}
+loadEnvFile(join(ROOT, '.env'));
 const PORT = Number(process.argv[2] || process.env.PORT || 3003);
 const HOST = process.env.HOST || '0.0.0.0';
 const DB_PATH = process.env.COIN_PETS_DB || join(ROOT, '.coinpets', 'coinpets.sqlite');
