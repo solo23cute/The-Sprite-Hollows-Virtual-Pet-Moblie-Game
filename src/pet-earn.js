@@ -236,7 +236,7 @@
         <span class="chip" style="font-size:10px">In review ${fmt(w.reserved || 0)}</span>
         <span class="chip" style="font-size:10px">Paid ${money(Math.round((w.paid || 0) * 100))}</span>
       </div>
-      <div class="section-title" style="margin-top:14px"><h2>Cash out to PayPal</h2><span>owner reviews each one</span></div>
+      <div class="section-title" style="margin-top:14px"><h2>Cash out to PayPal</h2><span>${w.autoPayout ? 'sent straight to your PayPal' : 'owner reviews each one'}</span></div>
       <form data-withdraw>
         <label class="tiny muted" style="display:block;margin:0 2px 5px">Coins to withdraw</label>
         <input name="coins" type="number" inputmode="numeric" min="${min}" step="100" placeholder="${fmt(min)}" value="${w.coins >= min ? offer : ''}" style="${fieldStyle}">
@@ -306,10 +306,13 @@
           if (!paypalEmail) { toast('Add the PayPal email for the payout.', '✉️'); return; }
           S.busy = true;
           try {
-            await api('/wallet/withdraw', { body: { coins, paypalEmail } });
+            const res = await api('/wallet/withdraw', { body: { coins, paypalEmail } });
+            const paidNow = res.withdrawal?.status === 'paid';
             S.me.wallet = (await api('/wallet')).wallet;
             syncPill();
-            toast('Payout requested — the owner reviews it by hand.', '✅');
+            toast(paidNow
+              ? 'Paid to PayPal — the money is on its way.'
+              : res.queued ? 'Payout queued — it is being sent.' : 'Payout requested — the owner reviews it by hand.', paidNow ? '💸' : '✅');
             close();
             openWallet();
           } catch (err) {

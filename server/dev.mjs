@@ -34,7 +34,13 @@ db.exec('PRAGMA foreign_keys = ON;');
 const store = sqliteStore(db);
 const core = createCore({
   store,
-  env: { ADMIN_INVITE_CODE: process.env.ADMIN_INVITE_CODE || '' },
+  env: {
+    ADMIN_INVITE_CODE: process.env.ADMIN_INVITE_CODE || '',
+    PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID || '',
+    PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET || '',
+    PAYPAL_MODE: process.env.PAYPAL_MODE || '',
+    PAYPAL_API_BASE: process.env.PAYPAL_API_BASE || '',
+  },
 });
 
 const MIME = {

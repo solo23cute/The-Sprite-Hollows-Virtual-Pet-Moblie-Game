@@ -14,6 +14,8 @@
 
 export const SESSION_COOKIE = 'cp_session';
 
+import { payoutsConfig, sendPayout } from './payouts.js';
+
 /* Owner access without an account and without a code: the first session to open
    payout review takes the seat. The old passcode key is kept only so an upgraded
    Hollow can clear the stale hash when its owner leaves. */
@@ -31,6 +33,10 @@ export const DEFAULT_SETTINGS = {
   daily_care_cap: '40',
   daily_game_cap: '20',
   daily_withdraw_cap: '2',
+  /* Cash-outs are sent by the server itself when PayPal payouts are configured,
+     with a daily budget so a public Hollow cannot drain the account. */
+  auto_payout: 'on',
+  payout_daily_budget_cents: '500',
 };
 
 const CARE = {
@@ -308,6 +314,14 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     return Number.isFinite(n) && n >= 0 ? n : fallback;
   }
 
+  const payouts = payoutsConfig(env);
+
+  function autoPayoutOn(map) {
+    if (!payouts.configured) return false;
+    const flag = String(map.auto_payout ?? 'on').toLowerCase();
+    return flag !== 'off' && flag !== 'false' && flag !== '0';
+  }
+
   function publicSettings(map) {
     return {
       coinsPerDollar: positive(map.coins_per_dollar, 1000),
@@ -502,6 +516,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       reserved,
       available: Math.max(0, coins),
       paid: round2(toInt(paidUsd?.cents) / 100),
+      autoPayout: autoPayoutOn(settings),
       openRequests: toInt(held?.n),
       hasOpenWithdrawal: toInt(held?.n) > 0,
       coinsPerDollar: pub.coinsPerDollar,
@@ -1038,7 +1053,71 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       fail(400, 'Not enough coins for that withdrawal.');
     }
 
-    return json({ ok: true, withdrawalId: id, wallet: await walletSnapshot(user.id, settings) }, 201);
+    const sent = await attemptAutoPayout({ id, user, coins, usdCents, paypalEmail, settings });
+    if (sent.status === 'rejected') fail(400, sent.message);
+
+    const withdrawal = await store.get('SELECT * FROM withdrawals WHERE id = ?', [id]);
+    return json({
+      ok: true,
+      withdrawalId: id,
+      withdrawal,
+      queued: sent.status === 'pending',
+      message: sent.message,
+      wallet: await walletSnapshot(user.id, settings),
+    }, sent.status === 'pending' ? 202 : 201);
+  }
+
+  /* Cash out without the owner in the loop: when PayPal payouts are configured on
+     the deployment and the daily budget allows it, the money is sent right here.
+     A refusal that will never succeed refunds the coins; a temporary failure
+     leaves the request pending, where the owner can still review it. */
+  async function attemptAutoPayout({ id, user, coins, usdCents, paypalEmail, settings }) {
+    if (!autoPayoutOn(settings)) return { status: 'idle', message: '' };
+
+    const budget = nonNegative(settings.payout_daily_budget_cents, 500);
+    const since = Date.parse(`${dayKey(now())}T00:00:00Z`);
+    const spent = await store.get(
+      "SELECT COALESCE(SUM(usd_cents), 0) AS cents FROM withdrawals WHERE status = 'paid' AND paid_at >= ?",
+      [since],
+    );
+    if (usdCents + toInt(spent?.cents) > budget) {
+      return { status: 'pending', message: `Today's payout budget is used up, so this one waits for review.` };
+    }
+
+    try {
+      const sent = await sendPayout(env, {
+        email: paypalEmail,
+        cents: usdCents,
+        withdrawalId: id,
+        note: `Sprite Hollow payout for ${coins.toLocaleString()} coins`,
+      });
+      await store.run(
+        "UPDATE withdrawals SET status = 'paid', paid_at = ?, payment_reference = ?, note = ? WHERE id = ? AND status = 'pending'",
+        [now(), sent.batchId, 'Paid automatically to PayPal', id],
+      );
+      return { status: 'paid', message: 'Paid to PayPal.' };
+    } catch (err) {
+      if (err && err.permanent) {
+        const stamp = now();
+        await store.batch([
+          {
+            sql: "UPDATE withdrawals SET status = 'rejected', decided_at = ?, note = ? WHERE id = ? AND status = 'pending'",
+            params: [stamp, String(err.message).slice(0, 200), id],
+          },
+          {
+            sql: `INSERT INTO ledger (user_id, kind, amount, ref, source, note, created_at)
+                  SELECT user_id, 'withdraw_refund', coins, id, 'withdrawal', 'Withdrawal rejected - coins returned', ?
+                    FROM withdrawals
+                   WHERE id = ? AND status = 'rejected'
+                     AND NOT EXISTS (SELECT 1 FROM ledger WHERE ref = ? AND kind = 'withdraw_refund')`,
+            params: [stamp, id, id],
+          },
+        ]);
+        return { status: 'rejected', message: `PayPal would not pay that address: ${err.message}` };
+      }
+      console.error('[payout]', err && err.message, err && err.detail);
+      return { status: 'pending', message: 'PayPal did not answer, so this payout waits for review.' };
+    }
   }
 
   /* ---------- admin ---------- */
@@ -1256,6 +1335,10 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     put('daily_care_cap', body.dailyCareCap, 1, 500);
     put('daily_game_cap', body.dailyGameCap, 1, 200);
     put('daily_withdraw_cap', body.dailyWithdrawCap, 1, 20);
+    put('payout_daily_budget_cents', body.payoutDailyBudgetCents, 0, 1000000);
+    if (body.autoPayout !== undefined) {
+      updates.push({ key: 'auto_payout', value: body.autoPayout ? 'on' : 'off' });
+    }
     if (!updates.length) fail(400, 'Nothing to update.');
 
     await store.batch(updates.map((u) => ({
@@ -1263,7 +1346,14 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       params: [u.key, u.value],
     })));
     const saved = await readSettings();
-    return json({ settings: { ...publicSettings(saved), dailyWithdrawCap: toInt(saved.daily_withdraw_cap, 2) } });
+    return json({
+      settings: {
+        ...publicSettings(saved),
+        dailyWithdrawCap: toInt(saved.daily_withdraw_cap, 2),
+        autoPayout: autoPayoutOn(saved),
+        payoutDailyBudgetCents: nonNegative(saved.payout_daily_budget_cents, 500),
+      },
+    });
   }
 
   async function listInvites(request) {
@@ -1361,7 +1451,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       needsSetup: toInt(admins?.n) === 0,
       ownerClaimed: toInt(admins?.n) > 0,
       requiresAdminCode: !!adminInviteCode,
-      settings: publicSettings(settings),
+      settings: { ...publicSettings(settings), autoPayout: autoPayoutOn(settings) },
       serverTime: now(),
     });
   }

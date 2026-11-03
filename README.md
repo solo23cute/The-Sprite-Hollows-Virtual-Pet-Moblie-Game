@@ -1,4 +1,15 @@
-## 4.6.0 Earn and cash out with no code at all (current release)
+## 4.7.0 Cashing out pays itself, straight to PayPal (current release)
+
+- **The owner is out of the payout path.** A player taps Request payout, the server sends a PayPal Payouts batch to their email, and the request comes back `paid` with the PayPal batch id stored on it. No owner tool, no approval step.
+- **It needs your PayPal keys, not your time.** The worker signs in with `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` (set them in Sites → Secrets, `PAYPAL_MODE=sandbox` first if you want to rehearse). Until they are set the game says cash-outs are not instant and queues requests for review, rather than pretending.
+- **A daily budget is the hard ceiling.** `payout_daily_budget_cents` defaults to 500 ($5/day, owner-adjustable). Anything above the remaining budget waits for human review instead of spending.
+- **Refusals are honest.** An address PayPal rejects for good is closed as rejected and the coins go straight back to the player's balance; a PayPal outage leaves the request pending with its coins held, never lost.
+- **Retries cannot double-pay:** the PayPal `sender_batch_id` is the withdrawal id.
+- **Tests:** a new payout suite (`tools/payout-test.mjs`) runs the real server against a mock PayPal REST server — instant payment, batch id, whole-cent amount, budget ceiling, refund on refusal, queue on outage, and a keyless server that never contacts PayPal. Existing suites stay green: API 87, owner 20, client wallet 64, rewards 28, tour 17, worker schema 9.
+- Package: `versionName 4.7.0` / `versionCode 93`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.7.0-v93-release.apk`](SpriteHollow-4.7.0-v93-release.apk) — 780748 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `0e7030ebaab9e79f7f31bd4d6f7f67d2405ad6171ed287496551aba2576fdf79`. Installs over 4.6.0 in place.
+
+## 4.6.0 Earn and cash out with no code at all (previous release)
 
 - **No passcode, no signup, no invite.** A player opens the Hollow, earns coins by caring and playing, and asks for a PayPal payout from the Wallet with an email address. Nothing in that path asks for a code.
 - **The owner seat claims itself.** The first session to open Wallet → Owner tools becomes the payout owner. Everyone after that is a player and sees only "Another session owns this Hollow" — there is no secret to type, and nothing to forget.

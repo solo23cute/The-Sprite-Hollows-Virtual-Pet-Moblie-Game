@@ -133,6 +133,23 @@ npx wrangler d1 create coin-pets
 npx wrangler d1 execute coin-pets --file=server/schema.sql --remote
 npx wrangler secret put ADMIN_INVITE_CODE   # optional but recommended
 npx wrangler deploy
+
+## PayPal payouts
+
+A player's cash-out is sent by the server itself — there is no approval step.
+Set the REST app credentials as secrets on the deployment:
+
+```bash
+npx wrangler secret put PAYPAL_CLIENT_ID
+npx wrangler secret put PAYPAL_CLIENT_SECRET
+# optional, defaults to live
+npx wrangler secret put PAYPAL_MODE       # sandbox
+```
+
+The daily ceiling is the `payout_daily_budget_cents` setting (default 500 = $5).
+A payout above the remaining budget waits for review; an address PayPal refuses
+for good is rejected and the coins are refunded; an outage leaves the request
+pending. Without the keys the Wallet takes requests for review and says so.
 ```
 
 `wrangler.jsonc` routes `/api/*` to the Worker first and falls back to the
