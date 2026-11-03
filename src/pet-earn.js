@@ -276,18 +276,37 @@
     }
   }
 
+  /* A payout is marked paid when PayPal accepts the batch, so the second line
+     reports where the money actually got to instead of repeating the word paid. */
+  function payoutProgress(x) {
+    if (x.status !== 'paid') return null;
+    const state = String(x.payout_state || '').toUpperCase();
+    if (state === 'SUCCESS') return { icon: '✅', text: 'Delivered to PayPal' };
+    if (['FAILED', 'DENIED', 'RETURNED', 'REVERSED', 'BLOCKED', 'CANCELED', 'CANCELLED'].includes(state)) {
+      return { icon: '⚠️', text: 'PayPal could not complete this payout — it is recorded for review' };
+    }
+    if (['PENDING', 'PROCESSING', 'UNCLAIMED', 'ONHOLD'].includes(state)) {
+      return { icon: '⏳', text: 'PayPal is processing this — usually minutes' };
+    }
+    return { icon: '📦', text: 'Sent to PayPal' };
+  }
+
   function historyHTML(list) {
     if (!list?.length) {
       return '<p class="tiny muted" style="margin:8px 2px">No payouts yet. Keep caring for your sprite and the coins add up.</p>';
     }
-    return list.map((x) => `<div class="card" style="padding:10px 12px;margin-top:8px;display:flex;align-items:center;gap:10px">
+    return list.map((x) => {
+      const progress = payoutProgress(x);
+      return `<div class="card" style="padding:10px 12px;margin-top:8px;display:flex;align-items:center;gap:10px">
       <span style="font-size:18px">${x.status === 'paid' ? '✅' : x.status === 'rejected' ? '↩️' : x.status === 'approved' ? '📦' : '⏳'}</span>
       <div style="flex:1;min-width:0">
         <b style="font-size:13px">${money(x.usd_cents)} · ${fmt(x.coins)} coins</b>
         <div class="tiny muted" style="margin-top:2px">${esc(x.paypal_email)} · ${dateShort(x.created_at)}${x.note ? ` · ${esc(x.note)}` : ''}</div>
+        ${progress ? `<div class="tiny" style="margin-top:3px">${progress.icon} ${esc(progress.text)}</div>` : ''}
       </div>
       <span class="chip" style="font-size:10px;text-transform:uppercase;letter-spacing:.4px">${esc(x.status)}</span>
-    </div>`).join('');
+    </div>`;
+    }).join('');
   }
 
   function walletBody(data) {

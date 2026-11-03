@@ -7,7 +7,9 @@
      PAYPAL_MODE            'live' (default) or 'sandbox'
      PAYPAL_API_BASE        optional override, used by the payout tests
 
-   A batch id is the withdrawal id, so a retried send can never pay twice. */
+   A batch id is the withdrawal id, so a retried send can never pay twice.
+   `sendPayout` answering PENDING only means PayPal accepted the batch; the money
+   lands later, so fetchPayoutStatus asks PayPal where a batch actually got to. */
 
 const LIVE_BASE = 'https://api-m.paypal.com';
 const SANDBOX_BASE = 'https://api-m.sandbox.paypal.com';
@@ -101,5 +103,43 @@ export async function sendPayout(env, { email, cents, withdrawalId, note = '' })
   return {
     batchId: data?.batch_header?.payout_batch_id || '',
     status: data?.batch_header?.batch_status || 'PENDING',
+  };
+}
+
+/* Where the money actually ended up. PayPal reports a batch as PENDING or
+   PROCESSING while it is on its way and SUCCESS/FAILED/RETURNED once it settles;
+   the first item's status is the useful detail for a single-recipient payout.
+   Throws a PayoutError on transport or auth trouble so the caller can keep the
+   last known state instead of inventing one. */
+export async function fetchPayoutStatus(env, batchId) {
+  const cfg = payoutsConfig(env);
+  if (!cfg.configured) throw new PayoutError('PayPal payouts are not configured on this deployment.');
+  if (!batchId) throw new PayoutError('There is no payout batch to check.');
+  const token = await accessToken(cfg);
+
+  let res;
+  try {
+    res = await fetch(`${cfg.base}/v1/payments/payouts/${encodeURIComponent(batchId)}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+  } catch (err) {
+    throw new PayoutError('PayPal did not answer the status call.', { detail: String(err && err.message).slice(0, 200) });
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new PayoutError(
+      data?.message || `PayPal would not report that batch (${res.status}).`,
+      { status: res.status, detail: JSON.stringify(data).slice(0, 300) },
+    );
+  }
+
+  const item = Array.isArray(data?.items) ? data.items[0] || {} : {};
+  const batch = String(data?.batch_header?.batch_status || '').toUpperCase();
+  const single = String(item?.transaction_status || '').toUpperCase();
+  return {
+    status: batch || single || 'UNKNOWN',
+    itemStatus: single,
+    reason: String(item?.errors?.message || item?.errors?.name || '').slice(0, 200),
   };
 }

@@ -30,6 +30,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* ---------- the PayPal stand-in ---------- */
 const batches = [];
+const batchStatus = new Map();
+const statusCalls = [];
 const tokenCalls = [];
 const mock = createServer((req, res) => {
   let body = '';
@@ -39,6 +41,17 @@ const mock = createServer((req, res) => {
     if (req.url === '/v1/oauth2/token') {
       tokenCalls.push(req.headers.authorization || '');
       res.writeHead(200).end(JSON.stringify({ access_token: 'MOCK-TOKEN', token_type: 'Bearer', expires_in: 3600 }));
+      return;
+    }
+    const statusPath = /^\/v1\/payments\/payouts\/([^/?]+)$/.exec(req.url || '');
+    if (statusPath && req.method === 'GET' && req.url !== '/v1/payments/payouts') {
+      const id = decodeURIComponent(statusPath[1]);
+      statusCalls.push(id);
+      const wanted = batchStatus.get(id) || 'PENDING';
+      res.writeHead(200).end(JSON.stringify({
+        batch_header: { payout_batch_id: id, batch_status: wanted },
+        items: [{ transaction_status: wanted === 'SUCCESS' ? 'SUCCESS' : 'PENDING' }],
+      }));
       return;
     }
     if (req.url === '/v1/payments/payouts') {
@@ -113,6 +126,8 @@ try {
     PAYPAL_CLIENT_SECRET: 'test-client-secret',
     PAYPAL_MODE: 'sandbox',
     PAYPAL_API_BASE: `http://127.0.0.1:${MOCK_PORT}`,
+    /* ask PayPal about a batch on every wallet read, so the test can move it */
+    PAYOUT_STATUS_TTL_MS: '0',
   });
   startServer(PLAIN_PORT, { PAYPAL_CLIENT_ID: '', PAYPAL_CLIENT_SECRET: '' });
   await waitFor(BASE);
@@ -143,6 +158,17 @@ try {
   check('the payout reference is stored on the request', /^BATCH-/.test(cashout.data?.withdrawal?.payment_reference || ''), cashout.data?.withdrawal?.payment_reference);
   check('the coins left the balance', cashout.data?.wallet?.coins === coinsBefore - 200, `${coinsBefore} -> ${cashout.data?.wallet?.coins}`);
   check('the wallet counts it as paid', cashout.data?.wallet?.paid === 0.2, String(cashout.data?.wallet?.paid));
+
+  check('a fresh cash-out is recorded as PayPal still processing', cashout.data?.withdrawal?.payout_state === 'PENDING', cashout.data?.withdrawal?.payout_state);
+  const sentBatch = cashout.data?.withdrawal?.payment_reference || '';
+  batchStatus.set(sentBatch, 'SUCCESS');
+  const settled = await player.call('/api/wallet');
+  const settledRow = settled.data?.withdrawals?.find((w) => w.id === cashout.data?.withdrawal?.id);
+  check('opening the wallet shows the money actually arrived', settledRow?.payout_state === 'SUCCESS', JSON.stringify(settledRow || {}).slice(0, 160));
+  check('the wallet records when it last asked PayPal', settledRow?.payout_checked_at > 0, String(settledRow?.payout_checked_at));
+  const callsAfterSettle = statusCalls.length;
+  await player.call('/api/wallet');
+  check('a settled payout is never asked about again', statusCalls.length === callsAfterSettle, `${callsAfterSettle} -> ${statusCalls.length}`);
 
   const tiny = client();
   await tiny.call('/api/guest', { method: 'POST' });
@@ -211,6 +237,7 @@ try {
   const plainCash = await plain.call('/api/wallet/withdraw', { body: { coins: 200, paypalEmail: 'plain@example.com' } });
   check('a request is still taken, for review', plainCash.status === 201 && plainCash.data?.withdrawal?.status === 'pending', `status=${plainCash.status}`);
   check('no payout batch was ever sent from the server without keys', batches.length === batchesBeforePlain, `batches=${batches.length}, before ${batchesBeforePlain}`);
+  check('without keys the wallet never asks PayPal for a batch status', statusCalls.every((id) => id !== '' && !id.startsWith('PLAIN')), `status calls: ${statusCalls.join(',')}`);
 } catch (err) {
   failures.push(String(err && err.message));
   console.log(`\nFAIL  ${err && err.message}`);

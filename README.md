@@ -1,4 +1,15 @@
-## 4.9.0 Care pays: a happy sprite earns up to ×1.50 (current release)
+## 4.10.0 You can see where each payout actually got to (current release)
+
+- **"Paid" was doing two different jobs.** It means PayPal *accepted* the batch, which can still be processing (or come back failed) afterwards — so the wallet now also reports the real batch state: `⏳ PayPal is processing this — usually minutes`, `✅ Delivered to PayPal`, or a warning when PayPal could not complete it.
+- **The status is checked against PayPal, not guessed.** The server asks PayPal for each recent batch (`GET /v1/payments/payouts/{batch_id}`) and stores what it says. The first wallet open after a cash-out checks immediately; after that a batch is re-checked at most once every 90 seconds, and a settled batch (`SUCCESS`, `FAILED`, `RETURNED`…) is never asked about again.
+- **A status check can never break the wallet.** No PayPal keys, an outage, a timeout or a bad response all leave the last known state in place — the wallet opens normally and the coins, balance and history are unaffected. With no keys configured the game still never calls PayPal.
+- **Nothing to do by hand.** There is no owner step, no refresh button and no code: opening the wallet is the refresh, and every player sees only their own payouts.
+- **Existing databases upgrade themselves.** `payout_state` and `payout_checked_at` are added by the migration that already runs on both the Worker (D1) and the local server, so a Hollow with payouts already in it keeps them.
+- **Tests:** the payout suite is 32 checks (was 27) and now runs a mock PayPal that can move a batch from `PENDING` to `SUCCESS`: it proves a fresh cash-out reads as processing, that the wallet reports the arrival once PayPal does, that a settled batch is never polled twice, and that no status call is ever made without keys. Wallet 72, API 88, owner 20, rewards 31, tour 22, worker schema 9.
+- Package: `versionName 4.10.0` / `versionCode 99`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.10.0-v99-release.apk`](SpriteHollow-4.10.0-v99-release.apk) — 784844 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `4a316ab0c9095e22e7982ee5edaffb48186ca0fda4894567185e950d2bec4a01`. Installs over 4.9.0 in place.
+
+## 4.9.0 Care pays: a happy sprite earns up to ×1.50 (previous release)
 
 - **Care is now the multiplier the game always described.** Three needs above 90 add to every game payout: joy +25%, hunger +15%, energy +10% — all three together pay **×1.50**. Below that the sprite still earns, just at its normal rate.
 - **The bonus is in the payout, not the label.** `gameCoinPayout` multiplies the finished number, so the result screen, the wallet award and arcade progress all agree: what the game previews is exactly what gets banked and what the server records.

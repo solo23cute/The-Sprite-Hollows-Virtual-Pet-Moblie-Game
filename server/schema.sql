@@ -69,7 +69,11 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   decided_at INTEGER,
   decided_by INTEGER,
   paid_at INTEGER,
-  payment_reference TEXT
+  payment_reference TEXT,
+  -- where the PayPal batch actually got to: PENDING/PROCESSING then SUCCESS,
+  -- FAILED, RETURNED... `paid` means PayPal accepted it, not that it arrived
+  payout_state TEXT,
+  payout_checked_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawals(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_withdrawals_user ON withdrawals(user_id, created_at);

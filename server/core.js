@@ -14,7 +14,7 @@
 
 export const SESSION_COOKIE = 'cp_session';
 
-import { payoutsConfig, sendPayout } from './payouts.js';
+import { fetchPayoutStatus, payoutsConfig, sendPayout } from './payouts.js';
 
 /* Owner access without an account and without a code: the first session to open
    payout review takes the seat. The old passcode key is kept only so an upgraded
@@ -983,8 +983,9 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       'SELECT id, kind, amount, source, note, created_at FROM ledger WHERE user_id = ? ORDER BY id DESC LIMIT 40',
       [user.id],
     );
+    await syncPayoutStates(user.id);
     const withdrawals = await store.all(
-      'SELECT id, coins, usd_cents, paypal_email, status, note, created_at, decided_at, paid_at FROM withdrawals WHERE user_id = ? ORDER BY created_at DESC LIMIT 30',
+      'SELECT id, coins, usd_cents, paypal_email, status, note, created_at, decided_at, paid_at, payment_reference, payout_state, payout_checked_at FROM withdrawals WHERE user_id = ? ORDER BY created_at DESC LIMIT 30',
       [user.id],
     );
     return json({
@@ -994,6 +995,39 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       withdrawals,
       today: await dailySnapshot(user.id, dayKey(now()), settings),
     });
+  }
+
+  /* `paid` only means PayPal accepted the batch, so a player could be told the
+     money arrived while PayPal was still moving it. Ask PayPal where each recent
+     batch got to, but never more than once per TTL and never again once a batch
+     has settled. A PayPal hiccup keeps the last known state: the wallet must
+     still open, and a payout's status is not worth breaking it for. */
+  const PAYOUT_STATES_SETTLED = new Set(['SUCCESS', 'FAILED', 'DENIED', 'RETURNED', 'REVERSED', 'BLOCKED', 'CANCELED', 'CANCELLED']);
+  const payoutStatusTtl = Number(env.PAYOUT_STATUS_TTL_MS);
+  const PAYOUT_STATUS_TTL_MS = Number.isFinite(payoutStatusTtl) && payoutStatusTtl >= 0 ? payoutStatusTtl : 90_000;
+
+  async function syncPayoutStates(userId) {
+    if (!payoutsConfig(env).configured) return;
+    let rows;
+    try {
+      rows = await store.all(
+        `SELECT id, payment_reference, payout_state, payout_checked_at FROM withdrawals
+          WHERE user_id = ? AND status = 'paid' AND payment_reference IS NOT NULL AND payment_reference <> ''
+          ORDER BY created_at DESC LIMIT 4`,
+        [userId],
+      );
+    } catch { return; }
+    for (const row of rows) {
+      if (PAYOUT_STATES_SETTLED.has(String(row.payout_state || '').toUpperCase())) continue;
+      if (now() - toInt(row.payout_checked_at) < PAYOUT_STATUS_TTL_MS) continue;
+      try {
+        const checked = await fetchPayoutStatus(env, row.payment_reference);
+        await store.run(
+          'UPDATE withdrawals SET payout_state = ?, payout_checked_at = ? WHERE id = ?',
+          [checked.status, now(), row.id],
+        );
+      } catch { /* keep the last known state */ }
+    }
   }
 
   async function requestWithdrawal(request, user) {
@@ -1102,8 +1136,8 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
         note: `Sprite Hollow payout for ${coins.toLocaleString()} coins`,
       });
       await store.run(
-        "UPDATE withdrawals SET status = 'paid', paid_at = ?, payment_reference = ?, note = ? WHERE id = ? AND status = 'pending'",
-        [now(), sent.batchId, 'Paid automatically to PayPal', id],
+        "UPDATE withdrawals SET status = 'paid', paid_at = ?, payment_reference = ?, note = ?, payout_state = ? WHERE id = ? AND status = 'pending'",
+        [now(), sent.batchId, 'Paid automatically to PayPal', String(sent.status || 'PENDING').toUpperCase(), id],
       );
       return { status: 'paid', message: 'Paid to PayPal.' };
     } catch (err) {
