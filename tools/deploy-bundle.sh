@@ -57,14 +57,18 @@ function ensureSchema(env) {
       const table = await env.DB.prepare(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'ledger'",
       ).first();
-      if (table) return;
-      for (const statement of SCHEMA_STATEMENTS) {
-        try {
-          await env.DB.prepare(statement).run();
-        } catch (err) {
-          if (!/already exists/i.test(String((err && err.message) || ''))) throw err;
+      if (!table) {
+        for (const statement of SCHEMA_STATEMENTS) {
+          try {
+            await env.DB.prepare(statement).run();
+          } catch (err) {
+            if (!/already exists/i.test(String((err && err.message) || ''))) throw err;
+          }
         }
       }
+      /* Migrations run even when the tables already exist: returning early on an
+         existing schema skipped them, which left an upgraded database missing a
+         column that the queries already select. */
       for (const migration of MIGRATIONS) {
         try {
           await env.DB.prepare(migration).run();
