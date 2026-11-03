@@ -1,4 +1,4 @@
-const APP_VERSION = '4.10.0';
+const APP_VERSION = '4.10.1';
 
 const clamp = (n, min = 0, max = 100) => Math.max(min, Math.min(max, n));
 const rand = (a = 0, b = 1) => a + Math.random() * (b - a);

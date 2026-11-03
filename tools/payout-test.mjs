@@ -223,6 +223,24 @@ try {
   const held = (await flaky.call('/api/wallet')).data.wallet;
   check('the queued request holds its coins', held.reserved >= 100 && held.autoPayout === true, JSON.stringify(held).slice(0, 160));
 
+  console.log('\na payout PayPal cannot deliver returns the coins\n');
+  const unlucky = client();
+  await unlucky.call('/api/guest', { method: 'POST' });
+  await unlucky.call('/api/earn', { body: { amount: 300, source: 'game', key: unique('earn') } });
+  const doomed = await unlucky.call('/api/wallet/withdraw', { body: { coins: 150, paypalEmail: 'doomed@example.com' } });
+  check('the payout starts as processing', doomed.data?.withdrawal?.payout_state === 'PENDING', JSON.stringify(doomed.data?.withdrawal || {}).slice(0, 120));
+  const doomedBatch = doomed.data?.withdrawal?.payment_reference || '';
+  const beforeRefund = (await unlucky.call('/api/wallet')).data.wallet.coins;
+  batchStatus.set(doomedBatch, 'FAILED');
+  const refunded = await unlucky.call('/api/wallet');
+  check('a failed payout puts the coins back in the balance', refunded.data?.wallet?.coins === beforeRefund + 150, `${beforeRefund} -> ${refunded.data?.wallet?.coins}`);
+  const doomedRow = refunded.data?.withdrawals?.find((w) => w.id === doomed.data?.withdrawal?.id);
+  check('the failed payout stops pretending to be paid', doomedRow?.status === 'rejected' && doomedRow?.payout_state === 'FAILED', JSON.stringify(doomedRow || {}).slice(0, 170));
+  /* the wallet ledger does not carry ref, so match the amount that came back */
+  check('the refund is a real ledger row, once', refunded.data?.ledger?.filter((l) => l.kind === 'withdraw_refund' && l.amount === 150).length === 1, JSON.stringify((refunded.data?.ledger || []).map((l) => `${l.kind}:${l.amount}`)));
+  const refundAgain = await unlucky.call('/api/wallet');
+  check('opening the wallet again never refunds twice', refundAgain.data?.wallet?.coins === refunded.data?.wallet?.coins && refundAgain.data?.ledger?.filter((l) => l.kind === 'withdraw_refund').length === 1, `coins ${refundAgain.data?.wallet?.coins}`);
+
   console.log('\nwithout PayPal keys nothing pretends\n');
   const plainOwner = client(PLAIN);
   await plainOwner.call('/api/guest', { method: 'POST' });

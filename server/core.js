@@ -979,11 +979,14 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
   async function wallet(request, user) {
     const settings = await readSettings();
     const pub = publicSettings(settings);
+    /* Reconcile PayPal batches first: a refund has to be in the ledger this very
+       response reads, otherwise the balance and the history disagree until the
+       player opens the wallet a second time. */
+    await syncPayoutStates(user.id);
     const ledger = await store.all(
       'SELECT id, kind, amount, source, note, created_at FROM ledger WHERE user_id = ? ORDER BY id DESC LIMIT 40',
       [user.id],
     );
-    await syncPayoutStates(user.id);
     const withdrawals = await store.all(
       'SELECT id, coins, usd_cents, paypal_email, status, note, created_at, decided_at, paid_at, payment_reference, payout_state, payout_checked_at FROM withdrawals WHERE user_id = ? ORDER BY created_at DESC LIMIT 30',
       [user.id],
@@ -1002,9 +1005,36 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
      batch got to, but never more than once per TTL and never again once a batch
      has settled. A PayPal hiccup keeps the last known state: the wallet must
      still open, and a payout's status is not worth breaking it for. */
-  const PAYOUT_STATES_SETTLED = new Set(['SUCCESS', 'FAILED', 'DENIED', 'RETURNED', 'REVERSED', 'BLOCKED', 'CANCELED', 'CANCELLED']);
+  /* FAILED means PayPal will never deliver this batch: the money never moved, so
+     the held coins belong back in the player's balance. UNCLAIMED and ONHOLD are
+     deliberately not here — an unclaimed email payment can still be picked up. */
+  const PAYOUT_STATES_FAILED = new Set(['FAILED', 'DENIED', 'RETURNED', 'REVERSED', 'BLOCKED', 'CANCELED', 'CANCELLED']);
+  const PAYOUT_STATES_SETTLED = new Set([...PAYOUT_STATES_FAILED, 'SUCCESS']);
   const payoutStatusTtl = Number(env.PAYOUT_STATUS_TTL_MS);
   const PAYOUT_STATUS_TTL_MS = Number.isFinite(payoutStatusTtl) && payoutStatusTtl >= 0 ? payoutStatusTtl : 90_000;
+
+  /* The coins are only returned if the payout is still the one that was sent: the
+     UPDATE and the refund share a batch, and the refund only fires when this exact
+     call flipped the row, so two wallet reads racing cannot pay the player twice. */
+  const PAYOUT_FAILED_NOTE = 'PayPal could not deliver this payout - coins returned';
+  async function refundFailedPayout(withdrawalId, state) {
+    const stamp = now();
+    await store.batch([
+      {
+        sql: `UPDATE withdrawals SET status = 'rejected', payout_state = ?, payout_checked_at = ?, decided_at = ?, note = ?
+               WHERE id = ? AND status = 'paid'`,
+        params: [state, stamp, stamp, PAYOUT_FAILED_NOTE, withdrawalId],
+      },
+      {
+        sql: `INSERT INTO ledger (user_id, kind, amount, ref, source, note, created_at)
+              SELECT w.user_id, 'withdraw_refund', w.coins, w.id, 'withdrawal', 'PayPal payout failed - coins returned', ?
+                FROM withdrawals w
+               WHERE w.id = ? AND w.status = 'rejected' AND w.decided_at = ?
+                 AND NOT EXISTS (SELECT 1 FROM ledger WHERE ref = w.id AND kind = 'withdraw_refund')`,
+        params: [stamp, withdrawalId, stamp],
+      },
+    ]);
+  }
 
   async function syncPayoutStates(userId) {
     if (!payoutsConfig(env).configured) return;
@@ -1022,10 +1052,14 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       if (now() - toInt(row.payout_checked_at) < PAYOUT_STATUS_TTL_MS) continue;
       try {
         const checked = await fetchPayoutStatus(env, row.payment_reference);
-        await store.run(
-          'UPDATE withdrawals SET payout_state = ?, payout_checked_at = ? WHERE id = ?',
-          [checked.status, now(), row.id],
-        );
+        const state = String(checked.status || '').toUpperCase();
+        if (PAYOUT_STATES_FAILED.has(state)) await refundFailedPayout(row.id, state);
+        else {
+          await store.run(
+            'UPDATE withdrawals SET payout_state = ?, payout_checked_at = ? WHERE id = ?',
+            [state, now(), row.id],
+          );
+        }
       } catch { /* keep the last known state */ }
     }
   }

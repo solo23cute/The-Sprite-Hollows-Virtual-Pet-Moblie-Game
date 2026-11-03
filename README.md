@@ -1,4 +1,15 @@
-## 4.10.0 You can see where each payout actually got to (current release)
+## 4.10.1 A payout PayPal cannot deliver gives the coins back (current release)
+
+- **A failed cash-out no longer keeps the coins.** When PayPal reports a batch as `FAILED`, `RETURNED`, `DENIED`, `REVERSED`, `BLOCKED` or `CANCELED`, the request is closed as rejected and the held coins are written back to the player's ledger, so the balance the wallet shows is the balance they can spend or cash out again.
+- **Once, not twice.** The close and the refund share one database batch, and the refund only fires if that exact call moved the request out of `paid` — so two wallet reads racing, or reopening the wallet all day, cannot pay a player twice.
+- **The balance and the history agree in the same response.** Reconciliation now runs before the wallet reads anything, which a test caught: refunding after the read left a refunded balance next to a history with no refund row until the sheet was opened again.
+- **Still no owner in the loop.** No approval, no code, no manual step: the next wallet open is what reconciles it. `UNCLAIMED` and `ONHOLD` are deliberately left alone, because an unclaimed email payment can still be picked up.
+- **The wallet says what happened:** `↩️ PayPal could not deliver this — the coins are back in your balance`, on a request now marked rejected instead of pretending to be paid.
+- **Tests:** the payout suite is 37 checks and drives a batch to `FAILED`: it proves the coins return, the row stops reading as paid, exactly one refund row is written, and a second wallet open does not refund again. Wallet 72, API 88, owner 20, rewards 31, tour 22, worker schema 9.
+- Package: `versionName 4.10.1` / `versionCode 100`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.10.1-v100-release.apk`](SpriteHollow-4.10.1-v100-release.apk) — 784844 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `690b740285467cabe765adaaa893c7aefff0dec6a19476f7c16b0d9c9641a6bb`. Installs over 4.10.0 in place.
+
+## 4.10.0 You can see where each payout actually got to (previous release)
 
 - **"Paid" was doing two different jobs.** It means PayPal *accepted* the batch, which can still be processing (or come back failed) afterwards — so the wallet now also reports the real batch state: `⏳ PayPal is processing this — usually minutes`, `✅ Delivered to PayPal`, or a warning when PayPal could not complete it.
 - **The status is checked against PayPal, not guessed.** The server asks PayPal for each recent batch (`GET /v1/payments/payouts/{batch_id}`) and stores what it says. The first wallet open after a cash-out checks immediately; after that a batch is re-checked at most once every 90 seconds, and a settled batch (`SUCCESS`, `FAILED`, `RETURNED`…) is never asked about again.

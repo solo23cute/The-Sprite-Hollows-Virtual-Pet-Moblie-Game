@@ -279,12 +279,12 @@
   /* A payout is marked paid when PayPal accepts the batch, so the second line
      reports where the money actually got to instead of repeating the word paid. */
   function payoutProgress(x) {
-    if (x.status !== 'paid') return null;
     const state = String(x.payout_state || '').toUpperCase();
-    if (state === 'SUCCESS') return { icon: '✅', text: 'Delivered to PayPal' };
     if (['FAILED', 'DENIED', 'RETURNED', 'REVERSED', 'BLOCKED', 'CANCELED', 'CANCELLED'].includes(state)) {
-      return { icon: '⚠️', text: 'PayPal could not complete this payout — it is recorded for review' };
+      return { icon: '↩️', text: 'PayPal could not deliver this — the coins are back in your balance' };
     }
+    if (x.status !== 'paid') return null;
+    if (state === 'SUCCESS') return { icon: '✅', text: 'Delivered to PayPal' };
     if (['PENDING', 'PROCESSING', 'UNCLAIMED', 'ONHOLD'].includes(state)) {
       return { icon: '⏳', text: 'PayPal is processing this — usually minutes' };
     }
