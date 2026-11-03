@@ -14,7 +14,7 @@
 
 export const SESSION_COOKIE = 'cp_session';
 
-import { fetchPayoutStatus, payoutsConfig, sendPayout } from './payouts.js';
+import { authorizeUrl, fetchLinkedAccount, fetchPayoutStatus, payoutsConfig, sendPayout } from './payouts.js';
 
 /* Owner access without an account and without a code: the first session to open
    payout review takes the seat. The old passcode key is kept only so an upgraded
@@ -991,11 +991,13 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       'SELECT id, coins, usd_cents, paypal_email, status, note, created_at, decided_at, paid_at, payment_reference, payout_state, payout_checked_at FROM withdrawals WHERE user_id = ? ORDER BY created_at DESC LIMIT 30',
       [user.id],
     );
+    const linked = await store.get('SELECT paypal_email, paypal_payer_id FROM users WHERE id = ?', [user.id]);
     return json({
       wallet: await walletSnapshot(user.id, settings),
       settings: pub,
       ledger,
       withdrawals,
+      paypal: paypalLinkState(linked),
       today: await dailySnapshot(user.id, dayKey(now()), settings),
     });
   }
@@ -1064,16 +1066,141 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     }
   }
 
+  /* ---------- the player's own PayPal account ---------- */
+
+  const PAYPAL_LINK_TTL_MS = 10 * 60 * 1000;
+
+  function paypalLinkState(row) {
+    const email = String(row?.paypal_email || '').trim();
+    return { linked: Boolean(email), email, payerId: String(row?.paypal_payer_id || '').trim() };
+  }
+
+  /* PayPal sends the browser back here, so the return URL has to be the public
+     one: PAYPAL_REDIRECT_URL when the deployment knows it, else whatever origin
+     the player reached this server on. It must match the app's Return URL. */
+  function paypalRedirectUri(request) {
+    const fixed = String(env.PAYPAL_REDIRECT_URL || '').trim();
+    if (fixed) return fixed;
+    return `${new URL(request.url).origin}/api/paypal/callback`;
+  }
+
+  async function startPaypalLink(request, user) {
+    if (!payoutsConfig(env).configured) {
+      fail(503, 'PayPal is not set up on this server yet, so accounts cannot be connected.');
+    }
+    const stamp = now();
+    const state = `${randomToken(24)}`.replace(/[^a-z0-9]/gi, '');
+    /* a stale link from an abandoned attempt is never reusable */
+    await store.run('DELETE FROM paypal_links WHERE created_at < ?', [stamp - PAYPAL_LINK_TTL_MS]);
+    await store.run('INSERT INTO paypal_links (state, user_id, created_at) VALUES (?, ?, ?)', [state, user.id, stamp]);
+    return json({
+      url: authorizeUrl(env, { state, redirectUri: paypalRedirectUri(request) }),
+      expiresAt: stamp + PAYPAL_LINK_TTL_MS,
+    });
+  }
+
+  function paypalPage({ title, detail, ok = true, status = 200 }) {
+    const safe = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${safe(title)}</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:#171423; color:#f4eeff;
+         font-family:system-ui,-apple-system,'Segoe UI',sans-serif; padding:24px; }
+  .card { max-width:340px; text-align:center; background:#221d33; border:1px solid #3a3352;
+          border-radius:18px; padding:22px 20px; }
+  h1 { font-size:17px; margin:8px 0 6px; }
+  p { font-size:13px; line-height:1.55; color:#b9aed6; margin:0 0 14px; word-break:break-word; }
+  button { width:100%; border:0; border-radius:12px; padding:12px; font-size:14px; font-weight:600;
+           background:#8f7bff; color:#150f24; }
+</style></head>
+<body><div class="card">
+  <div style="font-size:30px">${ok ? 'OK' : '!'}</div>
+  <h1>${safe(title)}</h1>
+  <p>${safe(detail)}</p>
+  <button onclick="if (history.length > 1) history.back(); else window.close();">Back to Sprite Hollow</button>
+</div></body></html>`;
+    return new Response(html, {
+      status,
+      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
+    });
+  }
+
+  /* The state is the credential here: PayPal redirects the browser, so there is
+     no session to read. It is single use and tied to the player who asked. */
+  async function paypalCallback(request) {
+    const url = new URL(request.url);
+    if (url.searchParams.get('error')) {
+      return paypalPage({
+        ok: false, status: 400,
+        title: 'PayPal sign-in cancelled',
+        detail: 'Nothing changed. You can connect an account whenever you like.',
+      });
+    }
+    const state = String(url.searchParams.get('state') || '');
+    const code = String(url.searchParams.get('code') || '');
+    const link = state ? await store.get('SELECT user_id, created_at FROM paypal_links WHERE state = ?', [state]) : null;
+    if (!link || now() - toInt(link?.created_at) > PAYPAL_LINK_TTL_MS) {
+      return paypalPage({
+        ok: false, status: 400,
+        title: 'That sign-in link expired',
+        detail: 'Open the wallet and tap Connect PayPal again.',
+      });
+    }
+    /* single use: a replayed callback cannot relink an account */
+    await store.run('DELETE FROM paypal_links WHERE state = ?', [state]);
+
+    let who;
+    try {
+      who = await fetchLinkedAccount(env, { code, redirectUri: paypalRedirectUri(request) });
+    } catch (err) {
+      return paypalPage({
+        ok: false, status: 502,
+        title: 'PayPal did not confirm it',
+        detail: String((err && err.message) || 'Try again in a moment.'),
+      });
+    }
+    if (!who.email) {
+      return paypalPage({
+        ok: false, status: 502,
+        title: 'PayPal shared no email',
+        detail: 'The app needs the email permission to pay you. Try connecting again.',
+      });
+    }
+    await store.run(
+      'UPDATE users SET paypal_email = ?, paypal_payer_id = ?, paypal_linked_at = ? WHERE id = ?',
+      [who.email, who.payerId || '', now(), toInt(link.user_id)],
+    );
+    return paypalPage({
+      title: 'PayPal connected',
+      detail: `${who.email} is now the account Sprite Hollow pays. Cash-outs go there automatically.`,
+    });
+  }
+
+  async function unlinkPaypal(request, user) {
+    await store.run(
+      'UPDATE users SET paypal_email = NULL, paypal_payer_id = NULL, paypal_linked_at = NULL WHERE id = ?',
+      [user.id],
+    );
+    return json({ ok: true, paypal: { linked: false, email: '', payerId: '' } });
+  }
+
   async function requestWithdrawal(request, user) {
     const body = await readJson(request);
     const coins = toInt(body.coins);
-    const paypalEmail = String(body.paypalEmail || '').trim();
+    const typedEmail = String(body.paypalEmail || '').trim();
     const settings = await readSettings();
     const pub = publicSettings(settings);
     const stamp = now();
+    /* A connected account always wins: the address was confirmed by PayPal when
+       the player signed in, so nothing in this request can redirect the money. */
+    const linked = await store.get('SELECT paypal_email FROM users WHERE id = ?', [user.id]);
+    const paypalEmail = String(linked?.paypal_email || '').trim() || typedEmail;
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(paypalEmail) || paypalEmail.length > 120) {
-      fail(400, 'Enter the PayPal email that should receive the money.');
+      fail(400, 'Connect your PayPal account, or enter the email that should receive the money.');
     }
     if (!Number.isFinite(coins) || coins < Math.max(1, pub.minWithdrawCoins)) {
       fail(400, 'Enter how many coins to cash out.');
@@ -1555,6 +1682,10 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     ['GET', /^\/api\/wallet$/, async (req) => wallet(req, await requireUser(req))],
     ['POST', /^\/api\/earn$/, async (req) => earn(req, await requireUser(req))],
     ['POST', /^\/api\/wallet\/withdraw$/, async (req) => requestWithdrawal(req, await requireUser(req))],
+    ['POST', /^\/api\/paypal\/link$/, async (req) => startPaypalLink(req, await requireUser(req))],
+    ['POST', /^\/api\/paypal\/unlink$/, async (req) => unlinkPaypal(req, await requireUser(req))],
+    /* PayPal redirects the browser here, so the one-shot state is the credential */
+    ['GET', /^\/api\/paypal\/callback$/, (req) => paypalCallback(req)],
     ['GET', /^\/api\/admin\/overview$/, (req) => adminOverview(req)],
     ['GET', /^\/api\/admin\/withdrawals$/, (req) => adminWithdrawals(req)],
     ['GET', /^\/api\/admin\/withdrawals\/export$/, (req) => exportWithdrawals(req)],

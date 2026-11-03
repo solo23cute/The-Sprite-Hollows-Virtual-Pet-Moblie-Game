@@ -1,4 +1,16 @@
-## 4.10.1 A payout PayPal cannot deliver gives the coins back (current release)
+## 4.11.0 Link your own PayPal once and get paid there automatically (current release)
+
+- **One sign-in replaces typing an address.** The wallet has a **Connect PayPal** button: the player signs in at PayPal once, and the Hollow keeps the account PayPal confirmed. No address to type, no code, nothing for the owner to approve.
+- **The payout address comes from PayPal, never from the request.** Once an account is linked, every cash-out is sent to it and any `paypalEmail` in the request body is ignored, so a modified client cannot redirect someone's money. Disconnecting falls back to a typed address.
+- **The link is one-shot and tied to the player.** Opening the wallet asks for a sign-in URL backed by a ten-minute single-use state; the callback consumes it, and a forged or replayed state is refused. The callback has no session to lean on, so that state is the credential.
+- **The player's PayPal token is never stored.** It is used once to read their identity (verified email plus payer id) and discarded; payouts keep moving on the deployment's own credentials, so no money ever moves between players.
+- **Still automatic, still without the owner.** A linked cash-out is paid in the same request, inside the same rolling seven-day budget.
+- **Turning it on:** in the PayPal app enable *Log in with PayPal* with the Email, PayPal account ID and account verification permissions, and register `<your origin>/api/paypal/callback` as a return URL (`PAYPAL_REDIRECT_URL` overrides it). Payouts keep using `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` and `PAYPAL_MODE`; without them the wallet says connecting is unavailable instead of offering a dead button.
+- **Tests:** the payout suite is 55 checks (from 37) and drives the whole link: a made-up state is refused, a real one links, replaying it is refused, a linked cash-out pays the linked account, a request-supplied address cannot redirect it, disconnecting restores the typed address, and a server without keys offers no sign-in. Wallet 72, API 88, owner 20, rewards 31, tour 22, worker schema 9.
+- Package: `versionName 4.11.0` / `versionCode 101`, package `com.spritehollow.game`, minSdk 24 (Android 7.0), targetSdk 34.
+- **Android 7.0 and up:** [`SpriteHollow-4.11.0-v101-release.apk`](SpriteHollow-4.11.0-v101-release.apk) — 784844 bytes, signed with the private key plus the rotation lineage (v2 + v3), SHA-256 `0028ff39dde8ff0dda7b11164bea8ffbdfa9dc7c1884dccf857c4e4f948a279f`. Installs over 4.10.1 in place.
+
+## 4.10.1 A payout PayPal cannot deliver gives the coins back (previous release)
 
 - **A failed cash-out no longer keeps the coins.** When PayPal reports a batch as `FAILED`, `RETURNED`, `DENIED`, `REVERSED`, `BLOCKED` or `CANCELED`, the request is closed as rejected and the held coins are written back to the player's ledger, so the balance the wallet shows is the balance they can spend or cash out again.
 - **Once, not twice.** The close and the refund share one database batch, and the refund only fires if that exact call moved the request out of `paid` — so two wallet reads racing, or reopening the wallet all day, cannot pay a player twice.

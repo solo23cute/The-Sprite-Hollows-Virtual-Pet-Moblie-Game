@@ -33,6 +33,7 @@ const batches = [];
 const batchStatus = new Map();
 const statusCalls = [];
 const tokenCalls = [];
+const identityCalls = [];
 const mock = createServer((req, res) => {
   let body = '';
   req.on('data', (c) => { body += c; });
@@ -40,7 +41,27 @@ const mock = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     if (req.url === '/v1/oauth2/token') {
       tokenCalls.push(req.headers.authorization || '');
-      res.writeHead(200).end(JSON.stringify({ access_token: 'MOCK-TOKEN', token_type: 'Bearer', expires_in: 3600 }));
+      const isCode = /grant_type=authorization_code/.test(body);
+      res.writeHead(200).end(JSON.stringify({
+        access_token: isCode ? 'MOCK-LINK-TOKEN' : 'MOCK-TOKEN',
+        token_type: 'Bearer',
+        expires_in: 3600,
+      }));
+      return;
+    }
+    if ((req.url || '').startsWith('/v1/identity/oauth2/userinfo')) {
+      if ((req.headers.authorization || '') !== 'Bearer MOCK-LINK-TOKEN') {
+        res.writeHead(401).end(JSON.stringify({ error: 'invalid_token' }));
+        return;
+      }
+      identityCalls.push(body);
+      res.writeHead(200).end(JSON.stringify({
+        payer_id: 'PAYER-9',
+        user_id: 'PAYER-9',
+        email: 'linked@example.com',
+        name: 'Linked Player',
+        verified_account: true,
+      }));
       return;
     }
     const statusPath = /^\/v1\/payments\/payouts\/([^/?]+)$/.exec(req.url || '');
@@ -181,16 +202,61 @@ try {
   const history = await player.call('/api/wallet');
   check('the player history shows it paid, with no owner involved', history.data?.withdrawals?.[0]?.status === 'paid' && history.data?.withdrawals?.[0]?.paid_at > 0);
 
+  console.log('\nplayers connect their own PayPal account\n');
+  const linker = client();
+  await linker.call('/api/guest', { method: 'POST' });
+  const noAddress = await linker.call('/api/wallet/withdraw', { body: { coins: 10 } });
+  check('with no linked account and no address there is nothing to pay', noAddress.status === 400 && /Connect your PayPal/i.test(noAddress.data?.error || ''), JSON.stringify(noAddress.data).slice(0, 160));
+
+  const start = await linker.call('/api/paypal/link', { method: 'POST', body: {} });
+  const startUrl = new URL(start.data?.url || 'https://invalid.example/none');
+  check('the wallet gets a PayPal sign-in link', start.status === 200 && startUrl.host === 'www.sandbox.paypal.com' && startUrl.pathname === '/connect', `${start.status} ${String(start.data?.url || '').slice(0, 120)}`);
+  check('the link asks for the payer id and verified email', startUrl.searchParams.get('scope') === 'openid email https://uri.paypal.com/services/paypalattributes', startUrl.searchParams.get('scope'));
+  check('the link carries this app and a one-shot state', startUrl.searchParams.get('client_id') === 'test-client-id' && (startUrl.searchParams.get('state') || '').length >= 20, `state=${startUrl.searchParams.get('state')}`);
+  check('PayPal is told where to come back to', startUrl.searchParams.get('redirect_uri') === `${BASE}/api/paypal/callback`, startUrl.searchParams.get('redirect_uri'));
+
+  const state = startUrl.searchParams.get('state') || '';
+  const forged = await linker.call('/api/paypal/callback?code=abc&state=not-a-real-state');
+  check('a made-up state cannot link an account', forged.status === 400, `status=${forged.status}`);
+  check('nothing was linked by the forged callback', (await linker.call('/api/wallet')).data?.paypal?.linked === false, JSON.stringify((await linker.call('/api/wallet')).data?.paypal));
+
+  const done = await linker.call(`/api/paypal/callback?code=good-code&state=${state}`);
+  check('PayPal reports the account that signed in', done.status === 200 && /PayPal connected/i.test(done.text), `status=${done.status}`);
+  check('the sign-in code was used for identity, not for payouts', identityCalls.length === 1, `identity calls=${identityCalls.length}`);
+  const linkedWallet = await linker.call('/api/wallet');
+  check('the wallet knows which account is connected', linkedWallet.data?.paypal?.linked === true && linkedWallet.data?.paypal?.email === 'linked@example.com', JSON.stringify(linkedWallet.data?.paypal));
+  check('the payer id PayPal returned is kept for the record', linkedWallet.data?.paypal?.payerId === 'PAYER-9', JSON.stringify(linkedWallet.data?.paypal));
+
+  const replay = await linker.call(`/api/paypal/callback?code=good-code&state=${state}`);
+  check('a callback link is single use', replay.status === 400, `status=${replay.status}`);
+
+  await linker.call('/api/earn', { body: { amount: 300, source: 'game', key: unique('earn') } });
+  const beforeLinked = batches.length;
+  const linkedCash = await linker.call('/api/wallet/withdraw', { body: { coins: 100 } });
+  check('a linked player cashes out without an address', linkedCash.status === 201 && linkedCash.data?.withdrawal?.status === 'paid', `status=${linkedCash.status} ${JSON.stringify(linkedCash.data?.withdrawal || {}).slice(0, 120)}`);
+  check('the money goes to the account they signed in with', batches.length === beforeLinked + 1 && batches.at(-1)?.items?.[0]?.receiver === 'linked@example.com', JSON.stringify(batches.at(-1)?.items?.[0] || {}).slice(0, 140));
+
+  const hijack = await linker.call('/api/wallet/withdraw', { body: { coins: 100, paypalEmail: 'attacker@example.com' } });
+  const hijackOk = hijack.status === 409 || (hijack.status === 201 && batches.at(-1)?.items?.[0]?.receiver === 'linked@example.com');
+  check('an address in the request cannot redirect a linked payout', hijackOk, `${hijack.status} ${JSON.stringify(batches.at(-1)?.items?.[0] || {}).slice(0, 120)}`);
+
+  const unlinked = await linker.call('/api/paypal/unlink', { method: 'POST', body: {} });
+  check('a player can disconnect their account', unlinked.status === 200 && (await linker.call('/api/wallet')).data?.paypal?.linked === false, String(unlinked.status));
+  const afterUnlink = await linker.call('/api/wallet/withdraw', { body: { coins: 10 } });
+  check('after disconnecting an address is needed again', afterUnlink.status === 400, `status=${afterUnlink.status}`);
+
   console.log('\nthe weekly budget is a real ceiling\n');
   const budget = await owner.call('/api/admin/settings', { method: 'PUT', body: { payoutWeeklyBudgetCents: 0 } });
   check('the owner can set the weekly payout budget', budget.status === 200 && budget.data?.settings?.payoutWeeklyBudgetCents === 0, JSON.stringify(budget.data).slice(0, 140));
 
+  /* counted here, not before the link section: those cash-outs are real batches */
+  const batchesBeforeCapped = batches.length;
   const second = client();
   await second.call('/api/guest', { method: 'POST' });
   await second.call('/api/earn', { body: { amount: 300, source: 'game', key: unique('earn') } });
   const capped = await second.call('/api/wallet/withdraw', { body: { coins: 200, paypalEmail: 'second@example.com' } });
   check('over budget, the payout waits instead of sending', capped.status === 202 && capped.data?.withdrawal?.status === 'pending', `status=${capped.status}`);
-  check('no extra batch went out', batches.length === batchesAfterInstant, `batches=${batches.length}, expected ${batchesAfterInstant}`);
+  check('no extra batch went out', batches.length === batchesBeforeCapped, `batches=${batches.length}, expected ${batchesBeforeCapped}`);
 
   /* what was already sent in the last seven days has to count, not just what was
      sent since midnight: the allowance is set to exactly the cents already paid */
@@ -256,6 +322,8 @@ try {
   check('a request is still taken, for review', plainCash.status === 201 && plainCash.data?.withdrawal?.status === 'pending', `status=${plainCash.status}`);
   check('no payout batch was ever sent from the server without keys', batches.length === batchesBeforePlain, `batches=${batches.length}, before ${batchesBeforePlain}`);
   check('without keys the wallet never asks PayPal for a batch status', statusCalls.every((id) => id !== '' && !id.startsWith('PLAIN')), `status calls: ${statusCalls.join(',')}`);
+  const plainLink = await plain.call('/api/paypal/link', { method: 'POST', body: {} });
+  check('without PayPal keys nobody is offered a fake sign-in', plainLink.status === 503 && /not set up/i.test(plainLink.data?.error || ''), `${plainLink.status} ${JSON.stringify(plainLink.data).slice(0, 140)}`);
 } catch (err) {
   failures.push(String(err && err.message));
   console.log(`\nFAIL  ${err && err.message}`);

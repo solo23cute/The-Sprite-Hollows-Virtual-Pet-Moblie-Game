@@ -8,7 +8,12 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   is_admin INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
-  last_seen_at INTEGER
+  last_seen_at INTEGER,
+  -- the player's own PayPal account, confirmed through "Log in with PayPal":
+  -- cash-outs pay this address, never one typed into a request
+  paypal_email TEXT,
+  paypal_payer_id TEXT,
+  paypal_linked_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -77,6 +82,13 @@ CREATE TABLE IF NOT EXISTS withdrawals (
 );
 CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawals(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_withdrawals_user ON withdrawals(user_id, created_at);
+
+-- one-shot states for the PayPal connect flow (ten minute life, single use)
+CREATE TABLE IF NOT EXISTS paypal_links (
+  state TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,

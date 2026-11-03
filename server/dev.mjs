@@ -40,6 +40,7 @@ const core = createCore({
     PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET || '',
     PAYPAL_MODE: process.env.PAYPAL_MODE || '',
     PAYPAL_API_BASE: process.env.PAYPAL_API_BASE || '',
+    PAYPAL_REDIRECT_URL: process.env.PAYPAL_REDIRECT_URL || '',
     PAYOUT_STATUS_TTL_MS: process.env.PAYOUT_STATUS_TTL_MS || '',
   },
 });

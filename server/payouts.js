@@ -143,3 +143,77 @@ export async function fetchPayoutStatus(env, batchId) {
     reason: String(item?.errors?.message || item?.errors?.name || '').slice(0, 200),
   };
 }
+
+/* ---------- "Log in with PayPal" ----------
+   A player signs in once and PayPal tells us which account it is. The address we
+   store comes from PayPal's identity endpoint, never from a form, so a cash-out
+   pays the account the player actually signed in with. The payout itself still
+   moves on this deployment's own credentials - the player's token is read once
+   for their identity and is not kept. */
+
+/* the payer id and the verified email both live behind paypalattributes */
+export const PAYPAL_LINK_SCOPE = 'openid email https://uri.paypal.com/services/paypalattributes';
+
+export function paypalLoginBase(env = {}) {
+  const mode = String(env.PAYPAL_MODE || 'live').toLowerCase();
+  return mode === 'sandbox' ? 'https://www.sandbox.paypal.com' : 'https://www.paypal.com';
+}
+
+export function authorizeUrl(env, { state, redirectUri }) {
+  const cfg = payoutsConfig(env);
+  const url = new URL(`${paypalLoginBase(env)}/connect`);
+  url.searchParams.set('flowEntry', 'static');
+  url.searchParams.set('client_id', cfg.id);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('scope', PAYPAL_LINK_SCOPE);
+  url.searchParams.set('redirect_uri', redirectUri);
+  url.searchParams.set('state', state);
+  return url.toString();
+}
+
+export async function fetchLinkedAccount(env, { code, redirectUri }) {
+  const cfg = payoutsConfig(env);
+  if (!cfg.configured) throw new PayoutError('PayPal is not configured on this deployment.');
+  if (!code) throw new PayoutError('PayPal did not send an authorization code.');
+
+  let res;
+  try {
+    res = await fetch(`${cfg.base}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        authorization: `Basic ${btoa(`${cfg.id}:${cfg.secret}`)}`,
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: redirectUri,
+      }).toString(),
+    });
+  } catch (err) {
+    throw new PayoutError('PayPal could not be reached.', { detail: String(err && err.message).slice(0, 200) });
+  }
+  const token = await res.json().catch(() => ({}));
+  if (!res.ok || !token?.access_token) {
+    throw new PayoutError('PayPal would not confirm that sign-in.', { status: res.status, detail: JSON.stringify(token).slice(0, 200) });
+  }
+
+  let who;
+  try {
+    who = await fetch(`${cfg.base}/v1/identity/oauth2/userinfo?schema=paypalv1.1`, {
+      headers: { authorization: `Bearer ${token.access_token}` },
+    });
+  } catch (err) {
+    throw new PayoutError('PayPal did not answer the account call.', { detail: String(err && err.message).slice(0, 200) });
+  }
+  const data = await who.json().catch(() => ({}));
+  if (!who.ok) {
+    throw new PayoutError('PayPal would not share that account.', { status: who.status, detail: JSON.stringify(data).slice(0, 200) });
+  }
+  return {
+    email: String(data.email || data.email_address || '').trim(),
+    payerId: String(data.payer_id || data.user_id || data.sub || '').trim(),
+    name: String(data.name || '').trim(),
+    verified: data.verified_account === true,
+  };
+}

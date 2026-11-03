@@ -311,6 +311,7 @@
 
   function walletBody(data) {
     const w = data.wallet;
+    const linkedPaypal = data.paypal?.linked ? data.paypal : null;
     const rate = Math.max(1, w.coinsPerDollar || 1000);
     const min = Math.max(1, w.minWithdrawCoins || 1);
     /* Only whole US cents can be requested, so the offer is rounded down to one. */
@@ -326,11 +327,22 @@
         <span class="chip" style="font-size:10px">Paid ${money(Math.round((w.paid || 0) * 100))}</span>
       </div>
       <div class="section-title" style="margin-top:14px"><h2>Cash out to PayPal</h2><span>${w.autoPayout ? 'sent straight to your PayPal' : 'owner reviews each one'}</span></div>
+      ${linkedPaypal
+        ? `<div class="card" style="padding:10px 12px;margin-bottom:10px">
+        <div class="between"><b style="font-size:13px">✅ PayPal connected</b>
+          <button class="chip" type="button" data-paypal-unlink style="font-size:10px">Disconnect</button></div>
+        <div class="tiny muted" style="margin-top:3px">${esc(linkedPaypal.email)} — every cash-out pays this account automatically.</div>
+      </div>`
+        : `<div class="card" style="padding:10px 12px;margin-bottom:10px">
+        <b style="font-size:13px">🔗 Connect your PayPal</b>
+        <div class="tiny muted" style="margin-top:3px;line-height:1.5">Sign in once and cash-outs pay your own account. No address to type, nothing to approve.</div>
+        <button class="btn btn-soft btn-block" type="button" data-paypal-link style="margin-top:9px">Connect PayPal</button>
+      </div>`}
       <form data-withdraw>
         <label class="tiny muted" style="display:block;margin:0 2px 5px">Coins to withdraw</label>
         <input name="coins" type="number" inputmode="numeric" min="${min}" step="1" placeholder="${fmt(min)}" value="${w.coins >= min ? offer : ''}" style="${fieldStyle}">
-        <label class="tiny muted" style="display:block;margin:10px 2px 5px">PayPal email</label>
-        <input name="paypalEmail" type="email" inputmode="email" placeholder="you@example.com" style="${fieldStyle}">
+        <label class="tiny muted" style="display:block;margin:10px 2px 5px">${linkedPaypal ? 'Paying' : 'PayPal email'}</label>
+        <input name="paypalEmail" type="email" inputmode="email" ${linkedPaypal ? `value="${esc(linkedPaypal.email)}" readonly` : 'placeholder="you@example.com"'} style="${fieldStyle}${linkedPaypal ? ';opacity:.65' : ''}">
         <p class="tiny muted" data-est style="margin:8px 2px 0">${w.coins >= min
           ? `${fmt(offer)} coins ≈ ${money(Math.floor((offer * 100) / rate))} via PayPal.`
           : `Any amount is cashable, down to one cent.`}</p>
@@ -409,6 +421,28 @@
           } finally {
             S.busy = false;
           }
+        });
+
+        root.querySelector('[data-paypal-link]')?.addEventListener('click', async (event) => {
+          const btn = event.currentTarget;
+          btn.disabled = true;
+          try {
+            const res = await api('/paypal/link', { body: {} });
+            if (res?.url) { window.location.href = res.url; return; }
+            toast('PayPal did not return a sign-in link.', '😕');
+          } catch (err) {
+            toast(err.message, '😕');
+          } finally {
+            btn.disabled = false;
+          }
+        });
+
+        root.querySelector('[data-paypal-unlink]')?.addEventListener('click', async () => {
+          try {
+            await api('/paypal/unlink', { body: {} });
+            close();
+            openWallet();
+          } catch (err) { toast(err.message, '😕'); }
         });
 
         root.querySelector('[data-owner]')?.addEventListener('click', () => {
