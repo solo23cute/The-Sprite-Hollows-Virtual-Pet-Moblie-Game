@@ -167,7 +167,6 @@ function hollowScreen(root) {
         </div>
       </div>`;
     root.querySelector('[data-go-nest]').onclick = () => App.go('nest');
-    window.PetEarn?.sync?.();
     root.querySelector('[data-go-homes]')?.addEventListener('click', () => { Sfx.click(); openHomesSheet(); });
     return () => {};
   }
@@ -193,7 +192,6 @@ function hollowScreen(root) {
         <button class="chip" type="button" data-world title="Season and climate">${seasonOf().icon} ${esc(seasonLabel(seasonOf(), state.world?.climate))} · ${esc(CLIMATES[state.world?.climate]?.name || 'Temperate')}</button>
         <button class="chip weather-chip" type="button" data-weather title="Change the Hollow weather">${currentWeather().icon} ${currentWeather().name} · change</button>
         <button class="chip habitat-chip" type="button" data-habitat title="${esc(hab0.scene.habitat)} habitat — ${hab0.scene.name}">${hab0.scene.emoji} ${esc(hab0.scene.habitat)} · +${hab0.percent}% XP</button>
-        <button class="chip shop-chip" type="button" data-open-mystery title="Buy an unknown sprite with Hollow coins">❓ Mystery shop</button>
         <button class="chip" type="button" data-warm title="Warm clothes" hidden></button>
         <span class="chip" data-phase>${timePhase().icon} ${timePhase().label}</span>
         <span class="chip" data-size-chip>${SIZES[s0.size]?.name || 'Standard'} ${formName(s0) ? `· ${esc(formName(s0))}` : ''}</span>
@@ -247,8 +245,6 @@ function hollowScreen(root) {
   root.querySelector('[data-world]')?.addEventListener('click', () => { Sfx.click(); openStudioSheet(); });
   root.querySelector('[data-weather]')?.addEventListener('click', () => { Sfx.click(); openWeatherSheet(); });
   root.querySelector('[data-habitat]')?.addEventListener('click', () => { Sfx.click(); openStudioSheet(); });
-  root.querySelector('[data-open-mystery]')?.addEventListener('click', () => { Sfx.click(); openMysteryShop(); });
-  window.PetEarn?.sync?.();
   root.querySelector('[data-warm]')?.addEventListener('click', () => { Sfx.click(); openStudioSheet(); });
   root.querySelector('[data-bedroom]')?.addEventListener('click', () => { Sfx.click(); openBedroomSheet(); });
   root.querySelector('[data-homes]')?.addEventListener('click', () => { Sfx.click(); openHomesSheet(); });
@@ -614,14 +610,6 @@ function hollowScreen(root) {
     setWhisper(line);
   }
 
-  // Caring on this screen also pays the server-side coins the wallet shows.
-  const earnCoins = (action) => {
-    if (!window.PetEarn?.care) return;
-    window.PetEarn.care(action).then((res) => {
-      if (res?.award > 0) toast(`+${res.award} coins earned`, '🪙');
-    }).catch(() => {});
-  };
-
   // caretakers
   root.querySelector('[data-care="feed"]').addEventListener('click', openFeedSheet);
   root.querySelector('[data-care="play"]').addEventListener('click', () => App.go('play'));
@@ -646,12 +634,11 @@ function hollowScreen(root) {
     emote(s.id, '💗');
     Sfx.purr();
     setWhisper(`${displayName(s)} flops over for a belly rub. Ten out of ten.`);
-    earnCoins('play');
     paint();
   });
-  root.querySelector('[data-care="throw"]').addEventListener('click', () => { earnCoins('play'); openFetchGame('throw'); });
-  root.querySelector('[data-care="catch"]').addEventListener('click', () => { earnCoins('play'); openFetchGame('catch'); });
-  root.querySelector('[data-care="bath"]').addEventListener('click', () => { earnCoins('clean'); openBathModal(); });
+  root.querySelector('[data-care="throw"]').addEventListener('click', () => openFetchGame('throw'));
+  root.querySelector('[data-care="catch"]').addEventListener('click', () => openFetchGame('catch'));
+  root.querySelector('[data-care="bath"]').addEventListener('click', openBathModal);
   root.querySelector('[data-care="nap"]').addEventListener('click', () => {
     const s = currentSprite();
     if (!s) return;
@@ -698,7 +685,6 @@ function hollowScreen(root) {
       return diet ? ` · ${DIET_PATHS[diet.path].icon} ${DIET_PATHS[diet.path].label}` : '';
     };
     const feedSuccess = (res) => {
-      earnCoins('feed');
       close();
       const item = res.food || res.snack;
       const node = actors.get(s.id);

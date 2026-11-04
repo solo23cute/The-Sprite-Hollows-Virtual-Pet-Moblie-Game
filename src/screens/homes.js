@@ -116,11 +116,9 @@ function homeWindowHTML(s) {
   const tier = typeof spriteRarity === 'function' ? spriteRarity(s) : null;
   const tierChip = tier ? `<span class="home-tier" style="--tier:${tier.color}">${tier.name}</span>` : '';
   const status = isEgg ? '' : s.retired ? 'Retired' : s.atHome ? 'At home' : 'Out in the Hollow';
-  const toggle = isEgg
+  const toggle = isEgg || s.retired
     ? ''
-    : s.retired
-      ? `<button class="home-visit home-toggle" type="button" data-home-unretire="${s.id}">🌿 Bring back</button>`
-      : `<button class="home-visit home-toggle" type="button" data-home-toggle="${s.id}">${s.atHome ? 'Back to the Hollow' : 'Send home'}</button>`;
+    : `<button class="home-visit home-toggle" type="button" data-home-toggle="${s.id}">${s.atHome ? 'Back to the Hollow' : 'Send home'}</button>`;
   return `<article class="home-window ${isEgg ? 'is-egg' : ''} ${s.retired ? 'is-retired' : ''} ${!isEgg && !s.atHome ? 'is-away' : ''} ${s.id === state.activeId ? 'active' : ''}" data-home-card="${s.id}" data-home-kind="${kind}" style="--home-a:${tint.b1};--home-b:${tint.b2}">
     <div class="home-pane scene-${key}" style="background:linear-gradient(180deg, ${tint.b2} 0%, ${tint.b1} 56%, ${tint.b2} 100%)">
       <div class="scene-decor">${buildSceneDecor(key)}</div>
@@ -362,18 +360,6 @@ function openHomesSheet() {
             Actions.sendHome(sprite.id);
             toast(`${displayName(sprite)} is home in ${SCENES[homeSceneFor(sprite)]?.name || 'their biome'}.`, '🏡');
           }
-          Sfx.click();
-          repaint();
-          if (App.tab === 'hollow') App.refresh();
-          return;
-        }
-        const unretire = e.target.closest('[data-home-unretire]');
-        if (unretire) {
-          e.stopPropagation();
-          const sprite = findSprite(unretire.dataset.homeUnretire);
-          if (!sprite) return;
-          const res = Actions.unretire(sprite.id);
-          if (res && res.ok) toast(`${displayName(sprite)} is back from retirement.`, '🏡');
           Sfx.click();
           repaint();
           if (App.tab === 'hollow') App.refresh();

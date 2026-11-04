@@ -77,12 +77,10 @@ function showGameResult(shell, { kind, score, coins, xp, blurb, perfect = 0 }) {
       <div class="gr-rewards">
         <span class="chip">🪙 +${preview.payout.toLocaleString()}</span>
         ${preview.rarityBonus ? `<span class="chip chip-mut">✦ +${preview.rarityBonus.toLocaleString()} rarity</span>` : ''}
-        ${preview.care > 1 ? `<span class="chip chip-mut">💗 ×${preview.care.toFixed(2)} care</span>` : ''}
         <span class="chip">⭐ +${xp} XP</span>
         <span class="chip">💗 +bond</span>
         ${typeof arcadeGameKind === 'function' && arcadeGameKind(kind) ? `<span class="chip">🏟️ +${preview.payout.toLocaleString()} arcade progress</span>` : ''}
       </div>
-      <p class="muted small" style="margin:8px 0 0">${preview.care >= 1.5 ? 'A full care bonus — fed, joyful and rested.' : `Care bonus ×${preview.care.toFixed(2)}. Feed, play and rest above 90 for up to ×1.50.`}</p>
       <button class="btn btn-gold btn-block" data-collect style="margin-top:14px">Collect rewards</button>
     </div>`;
   shell.board.appendChild(result);

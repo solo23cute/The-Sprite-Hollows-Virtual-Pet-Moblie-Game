@@ -130,9 +130,6 @@ input { user-select: text; -webkit-user-select: text; }
   transition: transform 0.18s;
 }
 .coin-pill svg { width: 18px; height: 18px; }
-.coin-tag { font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; opacity: .62; }
-.coin-pill.shop-pill { background: linear-gradient(180deg, rgba(139,123,255,.24), rgba(139,123,255,.08)); border-color: rgba(139,123,255,.38); color: #ddd7ff; }
-.shop-chip { border-color: rgba(139,123,255,.45); }
 .coin-pill.bump { animation: bump 0.35s; }
 @keyframes bump { 40% { transform: scale(1.16); } }
 .icon-btn {
@@ -2127,17 +2124,3 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .secret-art { flex-basis: 50px; width: 50px; height: 50px; }
   .secret-copy b { font-size: 11.5px; }
 }
-
-/* Cash-out readiness dot on the Hollow quick chips. */
-.chip { position: relative; }
-.chip-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--good);
-  box-shadow: 0 0 0 2px var(--bg), 0 0 10px rgba(94, 224, 160, 0.85);
-}
-.chip-badge[hidden] { display: none; }

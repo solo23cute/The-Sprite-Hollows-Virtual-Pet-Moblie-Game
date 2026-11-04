@@ -113,7 +113,6 @@ function freshState() {
     vaultDoors: [],
     guardiansBeaten: {},
     gift: null,
-    spin: null,
     care: { tokens: 0, gifts: 0 },
     journal: [],
     stats: {
@@ -139,11 +138,6 @@ function freshState() {
 function normalizeSprite(raw) {
   const s = raw || {};
   const level = clamp(Number(s.level) || 1, 1, MAX_LEVEL);
-  /* Older builds capped growth at level 30 and auto-retired anyone who hit the
-     cap. The cap is 1,000 now and retirement requires Elderly (100), so a
-     retired sprite below 100 can only be one of those stranded saves: wake it
-     up so it can keep growing. */
-  const strandedRetire = !!s.retired && level < 100;
   return {
     id: s.id || uid('sp'),
     name: s.name || null,
@@ -198,8 +192,8 @@ function normalizeSprite(raw) {
     restUntil: Number(s.restUntil) || 0,
     lineage: s.lineage || null,
     starter: !!s.starter,
-    retired: !!s.retired && !strandedRetire,
-    retiredAt: strandedRetire ? 0 : Number(s.retiredAt) || 0,
+    retired: !!s.retired,
+    retiredAt: Number(s.retiredAt) || 0,
     eggLabel: s.eggLabel || null,
     rebirths: Math.max(0, Number(s.rebirths) || 0),
     atHome: !!s.atHome,
@@ -226,9 +220,6 @@ function loadState() {
     if (!SCENES[merged.theme.scene]) merged.theme.scene = 'grove';
     merged.stats = { ...base.stats, ...(parsed.stats || {}) };
     merged.checkin = { ...base.checkin, ...(parsed.checkin || {}) };
-    merged.spin = parsed.spin && parsed.spin.date
-      ? { date: String(parsed.spin.date), reward: Math.max(0, Math.floor(Number(parsed.spin.reward) || 0)) }
-      : null;
     merged.checkin.slots = Array.isArray(parsed.checkin?.slots) ? parsed.checkin.slots : [];
     merged.checkin.weekClaims = Array.isArray(parsed.checkin?.weekClaims) ? parsed.checkin.weekClaims : [];
     merged.checkin.monthClaims = Array.isArray(parsed.checkin?.monthClaims) ? parsed.checkin.monthClaims : [];
@@ -643,20 +634,6 @@ function rollSize() {
 function specialCombo(s) {
   return s?.special ? COMBOS.find((c) => c.id === s.special) || null : null;
 }
-/* Care is the loop the whole game is built around: a fed, joyful, rested sprite
-   earns more from every game. All three needs above 90 add up to x1.50. */
-function careCoinMultiplier(s = activeSprite()) {
-  if (!s || !s.needs) return 1;
-  const n = s.needs;
-  let bonus = 0;
-  if (Number(n.joy) > 90) bonus += 0.25;
-  if (Number(n.hunger) > 90) bonus += 0.15;
-  if (Number(n.energy) > 90) bonus += 0.10;
-  return Math.round((1 + bonus) * 100) / 100;
-}
-function careBonusText(s = activeSprite()) {
-  return `×${careCoinMultiplier(s).toFixed(2)} care bonus`;
-}
 function gameCoinPayout(baseCoins = 0) {
   const s = activeSprite();
   let payout = Math.max(0, Number(baseCoins) || 0);
@@ -671,9 +648,8 @@ function gameCoinPayout(baseCoins = 0) {
   const rarityBonus = s ? spriteRarityBonus(s) : 0;
   const holiday = typeof holidayCoinMult === 'function' ? holidayCoinMult() : 1;
   const weekly = weeklyEventCoinMult();
-  const care = s ? careCoinMultiplier(s) : 1;
-  payout = Math.round((payout + effectCoins + rarityBonus) * holiday * weekly * care);
-  return { payout, effectCoins, rarityBonus, holiday, weekly, care };
+  payout = Math.round((payout + effectCoins + rarityBonus) * holiday * weekly);
+  return { payout, effectCoins, rarityBonus, holiday, weekly };
 }
 function formOf(s) {
   return s?.form ? EVOLUTION_FORMS[s.form] || null : null;
@@ -1073,16 +1049,10 @@ function weeklyEventMissingCrates(event = activeWeeklyEvent()) {
 }
 
 /* ---------------- economy & growth (raw, no commit) ---------------- */
-/* Every coin the Hollow pays out passes through here, so this is also where the
-   wallet in the database hears about it: one funnel, so a bath, a belly rub, a
-   walk gift, a Vault door and a minigame all bank the same way. Actions that
-   already pay the server through /api/pet/care pass 'local' so the same care is
-   never banked twice. */
-function addCoinsRaw(n, source = 'game') {
+function addCoinsRaw(n) {
   state.coins = Math.max(0, state.coins + n);
   if (n > 0) state.stats.earned += n;
   else state.stats.spent += -n;
-  if (n > 0 && source !== 'local') reportEarn(n, source);
 }
 function addBondRaw(s, amount) {
   const mod = BREEDS[s.breed]?.bondMod || 1;
@@ -1107,12 +1077,18 @@ function stageFeastRaw(s) {
 
 function addXpRaw(s, amount) {
   if (!s || s.stage === 'egg' || s.retired) return 0;
-  /* Already at the cap: nothing to grow, but do not retire them again. A
-     player who brings a MAX sprite back keeps it in the Hollow until they
-     choose a Rebirth Meal or retire it by hand. */
   if (s.level >= MAX_LEVEL) {
     s.xp = 0;
     unlockSecret('summitspirit');
+    unlockSecret('elderkeeper');
+    if (!s.retired) {
+      s.retired = true;
+      s.retiredAt = Date.now();
+      if (state.activeId === s.id) {
+        state.activeId = state.sprites.find((x) => x.id !== s.id && x.stage !== 'egg' && !x.retired)?.id || null;
+      }
+      toast(`${displayName(s)} reached MAX and retired. Feed a Rebirth Meal to begin a new life.`, '🌱');
+    }
     return 0;
   }
   const breed = BREEDS[s.breed] || {};
@@ -1463,27 +1439,6 @@ function rollTrailBonus(s, info, payout) {
 }
 
 /* ---------------- actions ---------------- */
-/* Daily spin prizes, in Hollow coins. The screen lists them in this order. */
-/* Coins won inside the Hollow also land in the wallet the cash pill shows.
-   The win is handed to the outbox, which saves it on the phone before sending,
-   so a lost connection delays the coins instead of dropping them. */
-function reportEarn(amount, source) {
-  const n = Math.round(Number(amount) || 0);
-  if (n <= 0) return;
-  try {
-    const api = typeof window !== 'undefined' ? window.PetEarn : null;
-    if (!api || typeof api.earn !== 'function' || api.offline) return;
-    const send = typeof api.enqueue === 'function' ? api.enqueue(n, source) : api.earn(n, source, `${source}:${state.createdAt || 0}:${state.stats.earned || 0}:${n}`);
-    send.catch(() => {});
-  } catch { /* offline */ }
-}
-
-const SPIN_PRIZES = [25, 50, 100, 250, 500];
-
-function spinAvailable() {
-  return state.spin?.date !== dayKey();
-}
-
 const Actions = {
   startGame(element, breed) {
     state.started = true;
@@ -1536,47 +1491,6 @@ const Actions = {
     s.retiredAt = 0;
     commit('unretire', { spriteId: s.id });
     return { ok: true };
-  },
-
-  /* Repairs an existing save in place: wakes sprites stranded by the old
-     level-30 cap, realigns age stages with levels, banks XP parked above a
-     threshold, and restores an active sprite that points at an egg or a
-     retired friend. Nothing is reset and no sprite is removed. */
-  repairHollow() {
-    const report = { retired: 0, stage: 0, xp: 0, flags: 0, active: 0 };
-    state.sprites.forEach((s) => {
-      if (s.retired && s.level < STAGE_LEVEL.elder) {
-        s.retired = false;
-        s.retiredAt = 0;
-        report.retired += 1;
-      }
-      if (s.stage !== 'egg') {
-        const aligned = stageForLevel(s.level);
-        if (aligned !== s.stage) { s.stage = aligned; report.stage += 1; }
-      }
-      if (!s.retired && s.stage !== 'egg' && s.level < MAX_LEVEL && s.xp >= xpNeeded(s.level)) {
-        while (s.level < MAX_LEVEL && s.xp >= xpNeeded(s.level)) {
-          s.xp -= xpNeeded(s.level);
-          s.level += 1;
-        }
-        if (s.level >= MAX_LEVEL) s.xp = 0;
-        s.stage = stageForLevel(s.level);
-        report.xp += 1;
-      }
-      if (!s.retired && s.retiredAt) { s.retiredAt = 0; report.flags += 1; }
-      if (s.retired && !s.retiredAt) { s.retiredAt = Date.now(); report.flags += 1; }
-    });
-    const current = findSprite(state.activeId);
-    if (!current || current.stage === 'egg' || current.retired) {
-      const next = state.sprites.find((s) => s.stage !== 'egg' && !s.retired) || null;
-      if ((next?.id || null) !== (current?.id || null)) {
-        state.activeId = next ? next.id : null;
-        report.active += 1;
-      }
-    }
-    const total = report.retired + report.stage + report.xp + report.flags + report.active;
-    if (total) commit('repair', { report });
-    return { ...report, total };
   },
 
   reincarnate(id, foodId = 'rebirthmeal') {
@@ -1653,8 +1567,7 @@ const Actions = {
     bump('pets');
     state.stats.pets += 1;
     const coins = 1 + (fx.petCoins || 0);
-    /* petting is paid through /api/pet/care ('play') as well */
-    addCoinsRaw(coins, 'local');
+    addCoinsRaw(coins);
     addXpRaw(s, 1);
     Sfx.purr();
     commit('pet', { spriteId: id, coins });
@@ -1799,8 +1712,7 @@ const Actions = {
     s.needs.joy = clamp(s.needs.joy + 5);
     addBondRaw(s, 2.5);
     addXpRaw(s, 8);
-    /* /api/pet/care already pays this bath into the wallet */
-    addCoinsRaw(3, 'local');
+    addCoinsRaw(3);
     bump('baths');
     state.stats.baths += 1;
     Sfx.bath();
@@ -1842,8 +1754,7 @@ const Actions = {
     addBondRaw(s, 6 * (fx.petBond || 1));
     addXpRaw(s, 6);
     const coins = 2 + (fx.petCoins || 0);
-    /* the belly-rub button pays /api/pet/care ('play') alongside this */
-    addCoinsRaw(coins, 'local');
+    addCoinsRaw(coins);
     bump('rubs');
     state.stats.rubs = (state.stats.rubs || 0) + 1;
     Sfx.purr();
@@ -1948,7 +1859,7 @@ const Actions = {
       addBondRaw(s, 4);
       addXpRaw(s, xp);
     }
-    addCoinsRaw(payout, 'game');
+    addCoinsRaw(payout);
     state.stats.games += 1;
     state.stats.bestGame = Math.max(state.stats.bestGame || 0, score);
     const careGift = grantCarePackageRaw(s);
@@ -1962,7 +1873,7 @@ const Actions = {
     }
     bump('games');
     commit('game', { game, score, rarityBonus: reward.rarityBonus, arcade, careGift: !!careGift });
-    return { sprite: s, coins: payout, rarityBonus: reward.rarityBonus, effectCoins: reward.effectCoins, care: reward.care, arcade, careGift };
+    return { sprite: s, coins: payout, rarityBonus: reward.rarityBonus, effectCoins: reward.effectCoins, arcade, careGift };
   },
 
   finishWalk({ route = 'walk', score = 0, distance = 0, coins = 0, xp = 0, bond = 0, joy = 12, giftTokens = 0 } = {}) {
@@ -2237,7 +2148,7 @@ const Actions = {
     const s = activeSprite();
     const bonusCoins = s ? (spriteEffects(s).taskCoins || 0) : 0;
     const totalReward = task.reward + bonusCoins;
-    addCoinsRaw(totalReward, 'quest');
+    addCoinsRaw(totalReward);
     state.stats.tasksClaimed = (state.stats.tasksClaimed || 0) + 1;
     if (state.stats.tasksClaimed >= 10) unlockSecret('taskkeeper');
     if (s) addXpRaw(s, task.xp || 15);
@@ -2245,22 +2156,6 @@ const Actions = {
     toast(`${period === 'daily' ? 'Task' : period === 'weekly' ? 'Weekly goal' : 'Monthly quest'} complete +${totalReward} coins${bonusCoins ? ` · pony +${bonusCoins}` : ''}`, '✅');
     commit('task', { taskId, period, reward: totalReward, bonusCoins });
     return { ok: true, reward: totalReward, bonusCoins };
-  },
-
-  /* One spin a day, decided on the device so the wheel feels instant. */
-  spinWheel() {
-    const today = dayKey();
-    if (state.spin?.date === today) {
-      return { ok: false, reason: 'spun', reward: Math.max(0, Number(state.spin.reward) || 0) };
-    }
-    const prize = SPIN_PRIZES[Math.floor(Math.random() * SPIN_PRIZES.length)];
-    state.spin = { date: today, reward: prize };
-    addCoinsRaw(prize, 'spin');
-    bump('spins');
-    Sfx.coin();
-    toast(`The wheel landed on +${prize} coins`, '🎡');
-    commit('spin', { reward: prize });
-    return { ok: true, reward: prize };
   },
 
   checkIn() {
@@ -2291,7 +2186,7 @@ const Actions = {
     const bonusCoins = s ? (spriteEffects(s).checkinCoins || 0) : 0;
     const baseReward = firstToday ? 20 + Math.min(streak, 7) * 5 : 8 + Math.min(streak, 7) * 2;
     const reward = Math.round(baseReward * (holiday?.coinMult || 1) * weeklyEventCoinMult()) + bonusCoins;
-    addCoinsRaw(reward, 'checkin');
+    addCoinsRaw(reward);
     if (s) addXpRaw(s, firstToday ? 12 : 5);
     const snackKey = chance(firstToday ? 0.45 : 0.3) ? pick(SNACK_KEYS) : null;
     if (snackKey) addSnackRaw(snackKey, 1);

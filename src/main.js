@@ -73,12 +73,10 @@ const App = {
 let previousCoins = state.coins;
 
 function updateTopbar(detail = {}) {
-  // The coin pill is driven by the server wallet (see PetEarn.wallet), not by
-  // the offline save, so the pill and the wallet are the same number.
+  const coinsEl = document.querySelector('[data-coins]');
+  if (coinsEl) coinsEl.textContent = state.coins;
   const sub = document.querySelector('[data-hollow-sub]');
   if (sub) sub.textContent = state.hollowName;
-  const gameCoinsEl = document.querySelector('[data-game-coins]');
-  if (gameCoinsEl) gameCoinsEl.textContent = state.coins;
   const pill = document.querySelector('[data-coin-pill]');
   if (pill && previousCoins !== state.coins) {
     if (state.coins > previousCoins) {
@@ -120,9 +118,7 @@ function renderShell() {
           </div>
         </div>
         <div class="top-actions">
-          <div class="coin-pill" data-coin-pill title="Your Hollow coins"><span class="coin-tag">coins</span>${icon('coin')}<span data-coins>…</span></div>
-          <div class="coin-pill shop-pill" data-game-coin-pill title="Hollow coins — spend these in the shop"><span class="coin-tag">shop</span>${icon('coin')}<span data-game-coins>${state.coins}</span></div>
-          <button class="icon-btn" data-rewards aria-label="Open rewards">${icon('star')}</button>
+          <div class="coin-pill" data-coin-pill>${icon('coin')}<span data-coins>${state.coins}</span></div>
           <button class="icon-btn" data-studio-btn aria-label="Open Studio">${icon('palette')}</button>
         </div>
       </header>
@@ -143,9 +139,7 @@ function renderShell() {
     btn.addEventListener('click', () => App.go(btn.dataset.tab));
   });
   app.querySelector('[data-studio-btn]').addEventListener('click', () => App.openStudio());
-  app.querySelector('[data-rewards]')?.addEventListener('click', () => window.Economy?.open?.());
   app.querySelector('[data-settings-btn]').addEventListener('click', () => App.openStudio());
-  if (window.PetEarn?.wallet) window.PetEarn.wallet().catch(() => {});
   applyLanguage();
   Captions.mount();
   previousCoins = state.coins;

@@ -19,19 +19,3 @@ verify9.cjs
 # a restored legacy key and its password notes must never be committed
 android/*-key.properties
 android/legacy-*.bin
-
-# Sprite Hollow Pet Earn local database
-.coinpets/
-
-# signing material stays on the machine: only the public rotation proof ships
-android/signing/*.keystore
-android/signing/*.jks
-android/signing/.pass
-
-# generated hosting bundle
-deploy/
-
-# credentials never belong in the repo: the server reads PayPal keys from the host
-.env
-.env.*
-!.env.example

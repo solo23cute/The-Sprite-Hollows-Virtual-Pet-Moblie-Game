@@ -12,21 +12,11 @@ AJ="${ANDROID_JAR:-$SDK/platforms/android-35/android.jar}"
 OUT="${1:-$ROOT/SpriteHollow.apk}"
 MANIFEST="${MANIFEST:-$HERE/AndroidManifest.xml}"
 MIN_SDK="${MIN_SDK:-24}"
-VERSION_CODE="${VERSION_CODE:-101}"
-VERSION_NAME="${VERSION_NAME:-4.11.0}"
+VERSION_CODE="${VERSION_CODE:-78}"
+VERSION_NAME="${VERSION_NAME:-4.3.0}"
 SIGN_V1="${SIGN_V1:-false}"
-# The project signing key. Committed (see android/signing/README.md) so every
-# build from any machine carries the same certificate and installs over the
-# previous one, keeping the player's save.
-SIGNING_KEYSTORE="$HERE/signing/spritehollow-release.keystore"
-KEYSTORE="${KEYSTORE:-$SIGNING_KEYSTORE}"
-KEYPASS="${KEYPASS:-$(cat "$HERE/signing/.pass" 2>/dev/null || echo spritehollow)}"
-LINEAGE="${LINEAGE:-$HERE/signing/lineage.bin}"
-# The oldest certificate in the lineage. v2 has no rotation support, so the v2
-# signature must still come from this key for Android 7-8 to accept an update.
-LEGACY_KEYSTORE="${LEGACY_KEYSTORE:-$HERE/signing/legacy-public.keystore}"
-LEGACY_KEYPASS="${LEGACY_KEYPASS:-spritehollow}"
-LEGACY_KS_ALIAS="${LEGACY_KS_ALIAS:-spritehollow}"
+KEYSTORE="${KEYSTORE:-$HERE/debug.keystore}"
+KEYPASS="${KEYPASS:-spritehollow}"
 KS_ALIAS="${KS_ALIAS:-spritehollow}"
 PYTHON="${PYTHON:-python}"
 EXE=""
@@ -44,14 +34,6 @@ rm -rf "$HERE/assets/www"
 mkdir -p "$HERE/assets/www"
 cp "$ROOT/index.html" "$ROOT/styles.css" "$ROOT/styles-arcade.css" "$ROOT/styles-hollow-home.css" "$ROOT/manifest.webmanifest" "$ROOT/icon.svg" "$HERE/assets/www/"
 cp -R "$ROOT/src" "$HERE/assets/www/src"
-
-# A packaged build has no server behind /api, so bake in the coin server when
-# one is given:  API_BASE=https://sprite-hollow.example.workers.dev bash android/build.sh
-API_BASE="${API_BASE:-}"
-if [ -n "$API_BASE" ]; then
-  printf 'window.SPRITE_HOLLOW_API = "%s";\n' "${API_BASE%/}" > "$HERE/assets/www/src/api-base.js"
-  echo "==> Coin server: ${API_BASE%/}"
-fi
 
 echo "==> Compiling Android resources"
 rm -rf "$HERE/build"
@@ -95,7 +77,7 @@ echo "==> Aligning"
 "$BT/zipalign$EXE" -f 4 "$HERE/build/app-unsigned.apk" "$HERE/build/app-aligned.apk"
 
 if [ ! -f "$KEYSTORE" ]; then
-  if [ "$KEYSTORE" != "$HERE/debug.keystore" ] && [ "$KEYSTORE" != "$SIGNING_KEYSTORE" ]; then
+  if [ "$KEYSTORE" != "$HERE/debug.keystore" ]; then
     echo "Missing release keystore: $KEYSTORE" >&2
     exit 1
   fi
@@ -116,28 +98,11 @@ if [ "$SIGN_V1" = "true" ]; then
 else
   SIGN_FLAGS=(--v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true)
 fi
-if [ -f "$LINEAGE" ]; then
-  SIGN_FLAGS+=(--lineage "$LINEAGE")
-  echo "==> Signing lineage: $LINEAGE"
-fi
-if [ -f "$LINEAGE" ] && [ -f "$LEGACY_KEYSTORE" ]; then
-  # Dual signer: v2 from the retired certificate (Android 7-8), v3 from the
-  # current key plus the rotation proof (Android 9+).
-  "$JAVA_BIN/java$EXE" -jar "$BT/lib/apksigner.jar" sign \
-    --ks "$LEGACY_KEYSTORE" --ks-pass "pass:$LEGACY_KEYPASS" --key-pass "pass:$LEGACY_KEYPASS" \
-    --ks-key-alias "$LEGACY_KS_ALIAS" \
-    --next-signer \
-    --ks "$KEYSTORE" --ks-pass "pass:$KEYPASS" --key-pass "pass:$KEYPASS" \
-    --ks-key-alias "$KS_ALIAS" \
-    ${SIGN_FLAGS[@]+"${SIGN_FLAGS[@]}"} \
-    --out "$OUT" "$HERE/build/app-aligned.apk"
-else
-  "$JAVA_BIN/java$EXE" -jar "$BT/lib/apksigner.jar" sign \
-    --ks "$KEYSTORE" --ks-pass "pass:$KEYPASS" --key-pass "pass:$KEYPASS" \
-    --ks-key-alias "$KS_ALIAS" \
-    ${SIGN_FLAGS[@]+"${SIGN_FLAGS[@]}"} \
-    --out "$OUT" "$HERE/build/app-aligned.apk"
-fi
+"$JAVA_BIN/java$EXE" -jar "$BT/lib/apksigner.jar" sign \
+  --ks "$KEYSTORE" --ks-pass "pass:$KEYPASS" --key-pass "pass:$KEYPASS" \
+  --ks-key-alias "$KS_ALIAS" \
+  ${SIGN_FLAGS[@]+"${SIGN_FLAGS[@]}"} \
+  --out "$OUT" "$HERE/build/app-aligned.apk"
 
 echo "==> Verifying"
 "$JAVA_BIN/java$EXE" -jar "$BT/lib/apksigner.jar" verify --print-certs "$OUT"
