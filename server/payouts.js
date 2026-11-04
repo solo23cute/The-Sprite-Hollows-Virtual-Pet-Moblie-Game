@@ -109,8 +109,17 @@ export async function sendPayout(env, { email, cents, withdrawalId, note = '' })
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const permanent = res.status === 400 || res.status === 422;
+    /* PayPal's own name and message say why a payout was turned down - an
+       unconfirmed receiver, an account without funds, an app not allowed to send
+       payouts. Keeping both, plus the debug id they ask for in support tickets,
+       means the player's own request history says what happened. */
+    const name = String(data?.name || '').trim();
+    const message = String(data?.message || '').trim();
+    const debugId = String(data?.debug_id || '').trim();
+    const reason = [name, message].filter(Boolean).join(': ')
+      || `PayPal refused the payout (${res.status}).`;
     throw new PayoutError(
-      data?.message || data?.name || `PayPal refused the payout (${res.status}).`,
+      debugId ? `${reason} [${debugId}]` : reason,
       { permanent, status: res.status, detail: JSON.stringify(data).slice(0, 300) },
     );
   }

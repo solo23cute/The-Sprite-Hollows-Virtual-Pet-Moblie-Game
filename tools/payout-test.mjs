@@ -302,8 +302,18 @@ try {
   check('a refused address is reported, not swallowed', bad.status === 400 && /PayPal would not pay/i.test(bad.data?.error || ''), JSON.stringify(bad.data).slice(0, 140));
   const afterBad = (await broken.call('/api/wallet')).data.wallet.coins;
   check('the coins come back when PayPal refuses for good', afterBad === beforeBad, `${beforeBad} -> ${afterBad}`);
+  check(
+    'the refusal repeats PayPal\'s own reason, not just "denied"',
+    /UNPROCESSABLE_ENTITY: Receiver is invalid/.test(bad.data?.error || ''),
+    String(bad.data?.error || '').slice(0, 160),
+  );
   const badRow = (await owner.call('/api/admin/withdrawals?status=rejected')).data?.withdrawals?.find((w) => w.paypal_email === 'bad@example.com');
   check('the refused request is closed as rejected', !!badRow, JSON.stringify(badRow || {}).slice(0, 120));
+  check(
+    'the closed request keeps why PayPal refused it',
+    /Receiver is invalid/.test(String(badRow?.note || '')),
+    String(badRow?.note || '').slice(0, 160),
+  );
 
   const flaky = client();
   await flaky.call('/api/guest', { method: 'POST' });
