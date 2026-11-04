@@ -4,6 +4,7 @@
 - **Every way in is gone too.** The 👛 Wallet button in the Hollow's empty state, the 👛 Wallet chip in the top row and the *Coins & wallet* section in Settings were removed, along with the click handler that opened the sheet, so nothing in the game points at a screen that no longer exists.
 - **The pill is unchanged.** Care, games, quests, gifts and the offline outbox still pay server coins, and the pill still shows the balance that came back with each award.
 - **Earning is untouched.** The daily care and game caps still apply, and coins still never leave the Hollow.
+- **The APK is rebuilt.** `SpriteHollow-4.13.0-v102-release.apk` (`versionCode 102`, `versionName 4.13.0`) carries this build with no wallet anywhere and bakes in the live coin server, so care in the installed app still pays. The checksum is in `SpriteHollow-4.13.0-v102-release.apk.sha256` (`fb13c0215a0aea926252d468575ff23308bcfdcafadc3b2e3ad31b003ad58bdc`); it is signed with the project key, so it installs over the previous release and keeps the saved Hollow.
 
 ## 4.12.0 Cash-outs are gone: coins stay in the Hollow
 
