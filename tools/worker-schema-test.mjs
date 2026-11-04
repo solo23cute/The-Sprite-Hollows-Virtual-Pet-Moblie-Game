@@ -49,16 +49,18 @@ console.log('\nWorker schema + migration checks\n');
 const upgraded = fakeDb({ existingTables: ['ledger'] });
 const upgradedRes = await boot(upgraded);
 check('an existing database still answers the API', upgradedRes.status === 200, `status=${upgradedRes.status}`);
-check('migrations run when the tables already exist', upgraded.ran.some((sql) => /ALTER TABLE withdrawals ADD COLUMN payment_reference/i.test(sql)), upgraded.ran.join(' | ').slice(0, 200));
+check('migrations run when the tables already exist', upgraded.ran.some((sql) => /CREATE TABLE IF NOT EXISTS earn_claims/i.test(sql)), upgraded.ran.join(' | ').slice(0, 200));
 check('existing tables are not re-created bare', !upgraded.ran.some((sql) => /^CREATE TABLE(?!\s+IF\s+NOT\s+EXISTS)/i.test(sql)), upgraded.ran.join(' | ').slice(0, 200));
 check('a table added later is created on an existing database', upgraded.ran.some((sql) => /CREATE TABLE IF NOT EXISTS earn_claims/i.test(sql)), upgraded.ran.join(' | ').slice(0, 200));
 
 const fresh = fakeDb({ existingTables: [] });
 const freshRes = await boot(fresh);
 check('a fresh database answers the API', freshRes.status === 200, `status=${freshRes.status}`);
-check('a fresh database gets its tables', fresh.ran.some((sql) => /^CREATE TABLE IF NOT EXISTS withdrawals/i.test(sql)));
-check('a fresh database also gets the migration', fresh.ran.some((sql) => /ALTER TABLE withdrawals ADD COLUMN payment_reference/i.test(sql)));
-check('the payout reference is in the schema the queries use', readFileSync(resolve(ROOT, 'server/schema.sql'), 'utf8').includes('payment_reference TEXT'));
+check('a fresh database gets its tables', fresh.ran.some((sql) => /^CREATE TABLE IF NOT EXISTS ledger/i.test(sql)));
+check('a fresh database also gets the migration', fresh.ran.some((sql) => /CREATE TABLE IF NOT EXISTS earn_claims/i.test(sql)));
+const schemaSql = readFileSync(resolve(ROOT, 'server/schema.sql'), 'utf8');
+check('the cash-out tables are gone from the schema', !/withdrawals|paypal_links/i.test(schemaSql), schemaSql.slice(0, 120));
+check('the bundle ships no payout module', !readFileSync(resolve(ROOT, 'deploy/worker.js'), 'utf8').includes('payouts.js') && !readFileSync(resolve(ROOT, 'deploy/schema.js'), 'utf8').includes('withdrawals'));
 check('the migration list is generated into the bundle', readFileSync(resolve(ROOT, 'deploy/schema.js'), 'utf8').includes('MIGRATIONS'));
 
 console.log(`\n${passed} passed, ${failures.length} failed`);

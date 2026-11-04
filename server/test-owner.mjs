@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* Owner access with no account and no code: the first session to open payout
-   review takes the seat, everyone after that is a player, and the seat frees
+/* Owner access with no account and no code: the first session to open the owner
+   tools takes the seat, everyone after that is a player, and the seat frees
    itself when the owner leaves. Run: node server/test-owner.mjs */
 import { spawn } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
@@ -62,8 +62,6 @@ try {
   const boot = await client().call('/api/bootstrap');
   check('a fresh Hollow has no owner seat taken', boot.data?.needsSetup === true && boot.data?.ownerClaimed === false, JSON.stringify(boot.data).slice(0, 90));
 
-  check('payout review needs a session first', (await client().call('/api/admin/withdrawals')).status === 401);
-
   const owner = client();
   const join = await owner.call('/api/guest', { method: 'POST' });
   check('the owner can arrive as an ordinary guest', join.status === 201 && !!join.data?.token);
@@ -77,8 +75,6 @@ try {
   const again = await owner.call('/api/owner/claim', { method: 'POST' });
   check('claiming again is idempotent, not a second seat', again.status === 200 && again.data?.claimed === false, `status=${again.status}`);
 
-  const queue = await owner.call('/api/admin/withdrawals?status=pending');
-  check('payout review opens with no sign-up and no code', queue.status === 200 && Array.isArray(queue.data?.withdrawals), `status=${queue.status}`);
   check('the overview opens too', (await owner.call('/api/admin/overview')).status === 200);
 
   const boot2 = await client().call('/api/bootstrap');
@@ -86,13 +82,9 @@ try {
 
   const other = client();
   await other.call('/api/guest', { method: 'POST' });
-  check('a player cannot review payouts', (await other.call('/api/admin/withdrawals')).status === 403);
   check('a player cannot claim the seat', (await other.call('/api/owner/claim', { method: 'POST' })).status === 403);
   check('posting a passcode-shaped body changes nothing', (await other.call('/api/owner/claim', { body: { passcode: 'hijack-attempt' } })).status === 403);
   check('an old build knocking on /owner/login is refused too', (await other.call('/api/owner/login', { body: { passcode: 'hijack-attempt' } })).status === 403);
-  check('that player still cannot review payouts', (await other.call('/api/admin/withdrawals')).status === 403);
-
-  check('the owner can tune the payout minimum', (await owner.call('/api/admin/settings', { method: 'PUT', body: { minWithdrawCoins: 100 } })).status === 200);
 
   const left = await owner.call('/api/account', { method: 'DELETE', body: { confirm: 'DELETE' } });
   check('the owner can delete their guest account', left.status === 200 && left.data?.unclaimed === true, JSON.stringify(left.data));
@@ -104,7 +96,6 @@ try {
   await next.call('/api/guest', { method: 'POST' });
   const reclaim = await next.call('/api/owner/claim', { method: 'POST' });
   check('the next session takes the free seat with no code', reclaim.status === 201 && reclaim.data?.claimed === true, `status=${reclaim.status}`);
-  check('and can review payouts straight away', (await next.call('/api/admin/withdrawals?status=pending')).status === 200);
 } catch (err) {
   failures.push(String(err && err.message));
   console.log(`\nFAIL  ${err && err.message}`);

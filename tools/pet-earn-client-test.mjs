@@ -76,25 +76,6 @@ function jar() {
 const guestJar = jar();
 const ownerJar = jar();
 
-function fakeRoot({ coins = '', email = '' } = {}) {
-  const submits = [];
-  const estimate = { textContent: '' };
-  const coinsInput = { value: coins, addEventListener() {} };
-  const emailInput = { value: email };
-  const form = {
-    querySelector: (sel) => ({
-      '[name="coins"]': coinsInput,
-      '[name="paypalEmail"]': emailInput,
-      '[data-est]': estimate,
-    }[sel] || null),
-    addEventListener: (type, fn) => { if (type === 'submit') submits.push(fn); },
-  };
-  const root = {
-    querySelector: (sel) => ({ '[data-withdraw]': form, '[data-owner]': { addEventListener() {} } }[sel] || null),
-  };
-  return { root, coinsInput, emailInput, estimate, submits };
-}
-
 /* Boots the real client module the way the game would, in a given mode. */
 function boot({ packaged = false, apiBase = '', crossOrigin = false, actions = false, fresh = false } = {}) {
   const state = { toasts: [], sheets: [], calls: 0, urls: [], armSheet: true, sheetClosed: false, root: null, gameCalls: [], domHandlers: [] };
@@ -158,8 +139,6 @@ try {
   check('the web build is available', web.petEarn.available === true && web.petEarn.offline === false);
 
   const moduleSource = readFileSync(resolve(ROOT, 'src/pet-earn.js'), 'utf8');
-  check('the payout CSV link follows the API base, not a fixed path', moduleSource.includes('href="${API}/admin/withdrawals/export"'));
-
   const care = await web.petEarn.care('feed');
   check('feeding pays coins inside the game', care.award > 0, JSON.stringify(care).slice(0, 160));
   check('the pet snapshot comes back to the game', typeof care.pet?.hunger === 'number');
@@ -171,54 +150,24 @@ try {
 
   const balance = await web.petEarn.wallet();
   check('the wallet reports the earned balance', balance.coins >= 250 + care.award, `coins=${balance.coins}`);
-  check('coins convert at the advertised rate', balance.coinsPerDollar > 0 && balance.minWithdrawCoins > 0);
+  check('the wallet advertises its coin rate', balance.coinsPerDollar > 0);
 
   const ownerSignup = await ownerJar.call('/api/auth/signup', {
     body: { username: 'ownerclient', password: 'hollowpass1', petName: 'Bramble' },
   });
-  check('a first account can review payouts', ownerSignup.status === 201 && ownerSignup.data.user.isAdmin === true, `status=${ownerSignup.status}`);
-  check('the payout minimum can be set', (await ownerJar.call('/api/admin/settings', { method: 'PUT', body: { minWithdrawCoins: 100 } })).status === 200);
+  check('a first account is the owner', ownerSignup.status === 201 && ownerSignup.data.user.isAdmin === true, `status=${ownerSignup.status}`);
+  check('the owner can tune the coin caps', (await ownerJar.call('/api/admin/settings', { method: 'PUT', body: { dailyGameCoinCap: 600 } })).status === 200);
 
   web.state.sheetClosed = false;
   web.state.armSheet = true;
-  web.state.root = fakeRoot();
+  web.state.root = { querySelector: () => null };
   const closeFn = await web.petEarn.openWallet();
   const body = web.state.sheets.at(-1)?.body || '';
-  check('the Wallet sheet opens', typeof closeFn === 'function' && body.includes('Cash out to PayPal'));
-  check('the form is pre-filled with the withdrawable balance', /name="coins"[^>]*value="\d+"/.test(body));
-  check('the PayPal email field is present', body.includes('name="paypalEmail"'));
-  check('the estimate is shown in dollars', /\$\d+\.\d{2}/.test(body));
-  const prefilled = Number(body.match(/name="coins"[^>]*value="(\d+)"/)?.[1] || 0);
-  check('the pre-fill converts to whole US cents', prefilled > 0 && (prefilled * 100) % 1000 === 0, `value=${prefilled}`);
-
-  const coinsBefore = (await guestJar.call('/api/wallet')).data.wallet.coins;
-  web.state.armSheet = false;
-  web.state.root.coinsInput.value = '100';
-  web.state.root.emailInput.value = 'hollow.payer@example.com';
-  const submit = web.state.root.submits[0];
-  check('the payout form has a submit handler', typeof submit === 'function');
-  await submit({ preventDefault() {} });
-  await sleep(120);
-
-  check('the player is told the payout was requested', web.state.toasts.some((t) => /Payout requested/i.test(t)), web.state.toasts.join(' | '));
-  check('the sheet closes after the request', web.state.sheetClosed === true);
-
-  const wallet = await guestJar.call('/api/wallet');
-  check('coins are held by the request', wallet.data.wallet.coins === coinsBefore - 100, `${coinsBefore} -> ${wallet.data.wallet.coins}`);
-  const pending = wallet.data.withdrawals[0];
-  check('the request shows up as pending', pending?.status === 'pending' && pending.coins === 100);
-  check('the PayPal address is recorded', pending?.paypal_email === 'hollow.payer@example.com');
-  check('the dollar value is calculated', pending?.usd_cents > 0, `usd_cents=${pending?.usd_cents}`);
-
-  const queue = await ownerJar.call('/api/admin/withdrawals?status=pending');
-  check('the payout lands in the owner queue', queue.data.withdrawals.some((w) => w.id === pending.id));
-  check('the owner approves it', (await ownerJar.call(`/api/admin/withdrawals/${pending.id}/decide`, { body: { action: 'approve' } })).data.withdrawal.status === 'approved');
-  const paid = await ownerJar.call(`/api/admin/withdrawals/${pending.id}/decide`, { body: { action: 'paid', reference: 'PAYPAL-TEST-77', note: 'Sent by PayPal' } });
-  check('the owner marks it paid', paid.status === 200 && paid.data.withdrawal.status === 'paid');
-
-  const history = (await guestJar.call('/api/wallet')).data.withdrawals[0];
-  check('the player history shows it paid', history.status === 'paid' && history.paid_at > 0);
-  check('the remaining balance is still usable', (await web.petEarn.wallet()).coins === coinsBefore - 100);
+  check('the Wallet sheet opens', typeof closeFn === 'function' && /Recent coins/.test(body));
+  check('it shows the server balance', /<b>[\d,]+<\/b> coins/.test(body), body.slice(0, 160));
+  check('it says coins stay in the Hollow', /Hollow's own money/i.test(body));
+  check('it offers no cash-out form at all', !body.includes('name="coins"') && !/PayPal|withdraw|payout/i.test(body), body.slice(0, 200));
+  check('opening the wallet does not move any coins', (await web.petEarn.wallet()).coins === balance.coins);
 
   /* ---------- 2. packaged build pointed at the server ---------- */
   console.log('\npackaged build with a coin server baked in');
@@ -232,10 +181,10 @@ try {
   check('the top bar updates in the packaged app too', packedOk.coinPill.textContent === String(packedCare.wallet.coins));
 
   packedOk.state.armSheet = true;
-  packedOk.state.root = fakeRoot();
+  packedOk.state.root = { querySelector: () => null };
   const packedSheet = await packedOk.petEarn.openWallet();
   const packedBody = packedOk.state.sheets.at(-1)?.body || '';
-  check('the packaged Wallet opens against the server', typeof packedSheet === 'function' && packedBody.includes('Cash out to PayPal'));
+  check('the packaged Wallet opens against the server', typeof packedSheet === 'function' && /Recent coins/.test(packedBody));
 
   /* ---------- 3. packaged build with no server: must not pretend ---------- */
   console.log('\npackaged build with no coin server configured');
@@ -247,24 +196,12 @@ try {
   check('care makes no failing request at all', packedBare.state.calls === 0, `calls=${packedBare.state.calls}`);
 
   packedBare.state.armSheet = true;
-  packedBare.state.root = fakeRoot();
+  packedBare.state.root = { querySelector: () => null };
   const bareSheet = await packedBare.petEarn.openWallet();
   const bareBody = packedBare.state.sheets.at(-1)?.body || '';
   check('the Wallet explains the situation instead of erroring', typeof bareSheet === 'function' && /online Hollow/.test(bareBody));
-  check('it offers no payout form that could only fail', !bareBody.includes('name="coins"'));
+  check('it renders no form at all', !bareBody.includes('<form'));
   check('opening the wallet still makes no request', packedBare.state.calls === 0, `calls=${packedBare.state.calls}`);
-
-  /* ---------- 2b. payout review asks for no code and no account ---------- */
-  console.log('\npayout review access');
-  const reviewer = boot();
-  reviewer.state.armSheet = false; /* only the rendered sheet matters here */
-  await reviewer.petEarn.openOwner();
-  const reviewerBody = reviewer.state.sheets.at(-1)?.body || '';
-  check('payout review asks for no code at all', !/passcode|name="code"/i.test(reviewerBody), reviewerBody.slice(0, 140));
-  check('it renders no input to type into', !/<input/.test(reviewerBody), reviewerBody.slice(0, 140));
-  check('it never asks for a username or email', !/name="username"/.test(reviewerBody) && !/E-mail|email/i.test(reviewerBody));
-  check('the sheet claims the seat with no secret', readFileSync(resolve(ROOT, 'src/pet-earn.js'), 'utf8').includes("'/owner/claim'"));
-  check('the server offers the same door', readFileSync(resolve(ROOT, 'server/core.js'), 'utf8').includes("api\\/owner\\/claim"));
 
   /* ---------- 2c. game coins bank into the wallet ---------- */
   console.log('\nbanking game coins');
@@ -324,15 +261,15 @@ try {
   const refusedAfter = (await bridged.petEarn.wallet()).coins;
   check('a care action the game refuses pays nothing', refusedAfter === refusedBefore, `${refusedBefore} -> ${refusedAfter}`);
 
-  bridged.state.root = fakeRoot();
+  bridged.state.root = { querySelector: () => null };
   const clickHandler = bridged.state.domHandlers.find(([type]) => type === 'click')?.[1];
-  check('the cash pill has a click handler', typeof clickHandler === 'function');
+  check('the coin pill has a click handler', typeof clickHandler === 'function');
   let pillOpened = 0;
   const realOpenSheet = bridged.ctx.openSheet;
   bridged.ctx.openSheet = (opts) => { pillOpened += 1; return realOpenSheet(opts); };
   clickHandler({ preventDefault() {}, target: { closest: (sel) => (sel === '[data-coin-pill]' ? { dataset: {} } : null) } });
   await new Promise((resolve) => setTimeout(resolve, 700));
-  check('tapping the cash pill opens the Wallet', pillOpened > 0, `sheets=${bridged.state.sheets.length}`);
+  check('tapping the coin pill opens the Wallet', pillOpened > 0, `sheets=${bridged.state.sheets.length}`);
 
   /* ---------- 4. packaged app talking to a deployed server ---------- */
   console.log('\npackaged build over the network (cross-origin, bearer token)');

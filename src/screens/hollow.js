@@ -164,7 +164,7 @@ function hollowScreen(root) {
         <div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px">
           ${atHomeCount ? '<button class="btn btn-primary" data-go-homes>Open Homes</button>' : ''}
           <button class="btn ${atHomeCount ? 'btn-soft' : 'btn-primary'}" data-go-nest>${atHomeCount ? 'Visit the Nest' : 'Go to the Nest'}</button>
-          <button class="btn btn-soft" data-open-wallet>👛 Cash out<span class="chip-badge" data-cash-ready hidden></span></button>
+          <button class="btn btn-soft" data-open-wallet>👛 Wallet</button>
         </div>
       </div>`;
     root.querySelector('[data-go-nest]').onclick = () => App.go('nest');
@@ -200,7 +200,7 @@ function hollowScreen(root) {
         <button class="chip weather-chip" type="button" data-weather title="Change the Hollow weather">${currentWeather().icon} ${currentWeather().name} · change</button>
         <button class="chip habitat-chip" type="button" data-habitat title="${esc(hab0.scene.habitat)} habitat — ${hab0.scene.name}">${hab0.scene.emoji} ${esc(hab0.scene.habitat)} · +${hab0.percent}% XP</button>
         <button class="chip shop-chip" type="button" data-open-mystery title="Buy an unknown sprite with Hollow coins">❓ Mystery shop</button>
-        <button class="chip" type="button" data-open-wallet title="Wallet and PayPal cash out">👛 Cash out<span class="chip-badge" data-cash-ready hidden></span></button>
+        <button class="chip" type="button" data-open-wallet title="Your coin wallet">👛 Wallet</button>
         <button class="chip" type="button" data-warm title="Warm clothes" hidden></button>
         <span class="chip" data-phase>${timePhase().icon} ${timePhase().label}</span>
         <span class="chip" data-size-chip>${SIZES[s0.size]?.name || 'Standard'} ${formName(s0) ? `· ${esc(formName(s0))}` : ''}</span>
@@ -626,7 +626,7 @@ function hollowScreen(root) {
     setWhisper(line);
   }
 
-  // Caring on this screen also pays the server-side coins that cash out to PayPal.
+  // Caring on this screen also pays the server-side coins the wallet shows.
   const earnCoins = (action) => {
     if (!window.PetEarn?.care) return;
     window.PetEarn.care(action).then((res) => {

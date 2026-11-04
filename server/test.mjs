@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* End-to-end check for the Sprite Hollow Pet Earn API: open signup, care economy,
-   verified minigames, withdrawals, admin review and anti-tamper guards.
+   verified minigames, admin settings and anti-tamper guards.
    Run against a live dev server:
      node server/dev.mjs 3999 &
      node server/test.mjs http://127.0.0.1:3999
@@ -151,82 +151,11 @@ const wrongCells = wrongCellRun.data.rounds.map((r) => ({ i: r.i, t: r.at + 400,
 const wrongClaim = await player.call('/api/games/claim', { body: { runId: wrongCellRun.data.runId, taps: wrongCells } });
 check('taps on the wrong plot do not score', wrongClaim.data.score === 0);
 
-/* 6. payout settings + withdrawal */
-const lowMin = await owner.call('/api/admin/settings', { method: 'PUT', body: { minWithdrawCoins: 100, coinsPerDollar: 1000 } });
-check('owner can change payout settings', lowMin.status === 200 && lowMin.data.settings.minWithdrawCoins === 100);
-check('player cannot change settings', (await player.call('/api/admin/settings', { method: 'PUT', body: { minWithdrawCoins: 1 } })).status === 403);
-
-const before = (await player.call('/api/wallet')).data.wallet;
-check('player has a balance', before.coins >= 200, `coins=${before.coins}`);
-
-const tooSmall = await player.call('/api/wallet/withdraw', { body: { coins: 50, paypalEmail: 'player@example.com' } });
-check('below-minimum withdrawal refused', tooSmall.status === 400);
-
-const withdraw = await player.call('/api/wallet/withdraw', { body: { coins: 200, paypalEmail: 'player@example.com' } });
-check('earned coins can be cashed out', withdraw.status === 201, JSON.stringify(withdraw.data));
-check('coins are held immediately', withdraw.data.wallet.coins === before.coins - 200);
-check('duplicate open withdrawal refused', (await player.call('/api/wallet/withdraw', { body: { coins: 200, paypalEmail: 'player@example.com' } })).status === 409);
-
-const playerWallet = await player.call('/api/wallet');
-check('player sees a pending request', playerWallet.data.withdrawals[0]?.status === 'pending');
-
-/* 7. admin review */
-const overview = await owner.call('/api/admin/overview');
-check('overview lists players', overview.data.players.length >= 2);
-check('overview counts pending requests', overview.data.totals.pendingCount >= 1);
-check('coins in circulation is tracked', overview.data.totals.coinsInCirculation > 0);
-
-const pending = await owner.call('/api/admin/withdrawals?status=pending');
-check('admin sees pending withdrawals', pending.data.withdrawals.some((w) => w.id === withdraw.data.withdrawalId));
-check('player cannot read admin queue', (await player.call('/api/admin/withdrawals')).status === 403);
-
-const id = withdraw.data.withdrawalId;
-check('mark paid before approve is refused', (await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'paid' } })).status === 409);
-const approve = await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'approve' } });
-check('admin approves', approve.status === 200 && approve.data.withdrawal.status === 'approved');
-check('marking paid needs a transaction reference', (await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'paid' } })).status === 400);
-const paid = await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'paid', note: 'PayPal sent', reference: 'PAYPAL-8N4K21' } });
-check('admin marks paid with a reference', paid.status === 200 && paid.data.withdrawal.status === 'paid' && paid.data.withdrawal.paid_at > 0, JSON.stringify(paid.data).slice(0, 120));
-const paidRow = (await owner.call('/api/admin/withdrawals?status=paid')).data.withdrawals.find((w) => w.id === id);
-check('the PayPal reference is kept on the payout', paidRow?.payment_reference === 'PAYPAL-8N4K21', JSON.stringify(paidRow || {}).slice(0, 120));
-check('paid request cannot be rejected', (await owner.call(`/api/admin/withdrawals/${id}/decide`, { body: { action: 'reject' } })).status === 409);
-check('player sees paid status', (await player.call('/api/wallet')).data.withdrawals[0].status === 'paid');
-
-/* 7b. payout paper trail */
-const csv = await owner.call('/api/admin/withdrawals/export');
-check('admin can export payouts', csv.status === 200 && String(csv.headers.get('content-type')).includes('text/csv'), `status=${csv.status}`);
-check('export is a download', String(csv.headers.get('content-disposition')).includes('attachment; filename="sprite-hollow-pet-earn-payouts-'));
-check('export names the columns', csv.text.includes('paypal_email') && csv.text.includes('requested_at'));
-check('export carries the paid payout', csv.text.includes('player@example.com') && csv.text.includes('paid'));
-check('export ends with a USD total', /TOTAL,.*,\d+\.\d{2},/.test(csv.text));
-check('player cannot export payouts', (await player.call('/api/admin/withdrawals/export')).status === 403);
-
-/* 8. rejection refunds the ledger */
-const balanceNow = (await player.call('/api/wallet')).data.wallet.coins;
-const summary = (await player.call('/api/wallet')).data.wallet;
-check('the wallet reports available, reserved and paid', typeof summary.available === 'number' && typeof summary.reserved === 'number' && typeof summary.paid === 'number' && summary.available === summary.coins, JSON.stringify(summary).slice(0, 160));
-check('a reviewed payout counts as reserved', summary.reserved === 0 || summary.openRequests > 0, `reserved=${summary.reserved}`);
-const odd = await player.call('/api/wallet/withdraw', { body: { coins: 105, paypalEmail: 'player@example.com' } });
-check('a fraction of a cent is rounded down, not refused', odd.status === 201 && odd.data.withdrawal.coins === 100 && odd.data.withdrawal.usd_cents === 10, JSON.stringify(odd.data.withdrawal || {}).slice(0, 140));
-check('the coins past the whole cent stay in the balance', (await player.call('/api/wallet')).data.wallet.coins === summary.coins - 100, `summary=${summary.coins}`);
-await owner.call(`/api/admin/withdrawals/${odd.data.withdrawalId}/decide`, { body: { action: 'reject', note: 'Rounding test refund' } });
-check('the rounded request returns its coins', (await player.call('/api/wallet')).data.wallet.coins === balanceNow, `expected=${balanceNow}`);
-/* the rejected request used one of the day's two slots, so lift the cap before
-   asking again, which is what this pair of checks is about */
-await owner.call('/api/admin/settings', { method: 'PUT', body: { dailyWithdrawCap: 5 } });
-const again = await player.call('/api/wallet/withdraw', { body: { coins: 100, paypalEmail: 'player@example.com' } });
-check('second withdrawal allowed after the first closed', again.status === 201);
-check('rejecting without a reason is refused', (await owner.call(`/api/admin/withdrawals/${again.data.withdrawalId}/decide`, { body: { action: 'reject' } })).status === 400);
-await owner.call(`/api/admin/withdrawals/${again.data.withdrawalId}/decide`, { body: { action: 'reject', note: 'Test refund' } });
-const refunded = (await player.call('/api/wallet')).data.wallet.coins;
-check('rejection returns the coins', refunded === balanceNow, `before=${balanceNow} after=${refunded}`);
-check('refund is in the ledger', (await player.call('/api/wallet')).data.ledger.some((l) => l.kind === 'withdraw_refund'));
-
-/* 9. daily caps and cross-origin guards */
+/* 6. daily caps and cross-origin guards */
 await owner.call('/api/admin/settings', { method: 'PUT', body: { dailyCareCoinCap: 0 } });
 const cappedCare = await player.call('/api/pet/care', { body: { action: 'play' } });
 check('daily care coin cap is enforced', cappedCare.status === 200 && cappedCare.data.award === 0, JSON.stringify(cappedCare.data));
-await owner.call('/api/admin/settings', { method: 'PUT', body: { dailyCareCoinCap: 250, minWithdrawCoins: 5000 } });
+await owner.call('/api/admin/settings', { method: 'PUT', body: { dailyCareCoinCap: 250 } });
 
 const crossOrigin = await player.call('/api/pet/care', { body: { action: 'play' }, origin: 'http://evil.example' });
 check('cross-origin mutation refused', crossOrigin.status === 403);

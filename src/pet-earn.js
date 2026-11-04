@@ -1,6 +1,6 @@
 /* Pet Earn — server-backed coins, native inside Sprite Hollow.
-   Care in the Hollow earns coins; the Wallet sheet (Settings) cashes them out
-   to PayPal at any time. There is no separate screen and players sign nothing. */
+   Care in the Hollow earns coins; the Wallet sheet shows the balance and the
+   recent ledger. Coins stay in the Hollow: they are never converted to money. */
 
 (function () {
   'use strict';
@@ -31,7 +31,6 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   }[c]));
   const fmt = (n) => Number(n || 0).toLocaleString();
-  const money = (cents) => `$${(Number(cents || 0) / 100).toFixed(2)}`;
   const dateShort = (ts) => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   const fieldStyle = 'width:100%;padding:12px 14px;border-radius:13px;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--text);outline:none;font-size:14px;font-family:inherit';
 
@@ -62,16 +61,7 @@
     return data || {};
   }
 
-  /* Lights the Cash out chip when the balance can actually be withdrawn. */
-  function markReady() {
-    if (LOCAL_ONLY) return;
-    const w = S.me?.wallet;
-    if (!w) return;
-    const ready = Number(w.coins || 0) >= Math.max(1, Number(w.minWithdrawCoins || 1));
-    document.querySelectorAll('[data-cash-ready]').forEach((dot) => { dot.hidden = !ready; });
-  }
-
-  /* The top-bar "cash" pill is the server balance. */
+  /* The top-bar coin pill is the server balance. */
   try {
     window.addEventListener('online', () => { flushOutbox().catch(() => {}); });
   } catch { /* no window */ }
@@ -89,7 +79,6 @@
         pill.classList.add('bump');
       }
     }
-    markReady();
   }
 
   async function ensureSession() {
@@ -276,87 +265,36 @@
     }
   }
 
-  /* A payout is marked paid when PayPal accepts the batch, so the second line
-     reports where the money actually got to instead of repeating the word paid. */
-  function payoutProgress(x) {
-    const state = String(x.payout_state || '').toUpperCase();
-    if (['FAILED', 'DENIED', 'RETURNED', 'REVERSED', 'BLOCKED', 'CANCELED', 'CANCELLED'].includes(state)) {
-      return { icon: '↩️', text: 'PayPal could not deliver this — the coins are back in your balance' };
-    }
-    if (x.status !== 'paid') return null;
-    if (state === 'SUCCESS') return { icon: '✅', text: 'Delivered to PayPal' };
-    if (['PENDING', 'PROCESSING', 'UNCLAIMED', 'ONHOLD'].includes(state)) {
-      return { icon: '⏳', text: 'PayPal is processing this — usually minutes' };
-    }
-    return { icon: '📦', text: 'Sent to PayPal' };
-  }
-
-  function historyHTML(list) {
+  function ledgerHTML(list) {
     if (!list?.length) {
-      return '<p class="tiny muted" style="margin:8px 2px">No payouts yet. Keep caring for your sprite and the coins add up.</p>';
+      return '<p class="tiny muted" style="margin:8px 2px">No coins yet. Care for your sprite and the ledger fills up.</p>';
     }
-    return list.map((x) => {
-      const progress = payoutProgress(x);
-      return `<div class="card" style="padding:10px 12px;margin-top:8px;display:flex;align-items:center;gap:10px">
-      <span style="font-size:18px">${x.status === 'paid' ? '✅' : x.status === 'rejected' ? '↩️' : x.status === 'approved' ? '📦' : '⏳'}</span>
+    return list.slice(0, 12).map((x) => `<div class="card" style="padding:9px 12px;margin-top:7px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:15px">🪙</span>
       <div style="flex:1;min-width:0">
-        <b style="font-size:13px">${money(x.usd_cents)} · ${fmt(x.coins)} coins</b>
-        <div class="tiny muted" style="margin-top:2px">${esc(x.paypal_email)} · ${dateShort(x.created_at)}${x.note ? ` · ${esc(x.note)}` : ''}</div>
-        ${progress ? `<div class="tiny" style="margin-top:3px">${progress.icon} ${esc(progress.text)}</div>` : ''}
+        <b style="font-size:13px">${x.amount > 0 ? '+' : ''}${fmt(x.amount)} coins</b>
+        <div class="tiny muted" style="margin-top:2px">${esc(x.note || x.source || x.kind)} · ${dateShort(x.created_at)}</div>
       </div>
-      <span class="chip" style="font-size:10px;text-transform:uppercase;letter-spacing:.4px">${esc(x.status)}</span>
-    </div>`;
-    }).join('');
+    </div>`).join('');
   }
 
   function walletBody(data) {
     const w = data.wallet;
-    const linkedPaypal = data.paypal?.linked ? data.paypal : null;
-    const rate = Math.max(1, w.coinsPerDollar || 1000);
-    const min = Math.max(1, w.minWithdrawCoins || 1);
-    /* Only whole US cents can be requested, so the offer is rounded down to one. */
-    const offer = Math.floor((Math.floor((w.coins * 100) / rate) * rate) / 100);
+    const waiting = outboxRead().length;
     return `
       <div class="between">
         <span class="chip">🪙 <b>${fmt(w.coins)}</b> coins</span>
-        <span class="tiny muted">≈ ${money(Math.floor((w.coins * 100) / rate))} at ${fmt(rate)} coins / $1</span>
+        <span class="tiny muted">${fmt(w.lifetimeEarned || 0)} earned all time</span>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-        <span class="chip" style="font-size:10px">Available ${fmt(w.available ?? w.coins)}</span>
-        <span class="chip" style="font-size:10px">In review ${fmt(w.reserved || 0)}</span>
-        <span class="chip" style="font-size:10px">Paid ${money(Math.round((w.paid || 0) * 100))}</span>
-      </div>
-      <div class="section-title" style="margin-top:14px"><h2>Cash out to PayPal</h2><span>${w.autoPayout ? 'sent straight to your PayPal' : 'owner reviews each one'}</span></div>
-      ${linkedPaypal
-        ? `<div class="card" style="padding:10px 12px;margin-bottom:10px">
-        <div class="between"><b style="font-size:13px">✅ PayPal connected</b>
-          <button class="chip" type="button" data-paypal-unlink style="font-size:10px">Disconnect</button></div>
-        <div class="tiny muted" style="margin-top:3px">${esc(linkedPaypal.email)} — every cash-out pays this account automatically.</div>
-      </div>`
-        : `<div class="card" style="padding:10px 12px;margin-bottom:10px">
-        <b style="font-size:13px">🔗 Connect your PayPal</b>
-        <div class="tiny muted" style="margin-top:3px;line-height:1.5">Sign in once and cash-outs pay your own account. No address to type, nothing to approve.</div>
-        <button class="btn btn-soft btn-block" type="button" data-paypal-link style="margin-top:9px">Connect PayPal</button>
-      </div>`}
-      <form data-withdraw>
-        <label class="tiny muted" style="display:block;margin:0 2px 5px">Coins to withdraw</label>
-        <input name="coins" type="number" inputmode="numeric" min="${min}" step="1" placeholder="${fmt(min)}" value="${w.coins >= min ? offer : ''}" style="${fieldStyle}">
-        <label class="tiny muted" style="display:block;margin:10px 2px 5px">${linkedPaypal ? 'Paying' : 'PayPal email'}</label>
-        <input name="paypalEmail" type="email" inputmode="email" ${linkedPaypal ? `value="${esc(linkedPaypal.email)}" readonly` : 'placeholder="you@example.com"'} style="${fieldStyle}${linkedPaypal ? ';opacity:.65' : ''}">
-        <p class="tiny muted" data-est style="margin:8px 2px 0">${w.coins >= min
-          ? `${fmt(offer)} coins ≈ ${money(Math.floor((offer * 100) / rate))} via PayPal.`
-          : `Any amount is cashable, down to one cent.`}</p>
-        <button class="btn btn-primary btn-block" type="submit" style="margin-top:10px" ${w.coins < min ? 'disabled' : ''}>Request payout</button>
-      </form>
-      ${(() => { const waiting = outboxRead().length; return waiting ? `<p class="tiny muted" style="margin:10px 2px 0">⏳ ${waiting} reward${waiting === 1 ? '' : 's'} saved on this phone, syncing automatically.</p>` : ''; })()}
-      <div class="section-title"><h2>Your requests</h2></div>
-      ${historyHTML(data.withdrawals)}
-      <button class="btn btn-soft btn-block" data-owner style="margin-top:14px">🛠️ Owner tools</button>`;
+      <p class="tiny muted" style="margin:10px 2px 0;line-height:1.6">Coins are the Hollow's own money. Caring, games, quests and gifts pay them in; the shop spends them.</p>
+      ${waiting ? `<p class="tiny muted" style="margin:10px 2px 0">⏳ ${waiting} reward${waiting === 1 ? '' : 's'} saved on this phone, syncing automatically.</p>` : ''}
+      <div class="section-title"><h2>Recent coins</h2></div>
+      ${ledgerHTML(data.ledger)}`;
   }
 
   function offlineBody(what) {
     return `<p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">Coins are kept by the Hollow server, and this copy of the game runs entirely on your phone — so ${what} cannot reach it from here.</p>
-      <p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">Play the online Hollow to earn and cash out. Nothing on this phone is affected: your sprites, levels, coins in the shop and saves all work as usual.</p>`;
+      <p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">Play the online Hollow to earn server coins. Nothing on this phone is affected: your sprites, levels, coins in the shop and saves all work as usual.</p>`;
   }
 
   async function openWallet() {
@@ -377,189 +315,17 @@
       return null;
     }
 
-    const rate = Math.max(1, data.wallet.coinsPerDollar || 1000);
-    const min = Math.max(1, data.wallet.minWithdrawCoins || 1);
-
     const sheet = openSheet({
       title: 'Wallet',
-      sub: 'Coins you earned in the Hollow. Cash out whenever you like.',
+      sub: 'The coins you have earned in the Hollow.',
       body: walletBody(data),
-      onMount: (root, close) => {
-        const form = root.querySelector('[data-withdraw]');
-        const input = form.querySelector('[name="coins"]');
-        const est = form.querySelector('[data-est]');
-
-        const paintEstimate = () => {
-          const coins = Number(input.value || 0);
-          est.textContent = coins >= min
-            ? `${fmt(coins)} coins ≈ ${money(Math.floor((coins * 100) / rate))} via PayPal.`
-            : `Any amount is cashable, down to one cent.`;
-        };
-        input.addEventListener('input', paintEstimate);
-        paintEstimate();
-
-        form.addEventListener('submit', async (event) => {
-          event.preventDefault();
-          if (S.busy) return;
-          const coins = Number(input.value || 0);
-          const paypalEmail = form.querySelector('[name="paypalEmail"]').value.trim();
-          if (!coins || coins < min) { toast('Enter how many coins to cash out.', '🪙'); return; }
-          if (!paypalEmail) { toast('Add the PayPal email for the payout.', '✉️'); return; }
-          S.busy = true;
-          try {
-            const res = await api('/wallet/withdraw', { body: { coins, paypalEmail } });
-            const paidNow = res.withdrawal?.status === 'paid';
-            S.me.wallet = (await api('/wallet')).wallet;
-            syncPill();
-            toast(paidNow
-              ? 'Paid to PayPal — the money is on its way.'
-              : res.queued ? 'Payout queued — it is being sent.' : 'Payout requested — the owner reviews it by hand.', paidNow ? '💸' : '✅');
-            close();
-            openWallet();
-          } catch (err) {
-            toast(err.message, '😕');
-          } finally {
-            S.busy = false;
-          }
-        });
-
-        root.querySelector('[data-paypal-link]')?.addEventListener('click', async (event) => {
-          const btn = event.currentTarget;
-          btn.disabled = true;
-          try {
-            const res = await api('/paypal/link', { body: {} });
-            if (res?.url) { window.location.href = res.url; return; }
-            toast('PayPal did not return a sign-in link.', '😕');
-          } catch (err) {
-            toast(err.message, '😕');
-          } finally {
-            btn.disabled = false;
-          }
-        });
-
-        root.querySelector('[data-paypal-unlink]')?.addEventListener('click', async () => {
-          try {
-            await api('/paypal/unlink', { body: {} });
-            close();
-            openWallet();
-          } catch (err) { toast(err.message, '😕'); }
-        });
-
-        root.querySelector('[data-owner]')?.addEventListener('click', () => {
-          close();
-          openOwner();
-        });
-      },
-    });
-    return sheet.close;
-  }
-
-  async function adminBody() {
-    const [overview, pending] = await Promise.all([
-      api('/admin/overview'),
-      api('/admin/withdrawals?status=pending'),
-    ]);
-    const rows = pending.withdrawals || [];
-    const totals = overview.totals || {};
-    return `
-      <div class="between">
-        <span class="chip">🪙 <b>${fmt(totals.coinsInCirculation || 0)}</b> in circulation</span>
-        <span class="chip">${rows.length} pending</span>
-      </div>
-      <div class="section-title" style="margin-top:14px"><h2>Pending payouts</h2></div>
-      ${rows.length ? rows.map((w) => `<div class="card" style="padding:12px;margin-top:8px">
-        <b style="font-size:13.5px">${money(w.usd_cents)} · ${fmt(w.coins)} coins</b>
-        <div class="tiny muted" style="margin-top:2px">${esc(w.paypal_email)} · ${esc(w.username || 'player')} · ${dateShort(w.created_at)}</div>
-        <div class="row" style="gap:6px;margin-top:9px;flex-wrap:wrap">
-          <input data-note placeholder="Reason (needed to reject)" maxlength="200" style="${fieldStyle};padding:9px 11px;font-size:13px">
-          <input data-reference placeholder="PayPal reference (needed to mark paid)" maxlength="120" style="${fieldStyle};padding:9px 11px;font-size:13px">
-          <button class="btn btn-sm btn-primary" data-decide="approve" data-id="${esc(w.id)}">Approve</button>
-          <button class="btn btn-sm btn-soft" data-decide="paid" data-id="${esc(w.id)}">Mark paid</button>
-          <button class="btn btn-sm btn-ghost" data-decide="reject" data-id="${esc(w.id)}" style="color:var(--bad)">Reject</button>
-        </div>
-      </div>`).join('') : '<p class="tiny muted" style="margin:8px 2px">Nothing waiting for review.</p>'}
-      <a class="btn btn-soft btn-block" href="${API}/admin/withdrawals/export" style="margin-top:14px;text-align:center;text-decoration:none">⬇️ Export payouts CSV</a>
-      <button class="btn btn-ghost btn-block" data-signout style="margin-top:10px">Sign out</button>`;
-  }
-
-  async function openOwner() {
-    if (LOCAL_ONLY) {
-      const sheet = openSheet({
-        title: 'Payout review',
-        sub: 'Only available in the online Hollow.',
-        body: offlineBody('payouts'),
-      });
-      return sheet.close;
-    }
-    /* Nothing to type. The first session to open payout review takes the seat;
-       anyone after that is a player and only sees who reviews the payouts. */
-    if (!S.me?.user?.isAdmin) {
-      try {
-        const res = await api('/owner/claim', { method: 'POST' });
-        S.me = { ...(S.me || {}), user: res.owner || { ...(S.me?.user || {}), isAdmin: true } };
-        if (res.claimed) toast('This Hollow is yours — payouts are reviewed here.', '🔑');
-      } catch (err) {
-        const sheet = openSheet({
-          title: 'Payout review',
-          sub: 'Another session owns this Hollow.',
-          body: `<p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">${esc(err.message)}</p>
-            <p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">There is nothing to type: earning coins and cashing out work exactly the same from the Wallet.</p>`,
-        });
-        return sheet.close;
-      }
-    }
-
-    let body = '';
-    try {
-      body = await adminBody();
-    } catch (err) {
-      body = `<p class="tiny muted">${esc(err.message)}</p>`;
-    }
-
-    const sheet = openSheet({
-      title: 'Payout review',
-      sub: 'Approve, pay or reject PayPal payouts.',
-      body,
-      onMount: (root, close) => {
-        root.querySelectorAll('[data-decide]').forEach((btn) => {
-          btn.addEventListener('click', async () => {
-            if (S.busy) return;
-            S.busy = true;
-            try {
-              const card = btn.closest ? btn.closest('.card') : null;
-              const note = card?.querySelector('[data-note]')?.value?.trim() || '';
-              const reference = card?.querySelector('[data-reference]')?.value?.trim() || '';
-              const action = btn.dataset.decide;
-              if (action === 'reject' && !note) { toast('Add a reason so the player knows why.', '✍️'); return; }
-              if (action === 'paid' && !reference) { toast('Enter the PayPal transaction reference.', '🧾'); return; }
-              await api(`/admin/withdrawals/${btn.dataset.id}/decide`, { body: { action, note, reference } });
-              toast(`Payout ${action === 'reject' ? 'rejected' : action === 'paid' ? 'marked paid' : 'approved'}.`, '✅');
-              close();
-              openOwner();
-            } catch (err) {
-              toast(err.message, '😕');
-            } finally {
-              S.busy = false;
-            }
-          });
-        });
-
-        root.querySelector('[data-signout]')?.addEventListener('click', async () => {
-          try { await api('/auth/logout', { method: 'POST' }); } catch { /* ignore */ }
-          writeToken('');
-          S.me = null;
-          close();
-          toast('Signed out of the owner account.', '👋');
-        });
-      },
     });
     return sheet.close;
   }
 
   /* --- Hollow care pays the wallet ---------------------------------------
      The game keeps the sprite happy in the local save; this bridge pays server
-     coins for the same care, so the cash pill and the withdrawable balance are
-     the same number. Each game action is wrapped once and never blocked. */
+     coins for the same care, so the pill and the wallet are the same number. Each game action is wrapped once and never blocked. */
   const CARE_BRIDGE = {
     feed: 'feed', feedStock: 'feed', feedSnack: 'feed',
     bathe: 'clean',
@@ -604,7 +370,7 @@
     setTimeout(retry, 0);
   }
 
-  /* The cash pill opens the Wallet on the web and in the app. */
+  /* The coin pill opens the Wallet on the web and in the app. */
   if (typeof document !== 'undefined' && document.addEventListener) {
     document.addEventListener('click', (event) => {
       const pill = event.target && event.target.closest ? event.target.closest('[data-coin-pill]') : null;
@@ -625,8 +391,7 @@
     pendingRewards: () => outboxRead().length,
     wallet,
     openWallet,
-    openOwner,
-    sync: () => { syncPill(); markReady(); },
+    sync: () => { syncPill(); },
     bridge: bridgeActions,
     _state: S,
   };

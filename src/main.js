@@ -74,7 +74,7 @@ let previousCoins = state.coins;
 
 function updateTopbar(detail = {}) {
   // The coin pill is driven by the server wallet (see PetEarn.wallet), not by
-  // the offline save, so the pill and the cash-out balance are the same number.
+  // the offline save, so the pill and the wallet are the same number.
   const sub = document.querySelector('[data-hollow-sub]');
   if (sub) sub.textContent = state.hollowName;
   const gameCoinsEl = document.querySelector('[data-game-coins]');
@@ -120,7 +120,7 @@ function renderShell() {
           </div>
         </div>
         <div class="top-actions">
-          <div class="coin-pill" data-coin-pill title="Withdrawable coins — cash out to PayPal"><span class="coin-tag">cash</span>${icon('coin')}<span data-coins>…</span></div>
+          <div class="coin-pill" data-coin-pill title="Your Hollow coins"><span class="coin-tag">coins</span>${icon('coin')}<span data-coins>…</span></div>
           <div class="coin-pill shop-pill" data-game-coin-pill title="Hollow coins — spend these in the shop"><span class="coin-tag">shop</span>${icon('coin')}<span data-game-coins>${state.coins}</span></div>
           <button class="icon-btn" data-rewards aria-label="Open rewards">${icon('star')}</button>
           <button class="icon-btn" data-studio-btn aria-label="Open Studio">${icon('palette')}</button>

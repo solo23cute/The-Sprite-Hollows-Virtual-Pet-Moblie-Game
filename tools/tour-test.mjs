@@ -89,7 +89,7 @@ const probe = `
     collect(steps.filter((s) => s.kicker !== 'STUCK SPRITES & REPAIR'), 'steps');
     collect(TOUR_I18N, 'i18n');
 
-    const coinStep = TOUR_STEPS.find((s) => s.kicker === 'COINS & CASH OUT');
+    const coinStep = TOUR_STEPS.find((s) => s.kicker === 'COINS & WALLET');
     const growth = TOUR_STEPS.find((s) => s.kicker === 'SPRITES & GROWTH');
     return {
       total: steps.length,
@@ -104,7 +104,7 @@ const probe = `
       coinTip: coinStep ? coinStep.tip : '',
       staleCapWording: stale.slice(0, 6),
       staleCapCount: stale.length,
-      newStepPoints: steps.filter((s) => ['COINS & CASH OUT', 'MYSTERY SHOP', 'STUCK SPRITES & REPAIR', 'SAVE BACKUP'].includes(s.kicker)).map((s) => [s.kicker, s.points.length]),
+      newStepPoints: steps.filter((s) => ['COINS & WALLET', 'MYSTERY SHOP', 'STUCK SPRITES & REPAIR', 'SAVE BACKUP'].includes(s.kicker)).map((s) => [s.kicker, s.points.length]),
     };
   })();
 `;
@@ -140,23 +140,21 @@ console.log(`\nInduction tour checks (${stubs.size} data globals stubbed)\n`);
 check('every step has icon, kicker, title, text, points and tip', r.incomplete.length === 0, r.incomplete.join(', '));
 check('no two steps share a kicker', r.duplicateKickers.length === 0, r.duplicateKickers.join(', '));
 check('the tour still ends on READY', r.lastStep === 'READY', r.lastStep);
-check('the coin wallet has its own step', r.kickers.includes('COINS & CASH OUT'));
+check('the coin wallet has its own step', r.kickers.includes('COINS & WALLET'));
 check('the mystery shop has its own step', r.kickers.includes('MYSTERY SHOP'));
 check('the stuck-sprite rescue and repair tool have a step', r.kickers.includes('STUCK SPRITES & REPAIR'));
 check('save backup has its own step', r.kickers.includes('SAVE BACKUP'));
 check(
   'the new steps sit between the Nest and growth',
-  JSON.stringify(r.window) === JSON.stringify(['THE NEST', 'COINS & CASH OUT', 'MYSTERY SHOP', 'STUCK SPRITES & REPAIR', 'SAVE BACKUP', 'SPRITES & GROWTH']),
+  JSON.stringify(r.window) === JSON.stringify(['THE NEST', 'COINS & WALLET', 'MYSTERY SHOP', 'STUCK SPRITES & REPAIR', 'SAVE BACKUP', 'SPRITES & GROWTH']),
   r.window.join(' → '),
 );
 check('the growth step still tracks MAX_LEVEL', /1,000/.test(r.growthTitle || ''), r.growthTitle);
 
 check('no step still describes the old level-30 cap', r.staleCapCount === 0, `${r.staleCapCount}: ${r.staleCapWording.join(', ')}`);
-check('the cash-out step says any amount can go', /any amount/i.test(r.coinPoints), r.coinPoints.slice(0, 120));
-check('the cash-out step says there is no approval step', /no approval/i.test(r.coinPoints), r.coinPoints.slice(0, 120));
-check('the cash-out step names the rolling seven-day allowance', /seven-day/i.test(r.coinPoints), r.coinPoints.slice(0, 120));
-check('the cash-out step says the owner seat needs no code', /no code/i.test(r.coinTip), r.coinTip.slice(0, 120));
-check('the cash-out step never mentions a minimum', !/minimum/i.test(r.coinPoints + r.coinTip), (r.coinPoints + r.coinTip).slice(0, 140));
+check('the coin step says care pays coins', /care/i.test(r.coinPoints), r.coinPoints.slice(0, 120));
+check('the coin step says coins are not money', /not converted to money|stay in the Hollow/i.test(r.coinPoints + r.coinTip), (r.coinPoints + r.coinTip).slice(0, 140));
+check('the coin step never mentions PayPal or a cash-out', !/PayPal|cash out|payout|minimum/i.test(r.coinPoints + r.coinTip), (r.coinPoints + r.coinTip).slice(0, 140));
 check('each new step carries at least three points', r.newStepPoints.every(([, n]) => n >= 3), JSON.stringify(r.newStepPoints));
 
 for (const lang of r.languages) {

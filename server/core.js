@@ -1,7 +1,7 @@
 /* Sprite Hollow Pet Earn — server core.
    Runs unchanged on a Cloudflare Worker (D1) and on the local Node dev server
-   (node:sqlite). Every coin, need value and withdrawal status is computed here:
-   the browser can only ask for actions, never assert a balance.
+   (node:sqlite). Every coin and need value is computed here: the browser can
+   only ask for actions, never assert a balance.
 
    Design notes
    - Coins are a ledger: balance = SUM(ledger.amount). Nothing stores a mutable
@@ -9,16 +9,14 @@
    - Pet needs decay from pets.updated_at, so closing the app still costs care.
    - Minigame scores are recomputed from a server seed, so a claimed score has
      to match a schedule the player could actually have played.
-   - Withdrawals debit the ledger in the same statement that inserts the
-     request; only an admin transition can reject (refund) or mark paid. */
+   - Coins stay inside the Hollow: they are earned, spent and shown, never
+     converted to money by this server. */
 
 export const SESSION_COOKIE = 'cp_session';
 
-import { authorizeUrl, fetchLinkedAccount, fetchPayoutStatus, payoutsConfig, sendPayout, verifyCredentials } from './payouts.js';
-
 /* Owner access without an account and without a code: the first session to open
-   payout review takes the seat. The old passcode key is kept only so an upgraded
-   Hollow can clear the stale hash when its owner leaves. */
+   the owner tools takes the seat. The old passcode key is kept only so an
+   upgraded Hollow can clear the stale hash when its owner leaves. */
 const LEGACY_OWNER_PASSCODE_KEY = 'owner_passcode';
 /* The packaged Android build is a different origin (appassets.androidplatform.net),
    so it cannot rely on a SameSite cookie. Those clients send the session as a
@@ -27,17 +25,10 @@ export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
 
 export const DEFAULT_SETTINGS = {
   coins_per_dollar: '1000',
-  /* Any amount is cashable, down to one cent's worth of coins. */
-  min_withdraw_coins: '1',
   daily_care_coin_cap: '250',
   daily_game_coin_cap: '600',
   daily_care_cap: '40',
   daily_game_cap: '20',
-  daily_withdraw_cap: '2',
-  /* Cash-outs are sent by the server itself when PayPal payouts are configured,
-     with a weekly budget so a public Hollow cannot drain the account. */
-  auto_payout: 'on',
-  payout_weekly_budget_cents: '500',
 };
 
 const CARE = {
@@ -85,11 +76,6 @@ function yesterdayKey(ms) {
 }
 function cut(text, max) {
   return String(text ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, max);
-}
-
-function csvCell(value) {
-  const text = String(value ?? '');
-  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 const encoder = new TextEncoder();
@@ -315,18 +301,9 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     return Number.isFinite(n) && n >= 0 ? n : fallback;
   }
 
-  const payouts = payoutsConfig(env);
-
-  function autoPayoutOn(map) {
-    if (!payouts.configured) return false;
-    const flag = String(map.auto_payout ?? 'on').toLowerCase();
-    return flag !== 'off' && flag !== 'false' && flag !== '0';
-  }
-
   function publicSettings(map) {
     return {
       coinsPerDollar: positive(map.coins_per_dollar, 1000),
-      minWithdrawCoins: positive(map.min_withdraw_coins, 1),
       dailyCareCoinCap: nonNegative(map.daily_care_coin_cap, 250),
       dailyGameCoinCap: nonNegative(map.daily_game_coin_cap, 600),
       dailyCareCap: nonNegative(map.daily_care_cap, 40),
@@ -476,7 +453,6 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       careCoins: toInt(row?.care_coins),
       gameRuns: toInt(row?.game_runs),
       gameCoins: toInt(row?.game_coins),
-      withdrawCount: toInt(row?.withdraw_count),
       caps: {
         careCoins: pub.dailyCareCoinCap,
         gameCoins: pub.dailyGameCoinCap,
@@ -493,35 +469,10 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       'SELECT COALESCE(SUM(amount), 0) AS total FROM ledger WHERE user_id = ? AND amount > 0',
       [userId],
     );
-    const held = await store.get(
-      "SELECT COALESCE(SUM(coins), 0) AS coins, COUNT(*) AS n FROM withdrawals WHERE user_id = ? AND status IN ('pending', 'approved')",
-      [userId],
-    );
-    const paidUsd = await store.get(
-      "SELECT COALESCE(SUM(usd_cents), 0) AS cents FROM withdrawals WHERE user_id = ? AND status = 'paid'",
-      [userId],
-    );
-    const verified = await store.get(
-      "SELECT COALESCE(SUM(amount), 0) AS total FROM ledger WHERE user_id = ? AND amount > 0 AND kind <> 'withdraw_refund'",
-      [userId],
-    );
-    const reserved = toInt(held?.coins);
     return {
       coins,
-      usd: round2(coins / Math.max(1, pub.coinsPerDollar)),
       lifetimeEarned: toInt(earned?.total),
-      /* Earnings drop straight into the balance, so nothing is ever waiting to
-         be verified; what is held is coins already committed to a payout. */
-      verified: toInt(verified?.total),
-      pending: 0,
-      reserved,
-      available: Math.max(0, coins),
-      paid: round2(toInt(paidUsd?.cents) / 100),
-      autoPayout: autoPayoutOn(settings),
-      openRequests: toInt(held?.n),
-      hasOpenWithdrawal: toInt(held?.n) > 0,
       coinsPerDollar: pub.coinsPerDollar,
-      minWithdrawCoins: pub.minWithdrawCoins,
     };
   }
 
@@ -557,7 +508,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
 
     // Nobody needs a code to play: guests are created without signing in at all,
     // and an account is optional. The first account that claims ownership becomes
-    // the payout owner. An invite code is still honoured when one is supplied, so
+    // session owner. An invite code is still honoured when one is supplied, so
     // codes already handed out keep working, but it is never required.
     const adminRow = await store.get('SELECT COUNT(*) AS n FROM users WHERE is_admin = 1');
     const isFirstUser = toInt(adminRow?.n) === 0;
@@ -652,12 +603,12 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(request, '', 0) });
   }
 
-  /* Leaving for good: sessions, pet, ledger and payout history go with the
-     account. A real account confirms its password; a guest only ever had the
-     session token it was handed. */
+  /* Leaving for good: sessions, pet and ledger go with the account. A real
+     account confirms its password; a guest only ever had the session token it
+     was handed. */
   /* Coins earned inside the Hollow land in the same wallet the pill and the
-     Wallet sheet show, so what a player wins becomes their cashable balance.
-     Every award carries an id, so a retry or a reload cannot pay it twice. */
+     Wallet sheet show. Every award carries an id, so a retry or a reload cannot
+     pay it twice. */
   const EARN_SOURCES = ['game', 'quest', 'spin', 'checkin'];
 
   async function earn(request, user) {
@@ -714,7 +665,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     });
   }
 
-  /* No account and no code: the first session to open payout review takes the
+  /* No account and no code: the first session to open the owner tools takes the
      owner seat, and every session after that is an ordinary player. Older builds
      still post a passcode-shaped body here; it is read and ignored, because there
      is no secret left to check it against. */
@@ -747,16 +698,10 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       const row = await store.get('SELECT password_hash FROM users WHERE id = ?', [user.id]);
       if (!(await verifyPassword(password, row?.password_hash || ''))) fail(403, 'That password is not right.');
     }
-    const pending = await store.get(
-      "SELECT COUNT(*) AS n FROM withdrawals WHERE user_id = ? AND status IN ('pending', 'approved')",
-      [user.id],
-    );
-    if (toInt(pending?.n) > 0) fail(400, 'Settle your payouts before leaving.');
     const adminsLeft = await store.get('SELECT COUNT(*) AS n FROM users WHERE is_admin = 1 AND id <> ?', [user.id]);
     await store.batch([
       { sql: 'DELETE FROM sessions WHERE user_id = ?', params: [user.id] },
       { sql: 'DELETE FROM ledger WHERE user_id = ?', params: [user.id] },
-      { sql: 'DELETE FROM withdrawals WHERE user_id = ?', params: [user.id] },
       { sql: 'DELETE FROM daily WHERE user_id = ?', params: [user.id] },
       { sql: 'DELETE FROM game_runs WHERE user_id = ?', params: [user.id] },
       { sql: 'DELETE FROM pets WHERE user_id = ?', params: [user.id] },
@@ -809,7 +754,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     const health = Math.round((next.hunger + next.cleanliness + next.happiness) / 3);
     const multiplier = round2(moodMultiplier(health));
 
-    // Streak: caring on consecutive days compounds the payout.
+    // Streak: caring on consecutive days compounds the coins.
     let streak = effectiveStreak(row, stamp);
     if (row.last_care_day !== day) streak = Math.max(1, streak + 1);
 
@@ -978,392 +923,16 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
 
   async function wallet(request, user) {
     const settings = await readSettings();
-    const pub = publicSettings(settings);
-    /* Reconcile PayPal batches first: a refund has to be in the ledger this very
-       response reads, otherwise the balance and the history disagree until the
-       player opens the wallet a second time. */
-    await syncPayoutStates(user.id);
     const ledger = await store.all(
       'SELECT id, kind, amount, source, note, created_at FROM ledger WHERE user_id = ? ORDER BY id DESC LIMIT 40',
       [user.id],
     );
-    const withdrawals = await store.all(
-      'SELECT id, coins, usd_cents, paypal_email, status, note, created_at, decided_at, paid_at, payment_reference, payout_state, payout_checked_at FROM withdrawals WHERE user_id = ? ORDER BY created_at DESC LIMIT 30',
-      [user.id],
-    );
-    const linked = await store.get('SELECT paypal_email, paypal_payer_id FROM users WHERE id = ?', [user.id]);
     return json({
       wallet: await walletSnapshot(user.id, settings),
-      settings: pub,
+      settings: publicSettings(settings),
       ledger,
-      withdrawals,
-      paypal: paypalLinkState(linked),
       today: await dailySnapshot(user.id, dayKey(now()), settings),
     });
-  }
-
-  /* `paid` only means PayPal accepted the batch, so a player could be told the
-     money arrived while PayPal was still moving it. Ask PayPal where each recent
-     batch got to, but never more than once per TTL and never again once a batch
-     has settled. A PayPal hiccup keeps the last known state: the wallet must
-     still open, and a payout's status is not worth breaking it for. */
-  /* FAILED means PayPal will never deliver this batch: the money never moved, so
-     the held coins belong back in the player's balance. UNCLAIMED and ONHOLD are
-     deliberately not here — an unclaimed email payment can still be picked up. */
-  const PAYOUT_STATES_FAILED = new Set(['FAILED', 'DENIED', 'RETURNED', 'REVERSED', 'BLOCKED', 'CANCELED', 'CANCELLED']);
-  const PAYOUT_STATES_SETTLED = new Set([...PAYOUT_STATES_FAILED, 'SUCCESS']);
-  const payoutStatusTtl = Number(env.PAYOUT_STATUS_TTL_MS);
-  const PAYOUT_STATUS_TTL_MS = Number.isFinite(payoutStatusTtl) && payoutStatusTtl >= 0 ? payoutStatusTtl : 90_000;
-
-  /* The coins are only returned if the payout is still the one that was sent: the
-     UPDATE and the refund share a batch, and the refund only fires when this exact
-     call flipped the row, so two wallet reads racing cannot pay the player twice. */
-  const PAYOUT_FAILED_NOTE = 'PayPal could not deliver this payout - coins returned';
-  /* PayPal's own wording for a failed batch is the only record of why the money
-     came back, so it is kept on the request instead of a bare state name. */
-  function payoutFailedNote(state, reason) {
-    const why = String(reason || '').trim();
-    return `${PAYOUT_FAILED_NOTE} (${state}${why ? `: ${why}` : ''})`.slice(0, 200);
-  }
-  async function refundFailedPayout(withdrawalId, state, reason = '') {
-    const stamp = now();
-    await store.batch([
-      {
-        sql: `UPDATE withdrawals SET status = 'rejected', payout_state = ?, payout_checked_at = ?, decided_at = ?, note = ?
-               WHERE id = ? AND status = 'paid'`,
-        params: [state, stamp, stamp, payoutFailedNote(state, reason), withdrawalId],
-      },
-      {
-        sql: `INSERT INTO ledger (user_id, kind, amount, ref, source, note, created_at)
-              SELECT w.user_id, 'withdraw_refund', w.coins, w.id, 'withdrawal', 'PayPal payout failed - coins returned', ?
-                FROM withdrawals w
-               WHERE w.id = ? AND w.status = 'rejected' AND w.decided_at = ?
-                 AND NOT EXISTS (SELECT 1 FROM ledger WHERE ref = w.id AND kind = 'withdraw_refund')`,
-        params: [stamp, withdrawalId, stamp],
-      },
-    ]);
-  }
-
-  async function syncPayoutStates(userId) {
-    if (!payoutsConfig(env).configured) return;
-    let rows;
-    try {
-      rows = await store.all(
-        `SELECT id, payment_reference, payout_state, payout_checked_at FROM withdrawals
-          WHERE user_id = ? AND status = 'paid' AND payment_reference IS NOT NULL AND payment_reference <> ''
-          ORDER BY created_at DESC LIMIT 4`,
-        [userId],
-      );
-    } catch { return; }
-    for (const row of rows) {
-      if (PAYOUT_STATES_SETTLED.has(String(row.payout_state || '').toUpperCase())) continue;
-      if (now() - toInt(row.payout_checked_at) < PAYOUT_STATUS_TTL_MS) continue;
-      try {
-        const checked = await fetchPayoutStatus(env, row.payment_reference);
-        const state = String(checked.status || '').toUpperCase();
-        if (PAYOUT_STATES_FAILED.has(state)) await refundFailedPayout(row.id, state, checked.reason);
-        else {
-          await store.run(
-            'UPDATE withdrawals SET payout_state = ?, payout_checked_at = ? WHERE id = ?',
-            [state, now(), row.id],
-          );
-        }
-      } catch { /* keep the last known state */ }
-    }
-  }
-
-  /* ---------- the player's own PayPal account ---------- */
-
-  const PAYPAL_LINK_TTL_MS = 10 * 60 * 1000;
-
-  function paypalLinkState(row) {
-    const email = String(row?.paypal_email || '').trim();
-    return { linked: Boolean(email), email, payerId: String(row?.paypal_payer_id || '').trim() };
-  }
-
-  /* PayPal sends the browser back here, so the return URL has to be the public
-     one: PAYPAL_REDIRECT_URL when the deployment knows it, else whatever origin
-     the player reached this server on. It must match the app's Return URL. */
-  function paypalRedirectUri(request) {
-    const fixed = String(env.PAYPAL_REDIRECT_URL || '').trim();
-    if (fixed) return fixed;
-    return `${new URL(request.url).origin}/api/paypal/callback`;
-  }
-
-  async function startPaypalLink(request, user) {
-    if (!payoutsConfig(env).configured) {
-      fail(503, 'PayPal is not set up on this server yet, so accounts cannot be connected.');
-    }
-    const stamp = now();
-    const state = `${randomToken(24)}`.replace(/[^a-z0-9]/gi, '');
-    /* a stale link from an abandoned attempt is never reusable */
-    await store.run('DELETE FROM paypal_links WHERE created_at < ?', [stamp - PAYPAL_LINK_TTL_MS]);
-    await store.run('INSERT INTO paypal_links (state, user_id, created_at) VALUES (?, ?, ?)', [state, user.id, stamp]);
-    return json({
-      url: authorizeUrl(env, { state, redirectUri: paypalRedirectUri(request) }),
-      expiresAt: stamp + PAYPAL_LINK_TTL_MS,
-    });
-  }
-
-  /* A player-triggered check of the deployment's PayPal keys. It performs the
-     same token call a payout makes and reports only PayPal's verdict: the token
-     and the secret never leave the server. */
-  async function paypalHealth(request, user) {
-    void user;
-    return json({
-      ...(await verifyCredentials(env)),
-      redirectUri: paypalRedirectUri(request),
-    });
-  }
-
-  function paypalPage({ title, detail, ok = true, status = 200 }) {
-    const safe = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const html = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${safe(title)}</title>
-<style>
-  :root { color-scheme: dark; }
-  body { margin:0; min-height:100vh; display:grid; place-items:center; background:#171423; color:#f4eeff;
-         font-family:system-ui,-apple-system,'Segoe UI',sans-serif; padding:24px; }
-  .card { max-width:340px; text-align:center; background:#221d33; border:1px solid #3a3352;
-          border-radius:18px; padding:22px 20px; }
-  h1 { font-size:17px; margin:8px 0 6px; }
-  p { font-size:13px; line-height:1.55; color:#b9aed6; margin:0 0 14px; word-break:break-word; }
-  button { width:100%; border:0; border-radius:12px; padding:12px; font-size:14px; font-weight:600;
-           background:#8f7bff; color:#150f24; }
-</style></head>
-<body><div class="card">
-  <div style="font-size:30px">${ok ? 'OK' : '!'}</div>
-  <h1>${safe(title)}</h1>
-  <p>${safe(detail)}</p>
-  <button onclick="if (history.length > 1) history.back(); else window.close();">Back to Sprite Hollow</button>
-</div></body></html>`;
-    return new Response(html, {
-      status,
-      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
-    });
-  }
-
-  /* The state is the credential here: PayPal redirects the browser, so there is
-     no session to read. It is single use and tied to the player who asked. */
-  async function paypalCallback(request) {
-    const url = new URL(request.url);
-    if (url.searchParams.get('error')) {
-      return paypalPage({
-        ok: false, status: 400,
-        title: 'PayPal sign-in cancelled',
-        detail: 'Nothing changed. You can connect an account whenever you like.',
-      });
-    }
-    const state = String(url.searchParams.get('state') || '');
-    const code = String(url.searchParams.get('code') || '');
-    const link = state ? await store.get('SELECT user_id, created_at FROM paypal_links WHERE state = ?', [state]) : null;
-    if (!link || now() - toInt(link?.created_at) > PAYPAL_LINK_TTL_MS) {
-      return paypalPage({
-        ok: false, status: 400,
-        title: 'That sign-in link expired',
-        detail: 'Open the wallet and tap Connect PayPal again.',
-      });
-    }
-    /* single use: a replayed callback cannot relink an account */
-    await store.run('DELETE FROM paypal_links WHERE state = ?', [state]);
-
-    let who;
-    try {
-      who = await fetchLinkedAccount(env, { code, redirectUri: paypalRedirectUri(request) });
-    } catch (err) {
-      return paypalPage({
-        ok: false, status: 502,
-        title: 'PayPal did not confirm it',
-        detail: String((err && err.message) || 'Try again in a moment.'),
-      });
-    }
-    if (!who.email) {
-      return paypalPage({
-        ok: false, status: 502,
-        title: 'PayPal shared no email',
-        detail: 'The app needs the email permission to pay you. Try connecting again.',
-      });
-    }
-    await store.run(
-      'UPDATE users SET paypal_email = ?, paypal_payer_id = ?, paypal_linked_at = ? WHERE id = ?',
-      [who.email, who.payerId || '', now(), toInt(link.user_id)],
-    );
-    return paypalPage({
-      title: 'PayPal connected',
-      detail: `${who.email} is now the account Sprite Hollow pays. Cash-outs go there automatically.`,
-    });
-  }
-
-  async function unlinkPaypal(request, user) {
-    await store.run(
-      'UPDATE users SET paypal_email = NULL, paypal_payer_id = NULL, paypal_linked_at = NULL WHERE id = ?',
-      [user.id],
-    );
-    return json({ ok: true, paypal: { linked: false, email: '', payerId: '' } });
-  }
-
-  async function requestWithdrawal(request, user) {
-    const body = await readJson(request);
-    const coins = toInt(body.coins);
-    const typedEmail = String(body.paypalEmail || '').trim();
-    const settings = await readSettings();
-    const pub = publicSettings(settings);
-    const stamp = now();
-    /* A connected account always wins: the address was confirmed by PayPal when
-       the player signed in, so nothing in this request can redirect the money. */
-    const linked = await store.get('SELECT paypal_email FROM users WHERE id = ?', [user.id]);
-    const paypalEmail = String(linked?.paypal_email || '').trim() || typedEmail;
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(paypalEmail) || paypalEmail.length > 120) {
-      fail(400, 'Connect your PayPal account, or enter the email that should receive the money.');
-    }
-    if (!Number.isFinite(coins) || coins < Math.max(1, pub.minWithdrawCoins)) {
-      fail(400, 'Enter how many coins to cash out.');
-    }
-    if (coins > 100000000) fail(400, 'That amount is too large.');
-
-    const open = await store.get(
-      "SELECT id FROM withdrawals WHERE user_id = ? AND status IN ('pending', 'approved')",
-      [user.id],
-    );
-    if (open) fail(409, 'You already have a withdrawal in review.');
-
-    const day = dayKey(stamp);
-    const daily = await dailyRow(user.id, day);
-    if (toInt(daily?.withdraw_count) >= toInt(settings.daily_withdraw_cap, 2)) {
-      fail(429, 'That is the most withdrawal requests for today.');
-    }
-
-    /* Any amount is payable. The payout itself is whole US cents, so coins past
-       the last full cent are not charged — they stay in the balance. */
-    const rate = Math.max(1, pub.coinsPerDollar);
-    const usdCents = Math.floor((coins * 100) / rate);
-    if (usdCents < 1) fail(400, 'That is less than one cent — earn a few more coins first.');
-    const payable = Math.min(coins, Math.ceil((usdCents * rate) / 100));
-
-    const id = crypto.randomUUID();
-    const results = await store.batch([
-      {
-        sql: `INSERT INTO withdrawals (id, user_id, coins, usd_cents, paypal_email, status, created_at)
-              SELECT ?, ?, ?, ?, ?, 'pending', ?
-               WHERE (SELECT COALESCE(SUM(amount), 0) FROM ledger WHERE user_id = ?) >= ?`,
-        params: [id, user.id, payable, usdCents, paypalEmail, stamp, user.id, payable],
-      },
-      {
-        sql: `INSERT INTO ledger (user_id, kind, amount, ref, source, note, created_at)
-              SELECT ?, 'withdraw_hold', ?, ?, 'withdrawal', 'Withdrawal request', ?
-               WHERE EXISTS (SELECT 1 FROM withdrawals WHERE id = ?)`,
-        params: [user.id, -payable, id, stamp, id],
-      },
-      {
-        sql: 'UPDATE daily SET withdraw_count = withdraw_count + 1 WHERE user_id = ? AND day = ?',
-        params: [user.id, day],
-      },
-    ]);
-    if (!results[0] || results[0].changes === 0) {
-      fail(400, 'Not enough coins for that withdrawal.');
-    }
-
-    const sent = await attemptAutoPayout({ id, user, coins: payable, usdCents, paypalEmail, settings });
-    if (sent.status === 'rejected') fail(400, sent.message);
-
-    const withdrawal = await store.get('SELECT * FROM withdrawals WHERE id = ?', [id]);
-    return json({
-      ok: true,
-      withdrawalId: id,
-      withdrawal,
-      queued: sent.status === 'pending',
-      message: sent.message,
-      wallet: await walletSnapshot(user.id, settings),
-    }, sent.status === 'pending' ? 202 : 201);
-  }
-
-  /* Cash out without the owner in the loop: when PayPal payouts are configured on
-     the deployment and the daily budget allows it, the money is sent right here.
-     A refusal that will never succeed refunds the coins; a temporary failure
-     leaves the request pending, where the owner can still review it. */
-  /* The budget is a rolling seven-day allowance rather than a calendar day: every
-     cent already sent in the last week counts against the next cash-out, so the
-     ceiling cannot be reset by waiting for midnight. */
-  const PAYOUT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-  function payoutBudgetCents(settings) {
-    /* deployments that stored the budget under its old daily name keep working */
-    const stored = settings.payout_weekly_budget_cents ?? settings.payout_daily_budget_cents;
-    return nonNegative(stored, 500);
-  }
-
-  /* PayPal's refusal codes are the difference between "your account is not set
-     up" and "ours is", which are two very different things for the player to do
-     about. The reply says the actionable one in plain words, then the raw code. */
-  function payoutRefusalHint(err) {
-    const raw = `${err?.message || ''} ${err?.detail || ''}`;
-    /* PayPal's own code rides along after the actionable part: it is what support
-       and PayPal's own console are keyed on. */
-    const code = String(err?.message || '').trim();
-    const withCode = (hint) => (code && !hint.includes(code) ? `${hint} (${code})` : hint);
-    if (/RECEIVER_UNREGISTERED|receiver is unregistered/i.test(raw)) {
-      return withCode('that PayPal account has not been opened yet — sign in to it once, then try again');
-    }
-    if (/UNCLAIMED|email address is not confirmed|unconfirmed/i.test(raw)) {
-      return withCode('that PayPal email is not confirmed — confirm it, then try again');
-    }
-    if (/PERMISSION_DENIED|payouts feature|feature to be enabled/i.test(raw)) {
-      return withCode('the Hollow cannot send money from its PayPal app yet — this is not a problem with your account');
-    }
-    if (/INSUFFICIENT_FUNDS|insufficient funds|no funds/i.test(raw)) {
-      return withCode('the Hollow has nothing in its PayPal balance right now — this is not a problem with your account');
-    }
-    return code || 'PayPal turned it down';
-  }
-
-  async function attemptAutoPayout({ id, user, coins, usdCents, paypalEmail, settings }) {
-    if (!autoPayoutOn(settings)) return { status: 'idle', message: '' };
-
-    const budget = payoutBudgetCents(settings);
-    const spent = await store.get(
-      "SELECT COALESCE(SUM(usd_cents), 0) AS cents FROM withdrawals WHERE status = 'paid' AND paid_at >= ?",
-      [now() - PAYOUT_WINDOW_MS],
-    );
-    if (usdCents + toInt(spent?.cents) > budget) {
-      return { status: 'pending', message: `This week's payout budget is used up, so this one waits for review.` };
-    }
-
-    try {
-      const sent = await sendPayout(env, {
-        email: paypalEmail,
-        cents: usdCents,
-        withdrawalId: id,
-        note: `Sprite Hollow payout for ${coins.toLocaleString()} coins`,
-      });
-      await store.run(
-        "UPDATE withdrawals SET status = 'paid', paid_at = ?, payment_reference = ?, note = ?, payout_state = ? WHERE id = ? AND status = 'pending'",
-        [now(), sent.batchId, 'Paid automatically to PayPal', String(sent.status || 'PENDING').toUpperCase(), id],
-      );
-      return { status: 'paid', message: 'Paid to PayPal.' };
-    } catch (err) {
-      if (err && err.permanent) {
-        const stamp = now();
-        await store.batch([
-          {
-            sql: "UPDATE withdrawals SET status = 'rejected', decided_at = ?, note = ? WHERE id = ? AND status = 'pending'",
-            params: [stamp, String(err.message).slice(0, 200), id],
-          },
-          {
-            sql: `INSERT INTO ledger (user_id, kind, amount, ref, source, note, created_at)
-                  SELECT user_id, 'withdraw_refund', coins, id, 'withdrawal', 'Withdrawal rejected - coins returned', ?
-                    FROM withdrawals
-                   WHERE id = ? AND status = 'rejected'
-                     AND NOT EXISTS (SELECT 1 FROM ledger WHERE ref = ? AND kind = 'withdraw_refund')`,
-            params: [stamp, id, id],
-          },
-        ]);
-        return { status: 'rejected', message: `PayPal would not pay that address: ${payoutRefusalHint(err)}` };
-      }
-      console.error('[payout]', err && err.message, err && err.detail);
-      return { status: 'pending', message: 'PayPal did not answer, so this payout waits for review.' };
-    }
   }
 
   /* ---------- admin ---------- */
@@ -1376,19 +945,14 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
               p.name AS pet_name, p.hunger, p.cleanliness, p.happiness, p.updated_at,
               p.streak, p.last_care_day, p.total_care,
               COALESCE((SELECT SUM(amount) FROM ledger l WHERE l.user_id = u.id), 0) AS balance,
-              COALESCE((SELECT SUM(amount) FROM ledger l WHERE l.user_id = u.id AND amount > 0), 0) AS earned,
-              COALESCE((SELECT SUM(amount) FROM ledger l WHERE l.user_id = u.id AND kind = 'withdraw_hold'), 0) AS held
+              COALESCE((SELECT SUM(amount) FROM ledger l WHERE l.user_id = u.id AND amount > 0), 0) AS earned
          FROM users u LEFT JOIN pets p ON p.user_id = u.id
         ORDER BY u.id ASC`,
     );
     const totals = await store.get(
       `SELECT
          (SELECT COUNT(*) FROM users) AS players,
-         (SELECT COALESCE(SUM(amount), 0) FROM ledger WHERE amount > 0) AS minted,
-         (SELECT COUNT(*) FROM withdrawals WHERE status = 'pending') AS pending_count,
-         (SELECT COALESCE(SUM(coins), 0) FROM withdrawals WHERE status IN ('pending', 'approved')) AS pending_coins,
-         (SELECT COALESCE(SUM(usd_cents), 0) FROM withdrawals WHERE status = 'paid') AS paid_cents,
-         (SELECT COALESCE(SUM(coins), 0) FROM withdrawals WHERE status = 'paid') AS paid_coins`,
+         (SELECT COALESCE(SUM(amount), 0) FROM ledger WHERE amount > 0) AS minted`,
     );
     const rows = players.map((p) => {
       const pet = p.pet_name
@@ -1410,7 +974,6 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
         totalCare: p.total_care || 0,
         balance: toInt(p.balance),
         earned: toInt(p.earned),
-        held: Math.abs(toInt(p.held)),
       };
     });
     const inCirculation = rows.reduce((sum, p) => sum + Math.max(0, p.balance), 0);
@@ -1420,146 +983,9 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
         players: toInt(totals?.players),
         coinsInCirculation: inCirculation,
         coinsMinted: toInt(totals?.minted),
-        pendingCount: toInt(totals?.pending_count),
-        pendingCoins: toInt(totals?.pending_coins),
-        paidCents: toInt(totals?.paid_cents),
-        paidCoins: toInt(totals?.paid_coins),
       },
-      settings: { ...publicSettings(settings), dailyWithdrawCap: toInt(settings.daily_withdraw_cap, 2) },
+      settings: publicSettings(settings),
     });
-  }
-
-  async function adminWithdrawals(request, user) {
-    await requireAdmin(request);
-    const url = new URL(request.url);
-    const status = url.searchParams.get('status');
-    const allowed = ['pending', 'approved', 'paid', 'rejected'];
-    const filter = allowed.includes(status) ? status : null;
-    const rows = await store.all(
-      `SELECT w.id, w.user_id, w.coins, w.usd_cents, w.paypal_email, w.status, w.note,
-              w.created_at, w.decided_at, w.paid_at, w.payment_reference, u.username, p.name AS pet_name
-         FROM withdrawals w
-         JOIN users u ON u.id = w.user_id
-         LEFT JOIN pets p ON p.user_id = w.user_id
-        ${filter ? 'WHERE w.status = ?' : ''}
-        ORDER BY w.created_at DESC LIMIT 200`,
-      filter ? [filter] : [],
-    );
-    return json({ withdrawals: rows });
-  }
-
-  async function exportWithdrawals(request) {
-    await requireAdmin(request);
-    const rows = await store.all(
-      `SELECT w.id, w.coins, w.usd_cents, w.paypal_email, w.status, w.created_at,
-              w.decided_at, w.paid_at, w.note, u.username, p.name AS pet_name
-         FROM withdrawals w
-         JOIN users u ON u.id = w.user_id
-         LEFT JOIN pets p ON p.user_id = w.user_id
-        WHERE w.status IN ('approved', 'paid')
-        ORDER BY w.created_at ASC`,
-    );
-    const iso = (ts) => (ts ? new Date(toInt(ts)).toISOString() : '');
-    const totalCoins = rows.reduce((sum, row) => sum + toInt(row.coins), 0);
-    const totalCents = rows.reduce((sum, row) => sum + toInt(row.usd_cents), 0);
-
-    const lines = [
-      ['request_id', 'player', 'pet', 'status', 'coins', 'usd', 'paypal_email', 'requested_at', 'decided_at', 'paid_at', 'note'],
-      ...rows.map((row) => [
-        row.id,
-        row.username,
-        row.pet_name || '',
-        row.status,
-        toInt(row.coins),
-        (toInt(row.usd_cents) / 100).toFixed(2),
-        row.paypal_email,
-        iso(row.created_at),
-        iso(row.decided_at),
-        iso(row.paid_at),
-        row.note || '',
-      ]),
-      ['TOTAL', '', '', '', totalCoins, (totalCents / 100).toFixed(2), '', '', '', '', `${rows.length} payout(s)`],
-    ];
-
-    const csv = `\ufeff${lines.map((line) => line.map(csvCell).join(',')).join('\r\n')}\r\n`;
-    const stamp = new Date(now()).toISOString().slice(0, 10);
-    return new Response(csv, {
-      status: 200,
-      headers: {
-        'content-type': 'text/csv; charset=utf-8',
-        'content-disposition': `attachment; filename="sprite-hollow-pet-earn-payouts-${stamp}.csv"`,
-        'cache-control': 'no-store',
-      },
-    });
-  }
-
-  async function decideWithdrawal(request, user, id) {
-    await requireAdmin(request);
-    const body = await readJson(request);
-    const action = String(body.action || '');
-    const note = cut(body.note, 200);
-    const reference = cut(body.reference, 120);
-    const stamp = now();
-
-    const row = await store.get('SELECT * FROM withdrawals WHERE id = ?', [id]);
-    if (!row) fail(404, 'That request is gone.');
-    if (row.status === 'paid' || row.status === 'rejected') {
-      fail(409, `That request is already ${row.status}.`);
-    }
-
-    if (action === 'approve') {
-      if (row.status !== 'pending') fail(409, `Only pending requests can be approved.`);
-      const pub = publicSettings(await readSettings());
-      if (row.coins < pub.minWithdrawCoins) {
-        fail(400, `That request is below the ${pub.minWithdrawCoins.toLocaleString()} coin minimum. Reject it and ask the player to request more.`);
-      }
-      const wallet = await walletSnapshot(row.user_id, await readSettings());
-      if (row.coins > wallet.verified) {
-        fail(400, 'Not enough banked earnings cover this request. Review the earnings first, or reject it.');
-      }
-      if (!Number.isSafeInteger((row.coins * 100) / pub.coinsPerDollar)) {
-        fail(400, 'This coin amount does not convert to whole US cents. Reject it and ask the player for a whole-cent amount.');
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(row.paypal_email || '').trim())) {
-        fail(400, 'A valid PayPal email is required.');
-      }
-      const res = await store.run(
-        "UPDATE withdrawals SET status = 'approved', decided_at = ?, decided_by = ?, note = ? WHERE id = ? AND status = 'pending'",
-        [stamp, user.id, note || row.note, id],
-      );
-      if (!res.changes) fail(409, 'That request changed while you were deciding.');
-    } else if (action === 'reject') {
-      if (!note) fail(400, 'Add a reason so the player knows why the request was rejected.');
-      const res = await store.run(
-        "UPDATE withdrawals SET status = 'rejected', decided_at = ?, decided_by = ?, note = ? WHERE id = ? AND status IN ('pending', 'approved')",
-        [stamp, user.id, note, id],
-      );
-      if (!res.changes) fail(409, 'That request changed while you were deciding.');
-      await store.run(
-        `INSERT INTO ledger (user_id, kind, amount, ref, source, note, created_at)
-         SELECT user_id, 'withdraw_refund', coins, id, 'withdrawal', 'Withdrawal rejected - coins returned', ?
-           FROM withdrawals
-          WHERE id = ? AND status = 'rejected'
-            AND NOT EXISTS (SELECT 1 FROM ledger WHERE ref = ? AND kind = 'withdraw_refund')`,
-        [stamp, id, id],
-      );
-    } else if (action === 'paid') {
-      if (row.status !== 'approved') fail(409, 'Approve the request before marking it paid.');
-      if (!reference) fail(400, 'Enter the PayPal transaction reference after sending the payment.');
-      const res = await store.run(
-        "UPDATE withdrawals SET status = 'paid', paid_at = ?, note = ?, payment_reference = ? WHERE id = ? AND status = 'approved'",
-        [stamp, note || row.note, reference, id],
-      );
-      if (!res.changes) fail(409, 'That request changed while you were deciding.');
-    } else {
-      fail(400, 'Choose approve, reject or paid.');
-    }
-
-    const updated = await store.get(
-      `SELECT w.*, u.username FROM withdrawals w JOIN users u ON u.id = w.user_id WHERE w.id = ?`,
-      [id],
-    );
-    return json({ withdrawal: updated });
   }
 
   async function updateSettings(request, user) {
@@ -1575,17 +1001,10 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       updates.push({ key, value: String(Math.round(n)) });
     };
     put('coins_per_dollar', body.coinsPerDollar, 50, 100000);
-    put('min_withdraw_coins', body.minWithdrawCoins, 1, 10000000);
     put('daily_care_coin_cap', body.dailyCareCoinCap, 0, 100000);
     put('daily_game_coin_cap', body.dailyGameCoinCap, 0, 100000);
     put('daily_care_cap', body.dailyCareCap, 1, 500);
     put('daily_game_cap', body.dailyGameCap, 1, 200);
-    put('daily_withdraw_cap', body.dailyWithdrawCap, 1, 20);
-    /* the old daily name is still accepted so an outdated owner build cannot fail */
-    put('payout_weekly_budget_cents', body.payoutWeeklyBudgetCents ?? body.payoutDailyBudgetCents, 0, 1000000);
-    if (body.autoPayout !== undefined) {
-      updates.push({ key: 'auto_payout', value: body.autoPayout ? 'on' : 'off' });
-    }
     if (!updates.length) fail(400, 'Nothing to update.');
 
     await store.batch(updates.map((u) => ({
@@ -1593,14 +1012,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       params: [u.key, u.value],
     })));
     const saved = await readSettings();
-    return json({
-      settings: {
-        ...publicSettings(saved),
-        dailyWithdrawCap: toInt(saved.daily_withdraw_cap, 2),
-        autoPayout: autoPayoutOn(saved),
-        payoutWeeklyBudgetCents: payoutBudgetCents(saved),
-      },
-    });
+    return json({ settings: publicSettings(saved) });
   }
 
   async function listInvites(request) {
@@ -1638,7 +1050,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
 
   // No sign-in: a browser gets a pet straight away and keeps it through the
   // session cookie. The guest account is still a real server-side account, so
-  // coins, care and payouts stay ledger-backed and cannot be faked.
+  // coins and care stay ledger-backed and cannot be faked.
   async function guest(request) {
     const existing = await currentUser(request);
     if (existing) {
@@ -1698,7 +1110,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       needsSetup: toInt(admins?.n) === 0,
       ownerClaimed: toInt(admins?.n) > 0,
       requiresAdminCode: !!adminInviteCode,
-      settings: { ...publicSettings(settings), autoPayout: autoPayoutOn(settings) },
+      settings: publicSettings(settings),
       serverTime: now(),
     });
   }
@@ -1722,16 +1134,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     ['POST', /^\/api\/games\/claim$/, async (req) => claimGame(req, await requireUser(req))],
     ['GET', /^\/api\/wallet$/, async (req) => wallet(req, await requireUser(req))],
     ['POST', /^\/api\/earn$/, async (req) => earn(req, await requireUser(req))],
-    ['POST', /^\/api\/wallet\/withdraw$/, async (req) => requestWithdrawal(req, await requireUser(req))],
-    ['POST', /^\/api\/paypal\/link$/, async (req) => startPaypalLink(req, await requireUser(req))],
-    ['POST', /^\/api\/paypal\/unlink$/, async (req) => unlinkPaypal(req, await requireUser(req))],
-    ['GET', /^\/api\/paypal\/health$/, async (req) => paypalHealth(req, await requireUser(req))],
-    /* PayPal redirects the browser here, so the one-shot state is the credential */
-    ['GET', /^\/api\/paypal\/callback$/, (req) => paypalCallback(req)],
     ['GET', /^\/api\/admin\/overview$/, (req) => adminOverview(req)],
-    ['GET', /^\/api\/admin\/withdrawals$/, (req) => adminWithdrawals(req)],
-    ['GET', /^\/api\/admin\/withdrawals\/export$/, (req) => exportWithdrawals(req)],
-    ['POST', /^\/api\/admin\/withdrawals\/([^/]+)\/decide$/, async (req, id) => decideWithdrawal(req, await requireUser(req), id)],
     ['PUT', /^\/api\/admin\/settings$/, (req) => updateSettings(req)],
     ['GET', /^\/api\/admin\/invites$/, (req) => listInvites(req)],
     ['POST', /^\/api\/admin\/invites$/, (req) => createInvites(req)],

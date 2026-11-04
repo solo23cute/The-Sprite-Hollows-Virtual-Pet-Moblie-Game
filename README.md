@@ -1,3 +1,10 @@
+## 4.12.0 Cash-outs are gone: coins stay in the Hollow (current release)
+
+- **The PayPal cash-out feature was removed.** The wallet has no Connect PayPal button, no withdrawal form, no payout history and no review queue; it shows the coin balance and the recent ledger.
+- **The server no longer talks to a payment provider.** `server/payouts.js`, `POST /api/wallet/withdraw`, every `/api/paypal/*` route, the admin payout queue, the CSV export and the payout settings are gone, and no PayPal key is read or needed.
+- **Earning is untouched.** Care, games, quests, gifts and the coin pill work exactly as before; the daily care and game caps still apply.
+- **Old databases keep their old tables.** `withdrawals`, `paypal_links` and the `paypal_*` columns may still exist on a deployment that ran 4.11.0 and earlier; nothing reads them, and new databases are created without them.
+
 ## 4.11.0 Link your own PayPal once and get paid there automatically (current release)
 
 - **One sign-in replaces typing an address.** The wallet has a **Connect PayPal** button: the player signs in at PayPal once, and the Hollow keeps the account PayPal confirmed. No address to type, no code, nothing for the owner to approve.
@@ -1008,19 +1015,10 @@ The Guardian and The Voidblade are the two original Chapter 7 Season 3 headliner
 - The check-in guide now documents the guaranteed daily pantry food and the monthly crate (coins, three pantry items, and one new monthly food).
 - The food guide now lists all 265 foods (264 market foods plus the Starpath Feast) and 32 free snacks across all seven categories. The current Anime & Trainer pack adds 60 dishes and 16 snacks.
 
-## Where the PayPal credentials live
+## Coins only: no payment provider
 
-The server reads the account from three environment variables and holds no credential in source; `server/payouts.js` is the only reader of them.
-
-| Variable | What it is | Local development | Deployed |
-|---|---|---|---|
-| `PAYPAL_CLIENT_ID` | the app's client id | `.env` in the project root | Sites -> Sprite Hollow -> Secrets |
-| `PAYPAL_CLIENT_SECRET` | the secret that authorises payouts | same `.env` | same |
-| `PAYPAL_MODE` | `sandbox` while testing, `live` for real money (the default) | same `.env` | same |
-
-- **Locally**, copy `.env.example` to `.env` and fill it in. `.env` is listed in `.gitignore`, and `server/dev.mjs` reads it at startup, so nothing is exported by hand and nothing lands in a commit. A variable already present in the environment wins, so `PAYPAL_CLIENT_SECRET= node server/dev.mjs` still means "no secret".
-- **Deployed**, the same three names are set as secrets on the Sites environment, which injects them as `env.*` into the worker. They are never written into `deploy/manifest.json`, which carries only the worker modules and asset directory.
-- **Checking the keys without a browser.** `GET /api/paypal/health` (a player session is required) performs the same token call a payout makes and answers `{configured, mode, ok, status, code, redirectUri}`. `ok: true` means PayPal accepted the id and secret as a pair; `code: "invalid_client"` means it did not. The token and the secret are never returned. This separates a bad secret from an app whose return URL is not registered, which PayPal reports identically as "invalid client_id or redirect_uri".
-- **The client never sees them.** No file under `src/`, nor `index.html`, references `PAYPAL_` at all; the wallet asks the server for a sign-in URL instead. The payout suite checks this the hard way: it runs with pinned credentials and fails if either value appears in an `/api/health`, `/api/wallet` or `/api/settings` response, in the sign-in URL, or in `index.html`, `pet-earn.js`, `util.js` or `styles.css`.
-
-**In this workspace they are set**: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` and `PAYPAL_MODE=sandbox` live in Sites → Secrets (never in the repo), and `GET /api/paypal/health` answers `{"configured":true,"mode":"sandbox","ok":true}`. Sandbox keys move test money only — set `PAYPAL_MODE=live` with live keys before any real cash-out.
+The Hollow keeps coins in its own server-side ledger and never converts them to
+money, so there are no payment credentials to set in `.env`, in Sites → Secrets
+or anywhere else. The payout module, its suite and the `PAYPAL_*` variables were
+removed in 4.12.0; if a deployment still has those secrets stored they are now
+unused and can be deleted.

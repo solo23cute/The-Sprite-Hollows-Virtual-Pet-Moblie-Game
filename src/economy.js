@@ -120,7 +120,7 @@
     </div>
     ${spinCard(s)}
     ${groups}
-    <p class="tiny muted" style="margin-top:16px;text-align:center">Quests reset on their own. Coins here are Hollow coins — the cash wallet is in the pill at the top.</p>`;
+    <p class="tiny muted" style="margin-top:16px;text-align:center">Quests reset on their own. Coins here are Hollow coins — your wallet is in the pill at the top.</p>`;
   }
 
   function bind(host, redraw) {
