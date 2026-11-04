@@ -1321,6 +1321,8 @@ function makeSprite(opts = {}) {
     restUntil: 0,
     lineage: opts.lineage || null,
     starter: !!opts.starter,
+    retired: false,
+    retiredAt: 0,
   };
 }
 
