@@ -203,6 +203,25 @@ function normalizeSprite(raw) {
   };
 }
 
+/* The Master Cheat arrives fully grown at MAX_LEVEL, but reaching MAX is also
+   what retires a sprite. Without this exemption the cheat would land in the
+   retirement home the first time it gained XP, where it cannot be set active,
+   fed or grown — the MASTER code would leave a stuck sprite behind. */
+function isMasterSprite(s) {
+  return !!s && typeof MASTER_CHEAT_SPECIES !== 'undefined' && s.element === MASTER_CHEAT_SPECIES;
+}
+
+function wakeMasterSprite(s) {
+  if (!isMasterSprite(s) || !s.retired) return false;
+  s.retired = false;
+  s.retiredAt = 0;
+  s.asleep = false;
+  s.sleepUntil = 0;
+  s.sleepStart = 0;
+  s.sleepCycles = 0;
+  return true;
+}
+
 function loadState() {
   const base = freshState();
   try {
@@ -365,6 +384,7 @@ function loadState() {
     const outfitIds = new Set(merged.customClothes.map((cloth) => cloth.id));
     merged.sprites.forEach((sprite) => {
       if (sprite.outfit && !outfitIds.has(sprite.outfit)) sprite.outfit = null;
+      wakeMasterSprite(sprite);
     });
     merged.activeId = merged.sprites.some((s) => s.id === merged.activeId && s.stage !== 'egg' && !s.retired)
       ? merged.activeId
@@ -1081,7 +1101,7 @@ function addXpRaw(s, amount) {
     s.xp = 0;
     unlockSecret('summitspirit');
     unlockSecret('elderkeeper');
-    if (!s.retired) {
+    if (!s.retired && !isMasterSprite(s)) {
       s.retired = true;
       s.retiredAt = Date.now();
       if (state.activeId === s.id) {
@@ -1106,7 +1126,7 @@ function addXpRaw(s, amount) {
   if (s.level >= MAX_LEVEL) {
     s.xp = 0;
     unlockSecret('summitspirit');
-    if (!s.retired) {
+    if (!s.retired && !isMasterSprite(s)) {
       s.retired = true;
       s.retiredAt = Date.now();
       if (state.activeId === s.id) {
@@ -1470,6 +1490,10 @@ const Actions = {
   retire(id) {
     const s = findSprite(id);
     if (!s || s.level < STAGE_LEVEL.elder || STAGE_ORDER.indexOf(s.stage) < STAGE_ORDER.indexOf('elder')) return { ok: false, reason: 'elder' };
+    if (isMasterSprite(s)) {
+      toast('The Master Cheat does not retire. It is already at MAX level.', '🕹️');
+      return { ok: false, reason: 'master' };
+    }
     s.retired = true;
     unlockSecret('elderkeeper');
     s.retiredAt = Date.now();

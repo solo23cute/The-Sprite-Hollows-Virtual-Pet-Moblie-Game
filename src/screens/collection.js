@@ -251,7 +251,7 @@ function openSpriteDetail(id) {
       ${s.stage !== 'egg' ? `<div class="card" style="padding:12px;margin-top:10px;font-size:11.5px;line-height:1.6;color:var(--muted)">🍬 <b style="color:var(--text)">Candy sugar ${s.sugar || 0}/3.</b> Feeding candy treats builds sugar. At 3, this sprite transforms into a random candy species.</div>` : ''}
       <div class="detail-actions">
         <button class="btn ${isActive ? 'btn-ghost' : 'btn-primary'}" data-set-active ${isActive || s.retired ? 'disabled' : ''}>${s.retired ? 'Retired' : isActive ? 'Currently active' : 'Set active'}</button>
-        ${s.level >= STAGE_LEVEL.elder && STAGE_ORDER.indexOf(s.stage) >= STAGE_ORDER.indexOf('elder') ? `<button class="btn btn-soft" data-retire>${s.retired ? 'Bring back' : 'Retire'}</button>` : ''}
+        ${s.level >= STAGE_LEVEL.elder && STAGE_ORDER.indexOf(s.stage) >= STAGE_ORDER.indexOf('elder') && !isMasterSprite(s) ? `<button class="btn btn-soft" data-retire>${s.retired ? 'Bring back' : 'Retire'}</button>` : ''}
         ${s.stage !== 'egg' && s.level >= MAX_LEVEL ? `<button class="btn btn-gold" data-rebirth>🌱 Rebirth (${foodCount('rebirthmeal')})</button>` : ''}
         <button class="btn btn-soft" data-talk>${icon('chat')} Talk</button>
         <button class="btn" data-style>${icon('palette')} Style</button>
