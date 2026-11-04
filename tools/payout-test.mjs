@@ -250,6 +250,10 @@ try {
      response or a shipped asset, a real secret would too */
   const SECRET = 'test-client-secret';
   const CLIENT_ID = 'test-client-id';
+  const health = await linker.call('/api/paypal/health');
+  check('PayPal accepts the configured keys', health.status === 200 && health.data?.ok === true, `${health.status} ${String(health.text).slice(0, 140)}`);
+  check('the check reports the mode and the return URL', health.data?.mode === 'sandbox' && String(health.data?.redirectUri || '').endsWith('/api/paypal/callback'), JSON.stringify(health.data));
+  check('the check never returns a token or the secret', !/access_token|client_secret/i.test(String(health.text)), String(health.text).slice(0, 120));
   for (const path of ['/api/health', '/api/wallet', '/api/settings']) {
     const r = await linker.call(path);
     if (r.status !== 200) continue;

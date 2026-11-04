@@ -14,7 +14,7 @@
 
 export const SESSION_COOKIE = 'cp_session';
 
-import { authorizeUrl, fetchLinkedAccount, fetchPayoutStatus, payoutsConfig, sendPayout } from './payouts.js';
+import { authorizeUrl, fetchLinkedAccount, fetchPayoutStatus, payoutsConfig, sendPayout, verifyCredentials } from './payouts.js';
 
 /* Owner access without an account and without a code: the first session to open
    payout review takes the seat. The old passcode key is kept only so an upgraded
@@ -1099,6 +1099,17 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     });
   }
 
+  /* A player-triggered check of the deployment's PayPal keys. It performs the
+     same token call a payout makes and reports only PayPal's verdict: the token
+     and the secret never leave the server. */
+  async function paypalHealth(request, user) {
+    void user;
+    return json({
+      ...(await verifyCredentials(env)),
+      redirectUri: paypalRedirectUri(request),
+    });
+  }
+
   function paypalPage({ title, detail, ok = true, status = 200 }) {
     const safe = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const html = `<!doctype html>
@@ -1684,6 +1695,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     ['POST', /^\/api\/wallet\/withdraw$/, async (req) => requestWithdrawal(req, await requireUser(req))],
     ['POST', /^\/api\/paypal\/link$/, async (req) => startPaypalLink(req, await requireUser(req))],
     ['POST', /^\/api\/paypal\/unlink$/, async (req) => unlinkPaypal(req, await requireUser(req))],
+    ['GET', /^\/api\/paypal\/health$/, async (req) => paypalHealth(req, await requireUser(req))],
     /* PayPal redirects the browser here, so the one-shot state is the credential */
     ['GET', /^\/api\/paypal\/callback$/, (req) => paypalCallback(req)],
     ['GET', /^\/api\/admin\/overview$/, (req) => adminOverview(req)],

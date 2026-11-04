@@ -58,6 +58,21 @@ async function accessToken(cfg) {
   return data.access_token;
 }
 
+/* Answers "do these keys work?" without ever exposing them: it asks PayPal for a
+   token with the configured pair and reports only the verdict, so a bad secret
+   can be told apart from a bad player address without a browser in the loop. */
+export async function verifyCredentials(env = {}) {
+  const cfg = payoutsConfig(env);
+  if (!cfg.configured) return { configured: false, mode: cfg.mode, ok: false, status: 0, code: 'not_configured' };
+  try {
+    await accessToken(cfg);
+    return { configured: true, mode: cfg.mode, ok: true, status: 200, code: 'ok' };
+  } catch (err) {
+    const status = Number(err && err.status) || 0;
+    return { configured: true, mode: cfg.mode, ok: false, status, code: status === 401 ? 'invalid_client' : 'unreachable' };
+  }
+}
+
 export async function sendPayout(env, { email, cents, withdrawalId, note = '' }) {
   const cfg = payoutsConfig(env);
   if (!cfg.configured) {
