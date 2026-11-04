@@ -119,7 +119,6 @@ manifest = {
     "modules": [
         {"name": "worker.js", "type": "esm", "path": "./worker.js"},
         {"name": "core.js", "type": "esm", "path": "./core.js"},
-        {"name": "payouts.js", "type": "esm", "path": "./payouts.js"},
         {"name": "store.js", "type": "esm", "path": "./store.js"},
         {"name": "schema.js", "type": "esm", "path": "./schema.js"},
     ],
