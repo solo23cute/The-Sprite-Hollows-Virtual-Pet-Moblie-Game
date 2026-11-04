@@ -210,7 +210,7 @@ try {
 
   const start = await linker.call('/api/paypal/link', { method: 'POST', body: {} });
   const startUrl = new URL(start.data?.url || 'https://invalid.example/none');
-  check('the wallet gets a PayPal sign-in link', start.status === 200 && startUrl.host === 'www.sandbox.paypal.com' && startUrl.pathname === '/connect', `${start.status} ${String(start.data?.url || '').slice(0, 120)}`);
+  check('the wallet gets a PayPal sign-in link', start.status === 200 && startUrl.host === 'www.sandbox.paypal.com' && startUrl.pathname === '/signin/oauth/consent', `${start.status} ${String(start.data?.url || '').slice(0, 120)}`);
   check('the link asks for the payer id and verified email', startUrl.searchParams.get('scope') === 'openid email https://uri.paypal.com/services/paypalattributes', startUrl.searchParams.get('scope'));
   check('the link carries this app and a one-shot state', startUrl.searchParams.get('client_id') === 'test-client-id' && (startUrl.searchParams.get('state') || '').length >= 20, `state=${startUrl.searchParams.get('state')}`);
   check('PayPal is told where to come back to', startUrl.searchParams.get('redirect_uri') === `${BASE}/api/paypal/callback`, startUrl.searchParams.get('redirect_uri'));

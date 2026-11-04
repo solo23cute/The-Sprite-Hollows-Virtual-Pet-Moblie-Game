@@ -176,7 +176,7 @@ export function paypalLoginBase(env = {}) {
 
 export function authorizeUrl(env, { state, redirectUri }) {
   const cfg = payoutsConfig(env);
-  const url = new URL(`${paypalLoginBase(env)}/connect`);
+  const url = new URL(`${paypalLoginBase(env)}/signin/oauth/consent`);
   url.searchParams.set('flowEntry', 'static');
   url.searchParams.set('client_id', cfg.id);
   url.searchParams.set('response_type', 'code');
