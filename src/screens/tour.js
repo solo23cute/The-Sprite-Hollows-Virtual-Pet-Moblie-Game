@@ -226,7 +226,7 @@ const TOUR_STEPS = [
     points: [
       'Start with the care dock in the Hollow, a Wild Egg in the Nest, or a trail walk from the Walk button.',
       'The induction tour can be replayed from Studio at any time.',
-      'Care pays coins and the Wallet cashes them out; Repair Hollow keeps older saves healthy.',
+      'Care pays coins and the coin pill shows the balance; Repair Hollow keeps older saves healthy.',
     ],
     tip: 'Finishing this step awards the first secret and opens the rest of the Secret Vault clues.',
   },
@@ -241,10 +241,10 @@ const TOUR_NEW_STEPS = [
   {
     icon: '🪙', kicker: 'COINS & WALLET',
     title: 'Care pays coins that stay in the Hollow',
-    text: `Caring in the Hollow pays real coins. The pill beside your name is your balance, and it is the same number the Wallet shows. Tap it to see what you have earned and the ledger behind it.`,
+    text: `Caring in the Hollow pays real coins. The pill beside your name is your balance, and every care action, game and quest reports to it.`,
     points: [
       'Coins are a ledger on the Hollow server: care, games, quests and gifts add to it, and the shop spends them.',
-      'Your balance follows your session, so the pill and the Wallet never disagree.',
+      'Your balance follows your session, so the pill always matches the server.',
       'There is nothing to sign up for and nothing to approve — caring is all it takes.',
     ],
     tip: 'Coins are the Hollow\'s own currency. They are not converted to money.',

@@ -130,12 +130,12 @@ function boot({ packaged = false, apiBase = '', crossOrigin = false, actions = f
 
 try {
   await waitForServer();
-  console.log(`\nSprite Hollow in-game wallet checks against ${BASE}\n`);
+  console.log(`\nSprite Hollow in-game coin checks against ${BASE}\n`);
 
-  /* ---------- 1. web build: same-origin wallet ---------- */
+  /* ---------- 1. web build: same-origin coins ---------- */
   console.log('web build (same origin)');
   const web = boot();
-  check('the wallet module loads inside the game', typeof web.petEarn.care === 'function');
+  check('the coin module loads inside the game', typeof web.petEarn.care === 'function');
   check('the web build is available', web.petEarn.available === true && web.petEarn.offline === false);
 
   const moduleSource = readFileSync(resolve(ROOT, 'src/pet-earn.js'), 'utf8');
@@ -149,8 +149,8 @@ try {
   check('a repeated feed is refused without throwing', again.award === 0 && /resting/i.test(again.error || ''), JSON.stringify(again).slice(0, 160));
 
   const balance = await web.petEarn.wallet();
-  check('the wallet reports the earned balance', balance.coins >= 250 + care.award, `coins=${balance.coins}`);
-  check('the wallet advertises its coin rate', balance.coinsPerDollar > 0);
+  check('the balance reports the coins earned', balance.coins >= 250 + care.award, `coins=${balance.coins}`);
+  check('the balance advertises its coin rate', balance.coinsPerDollar > 0);
 
   const ownerSignup = await ownerJar.call('/api/auth/signup', {
     body: { username: 'ownerclient', password: 'hollowpass1', petName: 'Bramble' },
@@ -158,16 +158,11 @@ try {
   check('a first account is the owner', ownerSignup.status === 201 && ownerSignup.data.user.isAdmin === true, `status=${ownerSignup.status}`);
   check('the owner can tune the coin caps', (await ownerJar.call('/api/admin/settings', { method: 'PUT', body: { dailyGameCoinCap: 600 } })).status === 200);
 
-  web.state.sheetClosed = false;
-  web.state.armSheet = true;
-  web.state.root = { querySelector: () => null };
-  const closeFn = await web.petEarn.openWallet();
-  const body = web.state.sheets.at(-1)?.body || '';
-  check('the Wallet sheet opens', typeof closeFn === 'function' && /Recent coins/.test(body));
-  check('it shows the server balance', /<b>[\d,]+<\/b> coins/.test(body), body.slice(0, 160));
-  check('it says coins stay in the Hollow', /Hollow's own money/i.test(body));
-  check('it offers no cash-out form at all', !body.includes('name="coins"') && !/PayPal|withdraw|payout/i.test(body), body.slice(0, 200));
-  check('opening the wallet does not move any coins', (await web.petEarn.wallet()).coins === balance.coins);
+  check('the game exposes no wallet entry point', web.petEarn.openWallet === undefined);
+  check('the module ships no wallet sheet', !/openWallet|Wallet sheet|Recent coins/.test(moduleSource));
+  check('the module never draws a payout form', !/PayPal|withdraw|payout/i.test(moduleSource));
+  check('the module opens no wallet from the pill', !/addEventListener\('click'/.test(moduleSource));
+  check('reading the balance moves no coins', (await web.petEarn.wallet()).coins === balance.coins);
 
   /* ---------- 2. packaged build pointed at the server ---------- */
   console.log('\npackaged build with a coin server baked in');
@@ -180,11 +175,7 @@ try {
   check('it calls the absolute server URL', packedOk.state.urls.at(-1) === `${BASE}/api/pet/care`, packedOk.state.urls.at(-1));
   check('the top bar updates in the packaged app too', packedOk.coinPill.textContent === String(packedCare.wallet.coins));
 
-  packedOk.state.armSheet = true;
-  packedOk.state.root = { querySelector: () => null };
-  const packedSheet = await packedOk.petEarn.openWallet();
-  const packedBody = packedOk.state.sheets.at(-1)?.body || '';
-  check('the packaged Wallet opens against the server', typeof packedSheet === 'function' && /Recent coins/.test(packedBody));
+  check('the packaged build has no wallet either', packedOk.petEarn.openWallet === undefined);
 
   /* ---------- 3. packaged build with no server: must not pretend ---------- */
   console.log('\npackaged build with no coin server configured');
@@ -195,13 +186,8 @@ try {
   check('care never claims coins it cannot pay', bareCare.award === 0 && bareCare.offline === true && /online Hollow/.test(bareCare.error || ''));
   check('care makes no failing request at all', packedBare.state.calls === 0, `calls=${packedBare.state.calls}`);
 
-  packedBare.state.armSheet = true;
-  packedBare.state.root = { querySelector: () => null };
-  const bareSheet = await packedBare.petEarn.openWallet();
-  const bareBody = packedBare.state.sheets.at(-1)?.body || '';
-  check('the Wallet explains the situation instead of erroring', typeof bareSheet === 'function' && /online Hollow/.test(bareBody));
-  check('it renders no form at all', !bareBody.includes('<form'));
-  check('opening the wallet still makes no request', packedBare.state.calls === 0, `calls=${packedBare.state.calls}`);
+  check('the offline build has no wallet to open', packedBare.petEarn.openWallet === undefined);
+  check('nothing is requested without a server', packedBare.state.calls === 0, `calls=${packedBare.state.calls}`);
 
   /* ---------- 2c. game coins bank into the wallet ---------- */
   console.log('\nbanking game coins');
@@ -261,15 +247,7 @@ try {
   const refusedAfter = (await bridged.petEarn.wallet()).coins;
   check('a care action the game refuses pays nothing', refusedAfter === refusedBefore, `${refusedBefore} -> ${refusedAfter}`);
 
-  bridged.state.root = { querySelector: () => null };
-  const clickHandler = bridged.state.domHandlers.find(([type]) => type === 'click')?.[1];
-  check('the coin pill has a click handler', typeof clickHandler === 'function');
-  let pillOpened = 0;
-  const realOpenSheet = bridged.ctx.openSheet;
-  bridged.ctx.openSheet = (opts) => { pillOpened += 1; return realOpenSheet(opts); };
-  clickHandler({ preventDefault() {}, target: { closest: (sel) => (sel === '[data-coin-pill]' ? { dataset: {} } : null) } });
-  await new Promise((resolve) => setTimeout(resolve, 700));
-  check('tapping the coin pill opens the Wallet', pillOpened > 0, `sheets=${bridged.state.sheets.length}`);
+  check('the pill has nothing left to open', bridged.state.domHandlers.every(([type]) => type !== 'click'), JSON.stringify(bridged.state.domHandlers.map(([type]) => type)));
 
   /* ---------- 4. packaged app talking to a deployed server ---------- */
   console.log('\npackaged build over the network (cross-origin, bearer token)');

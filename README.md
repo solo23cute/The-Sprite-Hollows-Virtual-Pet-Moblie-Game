@@ -1,4 +1,11 @@
-## 4.12.0 Cash-outs are gone: coins stay in the Hollow (current release)
+## 4.13.0 The wallet is gone: the coin pill is the whole story (current release)
+
+- **The Wallet sheet is removed.** There is no wallet screen, no ledger view, no balance card and no wallet button in the Hollow or in Settings — the coin pill beside your name is where coins live.
+- **Every way in is gone too.** The 👛 Wallet button in the Hollow's empty state, the 👛 Wallet chip in the top row and the *Coins & wallet* section in Settings were removed, along with the click handler that opened the sheet, so nothing in the game points at a screen that no longer exists.
+- **The pill is unchanged.** Care, games, quests, gifts and the offline outbox still pay server coins, and the pill still shows the balance that came back with each award.
+- **Earning is untouched.** The daily care and game caps still apply, and coins still never leave the Hollow.
+
+## 4.12.0 Cash-outs are gone: coins stay in the Hollow
 
 - **The PayPal cash-out feature was removed.** The wallet has no Connect PayPal button, no withdrawal form, no payout history and no review queue; it shows the coin balance and the recent ledger.
 - **The server no longer talks to a payment provider.** `server/payouts.js`, `POST /api/wallet/withdraw`, every `/api/paypal/*` route, the admin payout queue, the CSV export and the payout settings are gone, and no PayPal key is read or needed.

@@ -1,6 +1,6 @@
 /* Pet Earn — server-backed coins, native inside Sprite Hollow.
-   Care in the Hollow earns coins; the Wallet sheet shows the balance and the
-   recent ledger. Coins stay in the Hollow: they are never converted to money. */
+   Care in the Hollow earns coins and the coin pill shows the balance. Coins stay
+   in the Hollow: there is no wallet sheet and they are never converted to money. */
 
 (function () {
   'use strict';
@@ -94,14 +94,6 @@
     await ensureSession();
     syncPill();
     return S.me.wallet;
-  }
-
-  async function refreshWallet() {
-    await ensureSession();
-    const data = await api('/wallet');
-    S.me.wallet = data.wallet;
-    syncPill();
-    return data;
   }
 
   /* Care taken in the Hollow pays server-side coins. */
@@ -265,67 +257,10 @@
     }
   }
 
-  function ledgerHTML(list) {
-    if (!list?.length) {
-      return '<p class="tiny muted" style="margin:8px 2px">No coins yet. Care for your sprite and the ledger fills up.</p>';
-    }
-    return list.slice(0, 12).map((x) => `<div class="card" style="padding:9px 12px;margin-top:7px;display:flex;align-items:center;gap:10px">
-      <span style="font-size:15px">🪙</span>
-      <div style="flex:1;min-width:0">
-        <b style="font-size:13px">${x.amount > 0 ? '+' : ''}${fmt(x.amount)} coins</b>
-        <div class="tiny muted" style="margin-top:2px">${esc(x.note || x.source || x.kind)} · ${dateShort(x.created_at)}</div>
-      </div>
-    </div>`).join('');
-  }
-
-  function walletBody(data) {
-    const w = data.wallet;
-    const waiting = outboxRead().length;
-    return `
-      <div class="between">
-        <span class="chip">🪙 <b>${fmt(w.coins)}</b> coins</span>
-        <span class="tiny muted">${fmt(w.lifetimeEarned || 0)} earned all time</span>
-      </div>
-      <p class="tiny muted" style="margin:10px 2px 0;line-height:1.6">Coins are the Hollow's own money. Caring, games, quests and gifts pay them in; the shop spends them.</p>
-      ${waiting ? `<p class="tiny muted" style="margin:10px 2px 0">⏳ ${waiting} reward${waiting === 1 ? '' : 's'} saved on this phone, syncing automatically.</p>` : ''}
-      <div class="section-title"><h2>Recent coins</h2></div>
-      ${ledgerHTML(data.ledger)}`;
-  }
-
-  function offlineBody(what) {
-    return `<p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">Coins are kept by the Hollow server, and this copy of the game runs entirely on your phone — so ${what} cannot reach it from here.</p>
-      <p class="tiny muted" style="margin:0 2px 10px;line-height:1.6">Play the online Hollow to earn server coins. Nothing on this phone is affected: your sprites, levels, coins in the shop and saves all work as usual.</p>`;
-  }
-
-  async function openWallet() {
-    if (!LOCAL_ONLY) flushOutbox().catch(() => {});
-    if (LOCAL_ONLY) {
-      const sheet = openSheet({
-        title: 'Wallet',
-        sub: 'Care here cannot pay coins yet.',
-        body: offlineBody('the wallet'),
-      });
-      return sheet.close;
-    }
-    let data;
-    try {
-      data = await refreshWallet();
-    } catch (err) {
-      toast(err.message, '😕');
-      return null;
-    }
-
-    const sheet = openSheet({
-      title: 'Wallet',
-      sub: 'The coins you have earned in the Hollow.',
-      body: walletBody(data),
-    });
-    return sheet.close;
-  }
-
-  /* --- Hollow care pays the wallet ---------------------------------------
+  /* --- Hollow care pays the coins ---------------------------------------
      The game keeps the sprite happy in the local save; this bridge pays server
-     coins for the same care, so the pill and the wallet are the same number. Each game action is wrapped once and never blocked. */
+     coins for the same care, so the pill is the server balance. Each game action
+     is wrapped once and never blocked. */
   const CARE_BRIDGE = {
     feed: 'feed', feedStock: 'feed', feedSnack: 'feed',
     bathe: 'clean',
@@ -343,7 +278,7 @@
       if (!res) return;
       if (res.award > 0) say(`+${res.award} coins for ${BRIDGE_VERB[action] || 'caring'}`, '🪙');
       else if (res.error && /cap|limit|wait|try again/i.test(res.error)) say(res.error, '🪙');
-    }).catch(() => { /* offline is handled by the wallet sheet */ });
+    }).catch(() => { /* the pill simply stays where it is */ });
   }
 
   function bridgeActions() {
@@ -370,16 +305,6 @@
     setTimeout(retry, 0);
   }
 
-  /* The coin pill opens the Wallet on the web and in the app. */
-  if (typeof document !== 'undefined' && document.addEventListener) {
-    document.addEventListener('click', (event) => {
-      const pill = event.target && event.target.closest ? event.target.closest('[data-coin-pill]') : null;
-      if (!pill) return;
-      event.preventDefault();
-      openWallet();
-    });
-  }
-
   window.PetEarn = {
     available: !LOCAL_ONLY,
     offline: LOCAL_ONLY,
@@ -390,7 +315,6 @@
     flushOutbox,
     pendingRewards: () => outboxRead().length,
     wallet,
-    openWallet,
     sync: () => { syncPill(); },
     bridge: bridgeActions,
     _state: S,

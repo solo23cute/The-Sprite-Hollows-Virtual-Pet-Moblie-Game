@@ -81,12 +81,6 @@ function openStudioSheet(opts = {}) {
     <div class="style-picker" data-climates></div>
     <p class="tiny muted" data-world-note style="margin-top:8px"></p>
 
-    <div class="section-title"><h2>Coins &amp; wallet</h2><span>earn · spend</span></div>
-    <div class="card" style="display:grid;gap:8px">
-      <p class="tiny muted" style="margin:0 0 2px">Every bit of care in the Hollow earns coins. Open the wallet to see your balance and the ledger behind it.</p>
-      <button class="btn btn-primary btn-block" data-pet-earn="wallet">👛 Wallet</button>
-      <button class="btn btn-soft btn-block" data-pet-earn="owner">🛠️ Payout review</button>
-    </div>
 
     <div class="section-title"><h2>Hollow health</h2><span>repair a save</span></div>
     <div class="card" style="display:grid;gap:8px">
@@ -128,14 +122,6 @@ function openStudioSheet(opts = {}) {
     body,
     onMount: (root, close) => {
       const getTarget = () => (targetId ? findSprite(targetId) : activeSprite());
-      root.querySelectorAll('[data-pet-earn]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          if (!window.PetEarn) { toast('The wallet is still loading.', '🪙'); return; }
-          close();
-          if (btn.dataset.petEarn === 'owner') window.PetEarn.openOwner();
-          else window.PetEarn.openWallet();
-        });
-      });
 
       root.querySelector('[data-repair-hollow]')?.addEventListener('click', () => {
         const r = Actions.repairHollow();

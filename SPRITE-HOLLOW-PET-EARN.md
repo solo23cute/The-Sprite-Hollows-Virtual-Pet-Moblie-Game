@@ -6,9 +6,9 @@ ledger. Coins stay in the Hollow: the game never converts them to money. Every
 coin and pet need is computed on the server — the browser only asks for actions.
 
 Earn inside Sprite Hollow: feeding, bathing, belly rubs, fetch and play in the
-Hollow all pay server-side coins. The **Wallet**, opened from the coin pill or
-**Settings → Coins & wallet → Wallet**, shows the balance and the recent ledger.
-There is no separate coin-pets screen and players never sign up.
+Hollow all pay server-side coins. The **coin pill** beside your name shows the
+balance the server reports with every award. There is no wallet screen, no
+separate coin-pets screen, and players never sign up.
 
 ## Run it locally
 
@@ -28,8 +28,8 @@ no name, no password, no invite code. Its coins and care streak follow that
 browser's session cookie, and every action is still recorded in the server-side
 ledger.
 
-**The owner seat needs no account and no code.** The first session to open
-Wallet → Owner tools takes it, and every session after that is an ordinary
+**The owner seat needs no account and no code.** The first session to reach
+the admin endpoints takes it, and every session after that is an ordinary
 player. It is only needed to read the player list, change the economy settings
 and mint invite codes for older account-based signups. Deleting the owner's guest
 account frees the seat for the next session.
@@ -56,8 +56,8 @@ pills — **coins** for the server balance and **shop** for Hollow coins.
   calls: tap the bees, leave the thistles). Scores are recomputed from a
   server-issued seed, so a claimed score must match a run that could actually
   have been played, on the right plots, at the right times.
-- **Wallet** — the coin balance, lifetime earnings and the recent ledger, with
-  the coin pill kept in step with the server wherever coins are earned.
+- **Coin pill** — the server's coin balance and lifetime earnings, updated
+  wherever coins are earned; there is no sheet behind it.
 - **Admin** — all players with balances and moods, coins in circulation, the
   economy settings and invite codes.
 
@@ -65,7 +65,7 @@ pills — **coins** for the server balance and **shop** for Hollow coins.
 
 The top bar shows two labelled pills so the pools never get confused:
 
-- **coins** — server-side coins from care and minigames, shown in the wallet.
+- **coins** — server-side coins from care and minigames, shown in the coin pill.
 - **shop** — the Hollow's own coins, spent on food, eggs, merges and upgrades.
 
 ## Mystery Shop
