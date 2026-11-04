@@ -1019,13 +1019,19 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
      UPDATE and the refund share a batch, and the refund only fires when this exact
      call flipped the row, so two wallet reads racing cannot pay the player twice. */
   const PAYOUT_FAILED_NOTE = 'PayPal could not deliver this payout - coins returned';
-  async function refundFailedPayout(withdrawalId, state) {
+  /* PayPal's own wording for a failed batch is the only record of why the money
+     came back, so it is kept on the request instead of a bare state name. */
+  function payoutFailedNote(state, reason) {
+    const why = String(reason || '').trim();
+    return `${PAYOUT_FAILED_NOTE} (${state}${why ? `: ${why}` : ''})`.slice(0, 200);
+  }
+  async function refundFailedPayout(withdrawalId, state, reason = '') {
     const stamp = now();
     await store.batch([
       {
         sql: `UPDATE withdrawals SET status = 'rejected', payout_state = ?, payout_checked_at = ?, decided_at = ?, note = ?
                WHERE id = ? AND status = 'paid'`,
-        params: [state, stamp, stamp, PAYOUT_FAILED_NOTE, withdrawalId],
+        params: [state, stamp, stamp, payoutFailedNote(state, reason), withdrawalId],
       },
       {
         sql: `INSERT INTO ledger (user_id, kind, amount, ref, source, note, created_at)
@@ -1055,7 +1061,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
       try {
         const checked = await fetchPayoutStatus(env, row.payment_reference);
         const state = String(checked.status || '').toUpperCase();
-        if (PAYOUT_STATES_FAILED.has(state)) await refundFailedPayout(row.id, state);
+        if (PAYOUT_STATES_FAILED.has(state)) await refundFailedPayout(row.id, state, checked.reason);
         else {
           await store.run(
             'UPDATE withdrawals SET payout_state = ?, payout_checked_at = ? WHERE id = ?',
@@ -1288,6 +1294,30 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
     return nonNegative(stored, 500);
   }
 
+  /* PayPal's refusal codes are the difference between "your account is not set
+     up" and "ours is", which are two very different things for the player to do
+     about. The reply says the actionable one in plain words, then the raw code. */
+  function payoutRefusalHint(err) {
+    const raw = `${err?.message || ''} ${err?.detail || ''}`;
+    /* PayPal's own code rides along after the actionable part: it is what support
+       and PayPal's own console are keyed on. */
+    const code = String(err?.message || '').trim();
+    const withCode = (hint) => (code && !hint.includes(code) ? `${hint} (${code})` : hint);
+    if (/RECEIVER_UNREGISTERED|receiver is unregistered/i.test(raw)) {
+      return withCode('that PayPal account has not been opened yet — sign in to it once, then try again');
+    }
+    if (/UNCLAIMED|email address is not confirmed|unconfirmed/i.test(raw)) {
+      return withCode('that PayPal email is not confirmed — confirm it, then try again');
+    }
+    if (/PERMISSION_DENIED|payouts feature|feature to be enabled/i.test(raw)) {
+      return withCode('the Hollow cannot send money from its PayPal app yet — this is not a problem with your account');
+    }
+    if (/INSUFFICIENT_FUNDS|insufficient funds|no funds/i.test(raw)) {
+      return withCode('the Hollow has nothing in its PayPal balance right now — this is not a problem with your account');
+    }
+    return code || 'PayPal turned it down';
+  }
+
   async function attemptAutoPayout({ id, user, coins, usdCents, paypalEmail, settings }) {
     if (!autoPayoutOn(settings)) return { status: 'idle', message: '' };
 
@@ -1329,7 +1359,7 @@ export function createCore({ store, env = {}, clock = () => Date.now() }) {
             params: [stamp, id, id],
           },
         ]);
-        return { status: 'rejected', message: `PayPal would not pay that address: ${err.message}` };
+        return { status: 'rejected', message: `PayPal would not pay that address: ${payoutRefusalHint(err)}` };
       }
       console.error('[payout]', err && err.message, err && err.detail);
       return { status: 'pending', message: 'PayPal did not answer, so this payout waits for review.' };

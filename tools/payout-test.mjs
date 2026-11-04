@@ -71,7 +71,10 @@ const mock = createServer((req, res) => {
       const wanted = batchStatus.get(id) || 'PENDING';
       res.writeHead(200).end(JSON.stringify({
         batch_header: { payout_batch_id: id, batch_status: wanted },
-        items: [{ transaction_status: wanted === 'SUCCESS' ? 'SUCCESS' : 'PENDING' }],
+        items: [{
+          transaction_status: wanted === 'SUCCESS' ? 'SUCCESS' : wanted === 'FAILED' ? 'FAILED' : 'PENDING',
+          ...(wanted === 'FAILED' ? { errors: { message: 'Receiver cannot receive payments' } } : {}),
+        }],
       }));
       return;
     }
@@ -79,6 +82,10 @@ const mock = createServer((req, res) => {
       let payload = {};
       try { payload = JSON.parse(body || '{}'); } catch { /* keep empty */ }
       const receiver = payload?.items?.[0]?.receiver || '';
+      if (receiver.startsWith('gone@')) {
+        res.writeHead(422).end(JSON.stringify({ name: 'RECEIVER_UNREGISTERED', message: 'The receiver is unregistered' }));
+        return;
+      }
       if (receiver.startsWith('bad@')) {
         res.writeHead(422).end(JSON.stringify({ name: 'UNPROCESSABLE_ENTITY', message: 'Receiver is invalid' }));
         return;
@@ -307,6 +314,19 @@ try {
     /UNPROCESSABLE_ENTITY: Receiver is invalid/.test(bad.data?.error || ''),
     String(bad.data?.error || '').slice(0, 160),
   );
+  const gone = client();
+  await gone.call('/api/guest', { method: 'POST' });
+  await gone.call('/api/earn', { body: { amount: 300, source: 'game', key: unique('earn') } });
+  const goneBefore = (await gone.call('/api/wallet')).data.wallet.coins;
+  const goneOut = await gone.call('/api/wallet/withdraw', { body: { coins: 100, paypalEmail: 'gone@example.com' } });
+  check(
+    'an unregistered receiver is told what to do about it',
+    goneOut.status === 400
+      && /has not been opened yet/.test(goneOut.data?.error || '')
+      && /RECEIVER_UNREGISTERED/.test(goneOut.data?.error || ''),
+    String(goneOut.data?.error || '').slice(0, 200),
+  );
+  check('the confirmed refusal still returns the coins', (await gone.call('/api/wallet')).data.wallet.coins === goneBefore, `${goneBefore}`);
   const badRow = (await owner.call('/api/admin/withdrawals?status=rejected')).data?.withdrawals?.find((w) => w.paypal_email === 'bad@example.com');
   check('the refused request is closed as rejected', !!badRow, JSON.stringify(badRow || {}).slice(0, 120));
   check(
@@ -336,6 +356,11 @@ try {
   check('a failed payout puts the coins back in the balance', refunded.data?.wallet?.coins === beforeRefund + 150, `${beforeRefund} -> ${refunded.data?.wallet?.coins}`);
   const doomedRow = refunded.data?.withdrawals?.find((w) => w.id === doomed.data?.withdrawal?.id);
   check('the failed payout stops pretending to be paid', doomedRow?.status === 'rejected' && doomedRow?.payout_state === 'FAILED', JSON.stringify(doomedRow || {}).slice(0, 170));
+  check(
+    'a failed payout keeps PayPal\'s own reason on the request',
+    /FAILED/.test(String(doomedRow?.note || '')) && /Receiver cannot receive payments/.test(String(doomedRow?.note || '')),
+    String(doomedRow?.note || '').slice(0, 170),
+  );
   /* the wallet ledger does not carry ref, so match the amount that came back */
   check('the refund is a real ledger row, once', refunded.data?.ledger?.filter((l) => l.kind === 'withdraw_refund' && l.amount === 150).length === 1, JSON.stringify((refunded.data?.ledger || []).map((l) => `${l.kind}:${l.amount}`)));
   const refundAgain = await unlucky.call('/api/wallet');
