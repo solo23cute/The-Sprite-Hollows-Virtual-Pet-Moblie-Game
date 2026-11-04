@@ -15,12 +15,11 @@ import { sqliteStore } from './store.js';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
-/* Local development reads a .env file in the project root, so the keys never have
-   to be typed into source or a command line. A variable that is already set wins
-   -- including an empty one -- so `PAYPAL_CLIENT_SECRET= node server/dev.mjs`
-   still means "no secret", and the test harness can pin blank values without this
-   file quietly filling them back in. Deployed workers never reach this code: the
-   platform injects the same names as secrets. */
+/* Local development reads an optional .env file in the project root, so local
+   overrides never have to be typed into a command line. A variable that is
+   already set wins -- including an empty one -- so the test harness can pin a
+   blank value without this file quietly filling it back in. Deployed workers
+   never reach this code. */
 function loadEnvFile(path) {
   let text;
   try { text = readFileSync(path, 'utf8'); } catch { return; }
@@ -47,11 +46,18 @@ const DB_PATH = process.env.COIN_PETS_DB || join(ROOT, '.coinpets', 'coinpets.sq
 mkdirSync(dirname(DB_PATH), { recursive: true });
 const db = new DatabaseSync(DB_PATH);
 db.exec(readFileSync(join(ROOT, 'server', 'schema.sql'), 'utf8'));
-for (const migration of readFileSync(join(ROOT, 'server', 'migrations.sql'), 'utf8').split(';')) {
+/* Comments are stripped before splitting: a ';' inside one would otherwise cut a
+   statement in half. A column that the migration already dropped is not an
+   error, so a second boot over an upgraded database is quiet. */
+const migrationSql = readFileSync(join(ROOT, 'server', 'migrations.sql'), 'utf8')
+  .split(/\r?\n/)
+  .filter((line) => !line.trim().startsWith('--'))
+  .join('\n');
+for (const migration of migrationSql.split(';')) {
   const sql = migration.trim();
   if (!sql) continue;
   try { db.exec(sql); } catch (err) {
-    if (!/duplicate column/i.test(String(err && err.message))) throw err;
+    if (!/duplicate column|no such column/i.test(String(err && err.message))) throw err;
   }
 }
 db.exec('PRAGMA journal_mode = WAL;');
@@ -62,12 +68,6 @@ const core = createCore({
   store,
   env: {
     ADMIN_INVITE_CODE: process.env.ADMIN_INVITE_CODE || '',
-    PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID || '',
-    PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET || '',
-    PAYPAL_MODE: process.env.PAYPAL_MODE || '',
-    PAYPAL_API_BASE: process.env.PAYPAL_API_BASE || '',
-    PAYPAL_REDIRECT_URL: process.env.PAYPAL_REDIRECT_URL || '',
-    PAYOUT_STATUS_TTL_MS: process.env.PAYOUT_STATUS_TTL_MS || '',
   },
 });
 

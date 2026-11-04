@@ -60,8 +60,12 @@ check('a fresh database gets its tables', fresh.ran.some((sql) => /^CREATE TABLE
 check('a fresh database also gets the migration', fresh.ran.some((sql) => /CREATE TABLE IF NOT EXISTS earn_claims/i.test(sql)));
 const schemaSql = readFileSync(resolve(ROOT, 'server/schema.sql'), 'utf8');
 check('the cash-out tables are gone from the schema', !/withdrawals|paypal_links/i.test(schemaSql), schemaSql.slice(0, 120));
-check('the bundle ships no payout module', !readFileSync(resolve(ROOT, 'deploy/worker.js'), 'utf8').includes('payouts.js') && !readFileSync(resolve(ROOT, 'deploy/schema.js'), 'utf8').includes('withdrawals'));
+check('the bundle ships no payout module and never creates those tables', !readFileSync(resolve(ROOT, 'deploy/worker.js'), 'utf8').includes('payouts.js') && !/CREATE TABLE IF NOT EXISTS withdrawals/i.test(readFileSync(resolve(ROOT, 'deploy/schema.js'), 'utf8')));
 check('the migration list is generated into the bundle', readFileSync(resolve(ROOT, 'deploy/schema.js'), 'utf8').includes('MIGRATIONS'));
+const migrationBundle = readFileSync(resolve(ROOT, 'deploy/schema.js'), 'utf8');
+check('the old payout tables are dropped for upgraded databases', /DROP TABLE IF EXISTS withdrawals/.test(migrationBundle) && /DROP TABLE IF EXISTS paypal_links/.test(migrationBundle));
+check('the old PayPal columns are dropped too', ['paypal_email', 'paypal_payer_id', 'paypal_linked_at', 'withdraw_count'].every((c) => new RegExp(`DROP COLUMN ${c}`).test(migrationBundle)));
+check('the cleanup runs for an existing database', upgraded.ran.some((sql) => /DROP TABLE IF EXISTS withdrawals/i.test(sql)), upgraded.ran.join(' | ').slice(0, 200));
 
 console.log(`\n${passed} passed, ${failures.length} failed`);
 if (failures.length) { console.log('\nFailures:'); failures.forEach((f) => console.log(` - ${f}`)); process.exitCode = 1; }

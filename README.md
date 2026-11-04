@@ -3,7 +3,7 @@
 - **The PayPal cash-out feature was removed.** The wallet has no Connect PayPal button, no withdrawal form, no payout history and no review queue; it shows the coin balance and the recent ledger.
 - **The server no longer talks to a payment provider.** `server/payouts.js`, `POST /api/wallet/withdraw`, every `/api/paypal/*` route, the admin payout queue, the CSV export and the payout settings are gone, and no PayPal key is read or needed.
 - **Earning is untouched.** Care, games, quests, gifts and the coin pill work exactly as before; the daily care and game caps still apply.
-- **Old databases keep their old tables.** `withdrawals`, `paypal_links` and the `paypal_*` columns may still exist on a deployment that ran 4.11.0 and earlier; nothing reads them, and new databases are created without them.
+- **Old databases clean themselves up.** The migration drops the `withdrawals` and `paypal_links` tables and the `paypal_*` columns on the next request, so an upgraded database ends up identical to a new one; a column that is already gone is ignored.
 
 ## 4.11.0 Link your own PayPal once and get paid there automatically (current release)
 

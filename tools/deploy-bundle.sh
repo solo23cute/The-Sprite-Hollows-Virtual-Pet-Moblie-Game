@@ -73,7 +73,7 @@ function ensureSchema(env) {
         try {
           await env.DB.prepare(migration).run();
         } catch (err) {
-          if (!/duplicate column/i.test(String((err && err.message) || ''))) throw err;
+          if (!/duplicate column|no such column/i.test(String((err && err.message) || ''))) throw err;
         }
       }
     })().catch((err) => {
